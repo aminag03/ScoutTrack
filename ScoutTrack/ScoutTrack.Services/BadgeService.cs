@@ -3,6 +3,7 @@ using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
+using ScoutTrack.Services.Database.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,8 +67,8 @@ namespace ScoutTrack.Services
                 Name = request.Name,
                 ImageUrl = request.ImageUrl,
                 Description = request.Description,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
 
             _context.Badges.Add(entity);
@@ -95,7 +96,7 @@ namespace ScoutTrack.Services
             entity.Name = request.Name;
             entity.ImageUrl = request.ImageUrl;
             entity.Description = request.Description;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
