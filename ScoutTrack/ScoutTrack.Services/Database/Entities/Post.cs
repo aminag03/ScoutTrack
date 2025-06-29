@@ -23,7 +23,7 @@ namespace ScoutTrack.Services.Database.Entities
 
         [ForeignKey(nameof(CreatedBy))]
         public int CreatedById { get; set; }
-        public User CreatedBy { get; set; } = null!;
+        public UserAccount CreatedBy { get; set; } = null!;
 
         public ICollection<PostImage> Images { get; set; } = new List<PostImage>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();

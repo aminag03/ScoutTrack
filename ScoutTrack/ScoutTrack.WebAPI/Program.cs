@@ -1,11 +1,15 @@
 using ScoutTrack.Services;
 using ScoutTrack.Services.Database;
+using Mapster;
+using MapsterMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddTransient<IBadgeService, BadgeService>();
+builder.Services.AddTransient<ICityService, CityService>();
 
+builder.Services.AddMapster();
 // Configure database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=localhost;Database=220188;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 builder.Services.AddDatabaseServices(connectionString);

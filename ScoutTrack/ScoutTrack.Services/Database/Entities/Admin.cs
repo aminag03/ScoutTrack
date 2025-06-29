@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Database.Entities
 {
-    public class Admin : User
+    public class Admin : UserAccount
     {
         [Required]
         [MaxLength(100)]

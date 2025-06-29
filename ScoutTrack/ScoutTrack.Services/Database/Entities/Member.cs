@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Database.Entities
 {
-    public class Member : User
+    public class Member : UserAccount
     {
         [Required]
         [MaxLength(50)]
@@ -28,6 +28,10 @@ namespace ScoutTrack.Services.Database.Entities
         [ForeignKey(nameof(Troop))]
         public int TroopId { get; set; }
         public Troop Troop { get; set; } = null!;
+
+        [ForeignKey(nameof(City))]
+        public int CityId { get; set; }
+        public City City { get; set; } = null!;
 
         public ICollection<Activity> Activities { get; set; } = new List<Activity>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Database.Entities
 {
-    public class Troop : User
+    public class Troop : UserAccount
     {
         [Required]
         [MaxLength(100)]

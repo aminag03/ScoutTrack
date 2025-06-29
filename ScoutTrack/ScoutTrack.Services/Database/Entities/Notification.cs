@@ -21,7 +21,7 @@ namespace ScoutTrack.Services.Database.Entities
 
         [ForeignKey(nameof(UserAccount))]
         public int UserAccountId { get; set; }
-        public User UserAccount { get; set; } = null!;
+        public UserAccount UserAccount { get; set; } = null!;
 
         public bool IsRead { get; set; } = false;
     }

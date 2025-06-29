@@ -6,12 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
 {
-    public interface IBadgeService
+    public interface IBadgeService : ICRUDService<BadgeResponse, BadgeSearchObject, BadgeUpsertRequest, BadgeUpsertRequest>
     {
-        Task<IEnumerable<BadgeResponse>> GetAsync(BadgeSearchObject search);
-        Task<BadgeResponse?> GetByIdAsync(int id);
-        Task<BadgeResponse> CreateAsync(BadgeUpsertRequest badge);
-        Task<BadgeResponse?> UpdateAsync(int id, BadgeUpsertRequest badge);
-        Task<bool> DeleteAsync(int id);
     }
 }

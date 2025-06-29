@@ -18,5 +18,9 @@ namespace ScoutTrack.Services.Database.Entities
         public string Name { get; set; } = string.Empty;
 
         public List<Troop> Troops { get; set; } = new List<Troop>();
+        public List<Member> Members { get; set; } = new List<Member>();
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

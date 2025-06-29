@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using MapsterMapper;
+using Microsoft.EntityFrameworkCore;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
@@ -12,113 +13,27 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
 {
-    public class BadgeService : IBadgeService
+    public class BadgeService : BaseCRUDService<BadgeResponse, BadgeSearchObject, Badge, BadgeUpsertRequest, BadgeUpsertRequest>, IBadgeService
     {
         private readonly ScoutTrackDbContext _context;
 
-        public BadgeService(ScoutTrackDbContext context)
+        public BadgeService(ScoutTrackDbContext context, IMapper mapper) : base(context, mapper) 
         {
             _context = context;
         }
 
-        public async Task<IEnumerable<BadgeResponse>> GetAsync(BadgeSearchObject search)
+        protected override IQueryable<Badge> ApplyFilter(IQueryable<Badge> query, BadgeSearchObject search)
         {
-            var query = _context.Badges.AsQueryable();
-
             if (!string.IsNullOrEmpty(search.Name))
-                query = query.Where(b => b.Name.Contains(search.Name));
-
-            return await query
-                .Select(b => new BadgeResponse
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    ImageUrl = b.ImageUrl,
-                    Description = b.Description,
-                    CreatedAt = b.CreatedAt,
-                    UpdatedAt = b.UpdatedAt
-                })
-                .ToListAsync();
-        }
-
-        public async Task<BadgeResponse?> GetByIdAsync(int id)
-        {
-            var badge = await _context.Badges.FindAsync(id);
-            if (badge == null) return null;
-
-            return new BadgeResponse
             {
-                Id = badge.Id,
-                Name = badge.Name,
-                ImageUrl = badge.ImageUrl,
-                Description = badge.Description,
-                CreatedAt = badge.CreatedAt,
-                UpdatedAt = badge.UpdatedAt
-            };
-        }
+                query = query.Where(pt => pt.Name.Contains(search.Name));
+            }
 
-        public async Task<BadgeResponse> CreateAsync(BadgeUpsertRequest request)
-        {
-            if (await _context.Badges.AnyAsync(b => b.Name == request.Name))
-                throw new Exception("Badge with this name already exists.");
-
-            var entity = new Badge
+            if (!string.IsNullOrEmpty(search.FTS))
             {
-                Name = request.Name,
-                ImageUrl = request.ImageUrl,
-                Description = request.Description,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            };
-
-            _context.Badges.Add(entity);
-            await _context.SaveChangesAsync();
-
-            return new BadgeResponse
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                ImageUrl = entity.ImageUrl,
-                Description = entity.Description,
-                CreatedAt = entity.CreatedAt,
-                UpdatedAt = entity.UpdatedAt
-            };
-        }
-
-        public async Task<BadgeResponse?> UpdateAsync(int id, BadgeUpsertRequest request)
-        {
-            var entity = await _context.Badges.FindAsync(id);
-            if (entity == null) return null;
-
-            if (await _context.Badges.AnyAsync(b => b.Name == request.Name && b.Id != id))
-                throw new Exception("Another badge with this name already exists.");
-
-            entity.Name = request.Name;
-            entity.ImageUrl = request.ImageUrl;
-            entity.Description = request.Description;
-            entity.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return new BadgeResponse
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                ImageUrl = entity.ImageUrl,
-                Description = entity.Description,
-                CreatedAt = entity.CreatedAt,
-                UpdatedAt = entity.UpdatedAt
-            };
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            var entity = await _context.Badges.FindAsync(id);
-            if (entity == null) return false;
-
-            _context.Badges.Remove(entity);
-            await _context.SaveChangesAsync();
-            return true;
+                query = query.Where(pt => pt.Name.Contains(search.FTS) || pt.Description.Contains(search.FTS));
+            }
+            return query;
         }
     }
 }

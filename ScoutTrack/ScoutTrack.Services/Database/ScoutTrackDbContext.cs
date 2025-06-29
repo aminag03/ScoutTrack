@@ -7,12 +7,6 @@ namespace ScoutTrack.Services.Database
     {
         public ScoutTrackDbContext(DbContextOptions<ScoutTrackDbContext> options) : base(options) { }
 
-        public enum BadgeStatus { NotStarted, InProgress, Completed }
-        public enum FriendshipStatus { Pending, Accepted, Rejected }
-        public enum Gender { Male, Female }
-        public enum RegistrationStatus { Pending, Approved, Rejected, Cancelled, Completed }
-        public enum Role { Member, TroopLeader, Admin }
-
         public virtual DbSet<Badge> Badges { get; set; }
         public virtual DbSet<BadgeRequirement> BadgeRequirements { get; set; }
         public virtual DbSet<Activity> Activities { get; set; }
@@ -34,7 +28,7 @@ namespace ScoutTrack.Services.Database
         public virtual DbSet<Notification> Notifications { get; set; }
         public virtual DbSet<Document> Documents { get; set; }
         public virtual DbSet<Admin> Admins { get; set; }
-        public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<UserAccount> UserAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,7 +42,7 @@ namespace ScoutTrack.Services.Database
                 .HasMany(b => b.Requirements)
                 .WithOne(br => br.Badge)
                 .HasForeignKey(br => br.BadgeId)
-                .OnDelete(DeleteBehavior.Cascade);      
+                .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Badge>()
                 .HasMany(b => b.MemberBadges)
                 .WithOne(mb => mb.Badge)
@@ -64,9 +58,9 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<ActivityType>()
                 .HasIndex(at => at.Name)
                 .IsUnique();
-            modelBuilder.Entity<ActivityType>()
-                .HasMany(at => at.Activities)
-                .WithOne(a => a.ActivityType)
+            modelBuilder.Entity<Activity>()
+                .HasOne(a => a.ActivityType)
+                .WithMany(at => at.Activities)
                 .HasForeignKey(a => a.ActivityTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -88,6 +82,11 @@ namespace ScoutTrack.Services.Database
                 .HasMany(c => c.Troops)
                 .WithOne(t => t.City)
                 .HasForeignKey(t => t.CityId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<City>()
+                .HasMany(c => c.Members)
+                .WithOne(m => m.City)
+                .HasForeignKey(m => m.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Troop
@@ -199,7 +198,7 @@ namespace ScoutTrack.Services.Database
             // Post
             modelBuilder.Entity<Post>()
                 .HasOne(p => p.CreatedBy)
-                .WithMany()
+                .WithMany(u => u.Posts)
                 .HasForeignKey(p => p.CreatedById)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Post>()
@@ -272,24 +271,18 @@ namespace ScoutTrack.Services.Database
             // Notification
             modelBuilder.Entity<Notification>()
                 .HasIndex(n => n.CreatedAt);
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.UserAccount)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Document
             modelBuilder.Entity<Document>()
                 .HasIndex(d => d.Title);
 
-            // User
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.Posts)
-                .WithOne(p => p.CreatedBy)
-                .HasForeignKey(p => p.CreatedById)
-                .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.Notifications)
-                .WithOne(n => n.UserAccount)
-                .HasForeignKey(n => n.UserAccountId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<User>().ToTable("Users");
+            // TPT Inheritance for UserAccount
+            modelBuilder.Entity<UserAccount>().ToTable("UserAccounts");
             modelBuilder.Entity<Member>().ToTable("Members");
             modelBuilder.Entity<Troop>().ToTable("Troops");
             modelBuilder.Entity<Admin>().ToTable("Admins");

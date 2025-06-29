@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Database.Entities
 {
-    public class User
+    public class UserAccount
     {
         [Key]
         public int Id { get; set; }
@@ -25,14 +25,10 @@ namespace ScoutTrack.Services.Database.Entities
 
         public string PasswordHash { get; set; } = string.Empty;
         public string PasswordSalt { get; set; } = string.Empty;
-
-        [ForeignKey(nameof(Role))]
-        public int RoleId { get; set; }
         public Role Role { get; set; }
-
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
 
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
