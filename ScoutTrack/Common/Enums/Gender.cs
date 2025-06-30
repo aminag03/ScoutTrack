@@ -4,12 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScoutTrack.Services.Database.Enums
+namespace ScoutTrack.Common.Enums
 {
-    public enum FriendshipStatus
+    public enum Gender
     {
-        Pending, 
-        Accepted,
-        Rejected
+        Male,
+        Female
     }
 }

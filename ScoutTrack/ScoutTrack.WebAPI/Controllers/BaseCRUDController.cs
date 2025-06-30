@@ -17,21 +17,28 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<T> Create([FromBody] TInsert request)
+        public virtual async Task<IActionResult> Create([FromBody] TInsert request)
         {
-            return await _crudService.CreateAsync(request);
+            var result = await _crudService.CreateAsync(request);
+            return Ok(result);
         }
 
         [HttpPut("{id}")]
-        public async Task<T?> Update(int id, [FromBody] TUpdate request)
+        public virtual async Task<IActionResult> Update(int id, [FromBody] TUpdate request)
         {
-            return await _crudService.UpdateAsync(id, request);
+            var result = await _crudService.UpdateAsync(id, request);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
-        public async Task<bool> Delete(int id)
+        public virtual async Task<IActionResult> Delete(int id)
         {
-            return await _crudService.DeleteAsync(id);
+            var result = await _crudService.DeleteAsync(id);
+            if (!result)
+                return NotFound();
+            return Ok(result);
         }
     }
 }

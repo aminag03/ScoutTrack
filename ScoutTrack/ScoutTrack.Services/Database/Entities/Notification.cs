@@ -17,7 +17,7 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(500)]
         public string Message { get; set; } = string.Empty;
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(UserAccount))]
         public int UserAccountId { get; set; }

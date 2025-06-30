@@ -1,4 +1,4 @@
-﻿using ScoutTrack.Services.Database.Enums;
+﻿using ScoutTrack.Common.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -22,7 +22,7 @@ namespace ScoutTrack.Services.Database.Entities
         public int ResponderId { get; set; }
         public Member Responder { get; set; } = null!;
 
-        public DateTime RequestedAt { get; set; } = DateTime.Now;
+        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
         public DateTime? RespondedAt { get; set; }
         public FriendshipStatus Status { get; set; }
     }

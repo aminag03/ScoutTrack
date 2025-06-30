@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScoutTrack.Services.Database.Enums
+namespace ScoutTrack.Common.Enums
 {
-    public enum Role
+    public enum FriendshipStatus
     {
-        Admin,
-        Troop,
-        Member
+        Pending, 
+        Accepted,
+        Rejected
     }
 }

@@ -1,4 +1,4 @@
-﻿using ScoutTrack.Services.Database.Enums;
+﻿using ScoutTrack.Common.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -13,7 +13,7 @@ namespace ScoutTrack.Services.Database.Entities
     {
         [Key]
         public int Id { get; set; }
-        public DateTime RegisteredAt { get; set; } = DateTime.Now;
+        public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(Activity))]
         public int ActivityId { get; set; }

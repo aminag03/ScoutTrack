@@ -30,7 +30,7 @@ namespace ScoutTrack.Services.Database.Entities
         public double Longitude { get; set; }
 
         public decimal? Fee { get; set; } = 0.0m;
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
         [ForeignKey(nameof(Troop))]

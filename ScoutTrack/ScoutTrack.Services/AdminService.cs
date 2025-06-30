@@ -1,0 +1,89 @@
+using MapsterMapper;
+using Microsoft.EntityFrameworkCore;
+using ScoutTrack.Model.Requests;
+using ScoutTrack.Model.Responses;
+using ScoutTrack.Model.SearchObjects;
+using ScoutTrack.Services.Database;
+using ScoutTrack.Services.Database.Entities;
+using ScoutTrack.Common.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ScoutTrack.Services
+{
+    public class AdminService : BaseCRUDService<AdminResponse, AdminSearchObject, Admin, AdminUpsertRequest, AdminUpsertRequest>, IAdminService
+    {
+        private readonly ScoutTrackDbContext _context;
+
+        public AdminService(ScoutTrackDbContext context, IMapper mapper) : base(context, mapper) 
+        {
+            _context = context;
+        }
+
+        protected override IQueryable<Admin> ApplyFilter(IQueryable<Admin> query, AdminSearchObject search)
+        {
+            if (!string.IsNullOrEmpty(search.Username))
+            {
+                query = query.Where(a => a.Username.Contains(search.Username));
+            }
+
+            if (!string.IsNullOrEmpty(search.Email))
+            {
+                query = query.Where(a => a.Email.Contains(search.Email));
+            }
+
+            if (!string.IsNullOrEmpty(search.FullName))
+            {
+                query = query.Where(a => a.FullName.Contains(search.FullName));
+            }
+
+            if (!string.IsNullOrEmpty(search.FTS))
+            {
+                query = query.Where(a => a.Username.Contains(search.FTS) || 
+                                        a.Email.Contains(search.FTS) || 
+                                        a.FullName.Contains(search.FTS));
+            }
+            return query;
+        }
+
+        protected override async Task BeforeInsert(Admin entity, AdminUpsertRequest request)
+        {
+            entity.Role = Role.Admin;
+            
+            if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username))
+                throw new InvalidOperationException("User with this username already exists.");
+
+            if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email))
+                throw new InvalidOperationException("User with this email already exists.");
+
+            if (string.IsNullOrEmpty(request.Password))
+                throw new InvalidOperationException("Password is required for new admin creation.");
+
+            entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        }
+
+        protected override async Task BeforeUpdate(Admin entity, AdminUpsertRequest request)
+        {
+            if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
+                throw new InvalidOperationException("User with this username already exists.");
+
+            if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email && ua.Id != entity.Id))
+                throw new InvalidOperationException("User with this email already exists.");
+        }
+
+        public async Task ChangePasswordAsync(int adminId, string newPassword)
+        {
+            var admin = await _context.Admins.FindAsync(adminId)
+                ?? throw new KeyNotFoundException("Admin not found.");
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+                throw new ArgumentException("Password is required.");
+
+            admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+        }
+    }
+} 

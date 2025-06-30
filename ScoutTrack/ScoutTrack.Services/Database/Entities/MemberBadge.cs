@@ -1,4 +1,4 @@
-﻿using ScoutTrack.Services.Database.Enums;
+﻿using ScoutTrack.Common.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

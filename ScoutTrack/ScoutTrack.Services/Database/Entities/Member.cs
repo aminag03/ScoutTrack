@@ -1,4 +1,4 @@
-﻿using ScoutTrack.Services.Database.Enums;
+﻿using ScoutTrack.Common.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -23,7 +23,12 @@ namespace ScoutTrack.Services.Database.Entities
         public DateTime BirthDate { get; set; }
 
         public Gender Gender { get; set; }
-        public string? ProfilePictureUrl { get; set; }
+
+        [Phone]
+        [MaxLength(20)]
+        public string ContactPhone { get; set; } = string.Empty;
+
+        public string ProfilePictureUrl { get; set; } = string.Empty;
 
         [ForeignKey(nameof(Troop))]
         public int TroopId { get; set; }

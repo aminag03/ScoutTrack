@@ -29,6 +29,7 @@ namespace ScoutTrack.Services.Database
         public virtual DbSet<Document> Documents { get; set; }
         public virtual DbSet<Admin> Admins { get; set; }
         public virtual DbSet<UserAccount> UserAccounts { get; set; }
+        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,7 +88,7 @@ namespace ScoutTrack.Services.Database
                 .HasMany(c => c.Members)
                 .WithOne(m => m.City)
                 .HasForeignKey(m => m.CityId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             // Troop
             modelBuilder.Entity<Troop>()
@@ -103,7 +104,7 @@ namespace ScoutTrack.Services.Database
                 .HasMany(t => t.Members)
                 .WithOne(m => m.Troop)
                 .HasForeignKey(m => m.TroopId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<Troop>()
                 .HasMany(t => t.Activities)
                 .WithOne(a => a.Troop)
@@ -117,6 +118,16 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<Member>()
                 .HasIndex(m => m.Username)
                 .IsUnique();
+            modelBuilder.Entity<Member>()
+                .HasOne(m => m.City)
+                .WithMany(c => c.Members)
+                .HasForeignKey(m => m.CityId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Member>()
+                .HasOne(m => m.Troop)
+                .WithMany(t => t.Members)
+                .HasForeignKey(m => m.TroopId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Admin
             modelBuilder.Entity<Admin>()
@@ -154,6 +165,10 @@ namespace ScoutTrack.Services.Database
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Activity>()
                 .HasIndex(a => a.Title);
+            modelBuilder.Entity<Activity>()
+                .Property(a => a.Fee)
+                .HasPrecision(10, 2);
+
 
             // ActivityRegistration
             modelBuilder.Entity<ActivityRegistration>()
@@ -286,6 +301,15 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<Member>().ToTable("Members");
             modelBuilder.Entity<Troop>().ToTable("Troops");
             modelBuilder.Entity<Admin>().ToTable("Admins");
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.UserAccount)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(rt => rt.Token)
+                .IsUnique();
         }
     }
 }

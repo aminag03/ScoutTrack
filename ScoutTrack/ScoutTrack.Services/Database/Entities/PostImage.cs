@@ -15,7 +15,7 @@ namespace ScoutTrack.Services.Database.Entities
 
         [Required]
         public string ImageUrl { get; set; } = string.Empty;
-        public DateTime UploadedAt { get; set; } = DateTime.Now;
+        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(Post))]
         public int PostId { get; set; }

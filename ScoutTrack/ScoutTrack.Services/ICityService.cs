@@ -6,12 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
 {
-    public interface ICityService
+    public interface ICityService : ICRUDService<CityResponse, CitySearchObject, CityUpsertRequest, CityUpsertRequest>
     {
-        Task<IEnumerable<CityResponse>> GetAsync(CitySearchObject search);
-        Task<CityResponse?> GetByIdAsync(int id);
-        Task<CityResponse> CreateAsync(CityUpsertRequest city);
-        Task<CityResponse?> UpdateAsync(int id, CityUpsertRequest city);
-        Task<bool> DeleteAsync(int id);
     }
 } 
