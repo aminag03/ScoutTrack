@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ScoutTrack.Model.Exceptions;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.Services
 {
@@ -59,19 +61,16 @@ namespace ScoutTrack.Services
             entity.Role = Role.Troop;
             
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username))
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
 
             if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email))
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
 
             if (await _context.Troops.AnyAsync(t => t.Name == request.Name))
-                throw new InvalidOperationException("Troop with this name already exists.");
+                throw new UserException("Troop with this name already exists.");
 
             if (!await _context.Cities.AnyAsync(c => c.Id == request.CityId))
-                throw new InvalidOperationException($"City with ID {request.CityId} does not exist.");
-
-            if (string.IsNullOrEmpty(request.Password))
-                throw new InvalidOperationException("Password is required for new troop creation.");
+                throw new UserException($"City with ID {request.CityId} does not exist.");
 
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
@@ -79,16 +78,16 @@ namespace ScoutTrack.Services
         protected override async Task BeforeUpdate(Troop entity, TroopUpsertRequest request)
         {
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
 
             if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email && ua.Id != entity.Id))
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
 
             if (await _context.Troops.AnyAsync(t => t.Name == request.Name && t.Id != entity.Id))
-                throw new InvalidOperationException("Troop with this name already exists.");
+                throw new UserException("Troop with this name already exists.");
 
             if (!await _context.Cities.AnyAsync(c => c.Id == request.CityId))
-                throw new InvalidOperationException($"City with ID {request.CityId} does not exist.");
+                throw new UserException($"City with ID {request.CityId} does not exist.");
         }
 
         public async Task ChangePasswordAsync(int troopId, string newPassword)

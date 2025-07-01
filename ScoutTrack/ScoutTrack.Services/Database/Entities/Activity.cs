@@ -29,7 +29,9 @@ namespace ScoutTrack.Services.Database.Entities
         [Required]
         public double Longitude { get; set; }
 
-        public decimal? Fee { get; set; } = 0.0m;
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? Fee { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

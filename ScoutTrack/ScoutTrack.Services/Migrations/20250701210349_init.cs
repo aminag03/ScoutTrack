@@ -244,7 +244,7 @@ namespace ScoutTrack.Services.Migrations
                     EndTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Latitude = table.Column<double>(type: "float", nullable: false),
                     Longitude = table.Column<double>(type: "float", nullable: false),
-                    Fee = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: true),
+                    Fee = table.Column<decimal>(type: "decimal(18,2)", precision: 10, scale: 2, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TroopId = table.Column<int>(type: "int", nullable: false),

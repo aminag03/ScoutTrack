@@ -1,11 +1,12 @@
 using DotNetEnv;
 using Mapster;
-using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ScoutTrack.Services;
 using ScoutTrack.Services.Database;
+using ScoutTrack.Services.Interfaces;
+using ScoutTrack.WebAPI.Filters;
 using System.Text;
 
 Env.Load(@"../.env");
@@ -26,7 +27,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDatabaseServices(connectionString);
 
 // JWT Authentication
-// Prefer environment variables, fallback to appsettings
 string jwtKey = Environment.GetEnvironmentVariable("JWT__KEY") ?? builder.Configuration["Jwt:Key"] ?? "";
 string jwtIssuer = Environment.GetEnvironmentVariable("JWT__ISSUER") ?? builder.Configuration["Jwt:Issuer"] ?? "";
 string jwtAudience = Environment.GetEnvironmentVariable("JWT__AUDIENCE") ?? builder.Configuration["Jwt:Audience"] ?? "";
@@ -50,11 +50,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers( x =>
+    {
+        x.Filters.Add<ExceptionFilter>();
+    }
+);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Sapica.API", Version = "v1" });

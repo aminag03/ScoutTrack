@@ -2,30 +2,28 @@ using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
-using ScoutTrack.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    [Authorize(Roles = "Admin,Troop,Member")]
     public class MemberController : BaseCRUDController<MemberResponse, MemberSearchObject, MemberUpsertRequest, MemberUpsertRequest>
     {
-        public MemberController(IMemberService memberService) : base(memberService)
+        private readonly IAuthService _authService;
+        public MemberController(IMemberService memberService, IAuthService authService) : base(memberService)
         {
+            _authService = authService;
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin,Troop")]
         public override async Task<IActionResult> Create([FromBody] MemberUpsertRequest request)
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            if (userRole == "Troop")
+            if (_authService.IsInRole(User, "Troop"))
             {
-                var troopIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (troopIdClaim == null || int.Parse(troopIdClaim) != request.TroopId)
+                if (!await _authService.CanTroopAccessMember(User, request.TroopId))
                 {
                     return Forbid();
                 }
@@ -34,22 +32,18 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Troop,Member")]
         public override async Task<IActionResult> Update(int id, [FromBody] MemberUpsertRequest request)
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userRole == "Troop")
+            if (_authService.IsInRole(User, "Troop"))
             {
-                var troopIdClaim = userIdClaim;
-                if (troopIdClaim == null || int.Parse(troopIdClaim) != request.TroopId)
+                if (!await _authService.CanTroopAccessMember(User, request.TroopId))
                 {
                     return Forbid();
                 }
             }
-            if (userRole == "Member")
+            if (_authService.IsInRole(User, "Member"))
             {
-                if (userIdClaim == null || int.Parse(userIdClaim) != id)
+                if (_authService.GetUserId(User) != id)
                 {
                     return Forbid();
                 }
@@ -58,23 +52,19 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Troop,Member")]
         public override async Task<IActionResult> Delete(int id)
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userRole == "Troop")
+            if (_authService.IsInRole(User, "Troop"))
             {
                 var member = await _service.GetByIdAsync(id);
-                var troopIdClaim = userIdClaim;
-                if (troopIdClaim == null || member == null || int.Parse(troopIdClaim) != member.TroopId)
+                if (member == null || !await _authService.CanTroopAccessMember(User, member.TroopId))
                 {
                     return Forbid();
                 }
             }
-            if (userRole == "Member")
+            if (_authService.IsInRole(User, "Member"))
             {
-                if (userIdClaim == null || int.Parse(userIdClaim) != id)
+                if (_authService.GetUserId(User) != id)
                 {
                     return Forbid();
                 }

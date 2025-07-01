@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
+using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;

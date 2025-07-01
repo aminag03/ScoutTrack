@@ -88,7 +88,7 @@ namespace ScoutTrack.Services.Database
                 .HasMany(c => c.Members)
                 .WithOne(m => m.City)
                 .HasForeignKey(m => m.CityId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Troop
             modelBuilder.Entity<Troop>()

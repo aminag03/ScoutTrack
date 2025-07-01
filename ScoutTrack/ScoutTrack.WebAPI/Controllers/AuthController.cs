@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Requests;
-using ScoutTrack.Services;
+using ScoutTrack.Services.Interfaces;
 using System.Security.Claims;
 
 namespace ScoutTrack.WebAPI.Controllers
@@ -16,8 +16,8 @@ namespace ScoutTrack.WebAPI.Controllers
             _authService = authService;
         }
 
-        [AllowAnonymous]
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
@@ -32,6 +32,7 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPost("refresh")]
+        [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
             try
@@ -45,7 +46,6 @@ namespace ScoutTrack.WebAPI.Controllers
             }
         }
 
-        [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {

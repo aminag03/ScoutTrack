@@ -12,7 +12,7 @@ using ScoutTrack.Services.Database;
 namespace ScoutTrack.Services.Migrations
 {
     [DbContext(typeof(ScoutTrackDbContext))]
-    [Migration("20250630194946_init")]
+    [Migration("20250701210349_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.Property<decimal?>("Fee")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("float");

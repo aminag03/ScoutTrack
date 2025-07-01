@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Linq;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.Services
 {
@@ -170,6 +171,33 @@ namespace ScoutTrack.Services
                 .Where(rt => rt.UserAccountId == userId && (rt.IsRevoked || rt.ExpiresAt < now));
             _context.RefreshTokens.RemoveRange(oldTokens);
             await _context.SaveChangesAsync();
+        }
+
+        public string GetUserRole(ClaimsPrincipal user)
+        {
+            return user?.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
+        public int? GetUserId(ClaimsPrincipal user)
+        {
+            var idClaim = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out var id))
+                return id;
+            return null;
+        }
+
+        public bool IsInRole(ClaimsPrincipal user, string role)
+        {
+            return GetUserRole(user) == role;
+        }
+
+        public async Task<bool> CanTroopAccessMember(ClaimsPrincipal user, int memberId)
+        {
+            if (!IsInRole(user, "Troop")) return false;
+            var troopId = GetUserId(user);
+            if (troopId == null) return false;
+            var member = await _context.Members.FindAsync(memberId);
+            return member != null && member.TroopId == troopId;
         }
     }
 } 

@@ -4,9 +4,9 @@ using ScoutTrack.Model.SearchObjects;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace ScoutTrack.Services
+namespace ScoutTrack.Services.Interfaces
 {
-    public interface ITroopService : ICRUDService<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
+    public interface ICityService : ICRUDService<CityResponse, CitySearchObject, CityUpsertRequest, CityUpsertRequest>
     {
     }
 } 

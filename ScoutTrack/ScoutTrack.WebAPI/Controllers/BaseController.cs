@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
-using ScoutTrack.Services;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize]
     public class BaseController<T, TSearch> : ControllerBase where T : class where TSearch : BaseSearchObject, new()
     {
         protected readonly IService<T, TSearch> _service;

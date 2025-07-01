@@ -2,26 +2,25 @@ using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
-using ScoutTrack.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    [Authorize(Roles = "Admin,Troop,Member")]
     public class TroopController : BaseCRUDController<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
     {
-        public TroopController(ITroopService troopService) : base(troopService)
+        private readonly IAuthService _authService;
+        public TroopController(ITroopService troopService, IAuthService authService) : base(troopService)
         {
+            _authService = authService;
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public override async Task<IActionResult> Create([FromBody] TroopUpsertRequest request)
         {
-            // Only Admin can create, so no need for custom logic
             return await base.Create(request);
         }
 
@@ -29,11 +28,9 @@ namespace ScoutTrack.WebAPI.Controllers
         [Authorize(Roles = "Admin,Troop")]
         public override async Task<IActionResult> Update(int id, [FromBody] TroopUpsertRequest request)
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            if (userRole == "Troop")
+            if (_authService.IsInRole(User, "Troop"))
             {
-                var troopIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (troopIdClaim == null || int.Parse(troopIdClaim) != id)
+                if (_authService.GetUserId(User) != id)
                 {
                     return Forbid();
                 }
@@ -45,11 +42,9 @@ namespace ScoutTrack.WebAPI.Controllers
         [Authorize(Roles = "Admin,Troop")]
         public override async Task<IActionResult> Delete(int id)
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            if (userRole == "Troop")
+            if (_authService.IsInRole(User, "Troop"))
             {
-                var troopIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (troopIdClaim == null || int.Parse(troopIdClaim) != id)
+                if (_authService.GetUserId(User) != id)
                 {
                     return Forbid();
                 }

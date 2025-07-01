@@ -61,7 +61,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.Property<decimal?>("Fee")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
