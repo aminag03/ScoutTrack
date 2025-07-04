@@ -12,9 +12,11 @@ namespace ScoutTrack.WebAPI.Controllers
     public class MemberController : BaseCRUDController<MemberResponse, MemberSearchObject, MemberUpsertRequest, MemberUpsertRequest>
     {
         private readonly IAuthService _authService;
-        public MemberController(IMemberService memberService, IAuthService authService) : base(memberService)
+        private readonly IAccessControlService _accessControlService;
+        public MemberController(IMemberService memberService, IAuthService authService, IAccessControlService accessControlService) : base(memberService)
         {
             _authService = authService;
+            _accessControlService = accessControlService;
         }
 
         [HttpPost]
@@ -23,7 +25,7 @@ namespace ScoutTrack.WebAPI.Controllers
         {
             if (_authService.IsInRole(User, "Troop"))
             {
-                if (!await _authService.CanTroopAccessMember(User, request.TroopId))
+                if (_authService.GetUserId(User) != request.TroopId)
                 {
                     return Forbid();
                 }
@@ -36,7 +38,8 @@ namespace ScoutTrack.WebAPI.Controllers
         {
             if (_authService.IsInRole(User, "Troop"))
             {
-                if (!await _authService.CanTroopAccessMember(User, request.TroopId))
+                var member = await _service.GetByIdAsync(id);
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.TroopId))
                 {
                     return Forbid();
                 }
@@ -51,13 +54,14 @@ namespace ScoutTrack.WebAPI.Controllers
             return await base.Update(id, request);
         }
 
+
         [HttpDelete("{id}")]
         public override async Task<IActionResult> Delete(int id)
         {
             if (_authService.IsInRole(User, "Troop"))
             {
                 var member = await _service.GetByIdAsync(id);
-                if (member == null || !await _authService.CanTroopAccessMember(User, member.TroopId))
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.TroopId))
                 {
                     return Forbid();
                 }
@@ -71,5 +75,6 @@ namespace ScoutTrack.WebAPI.Controllers
             }
             return await base.Delete(id);
         }
+
     }
 } 

@@ -310,6 +310,8 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<RefreshToken>()
                 .HasIndex(rt => rt.Token)
                 .IsUnique();
+
+            DataSeed.Seed(modelBuilder);
         }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScoutTrack.Services.Database;
 
@@ -11,9 +12,11 @@ using ScoutTrack.Services.Database;
 namespace ScoutTrack.Services.Migrations
 {
     [DbContext(typeof(ScoutTrackDbContext))]
-    partial class ScoutTrackDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250701212311_init")]
+    partial class init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,11 +47,6 @@ namespace ScoutTrack.Services.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ActivityState")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("ActivityTypeId")
                         .HasColumnType("int");
@@ -239,7 +237,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 971, DateTimeKind.Utc).AddTicks(9491),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4980),
                             Description = "Basic first aid skills",
                             ImageUrl = "",
                             Name = "First Aid"
@@ -247,7 +245,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 971, DateTimeKind.Utc).AddTicks(9519),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4994),
                             Description = "Learn how to safely handle fire",
                             ImageUrl = "",
                             Name = "Fire Safety"
@@ -255,7 +253,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 971, DateTimeKind.Utc).AddTicks(9521),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4996),
                             Description = "Orientation and map skills",
                             ImageUrl = "",
                             Name = "Map Reading"
@@ -322,643 +320,643 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6268),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(151),
                             Name = "Banovići"
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6277),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(167),
                             Name = "Banja Luka"
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6290),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(168),
                             Name = "Bihać"
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6291),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(169),
                             Name = "Bijeljina"
                         },
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6292),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(170),
                             Name = "Bileća"
                         },
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6296),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(173),
                             Name = "Bosanski Brod"
                         },
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6297),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(174),
                             Name = "Bosanska Dubica"
                         },
                         new
                         {
                             Id = 8,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6298),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(175),
                             Name = "Bosanska Gradiška"
                         },
                         new
                         {
                             Id = 9,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6299),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(176),
                             Name = "Bosansko Grahovo"
                         },
                         new
                         {
                             Id = 10,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6301),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(178),
                             Name = "Bosanska Krupa"
                         },
                         new
                         {
                             Id = 11,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6302),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(178),
                             Name = "Bosanski Novi"
                         },
                         new
                         {
                             Id = 12,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6303),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(179),
                             Name = "Bosanski Petrovac"
                         },
                         new
                         {
                             Id = 13,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6304),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(180),
                             Name = "Bosanski Šamac"
                         },
                         new
                         {
                             Id = 14,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6305),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(181),
                             Name = "Bratunac"
                         },
                         new
                         {
                             Id = 15,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6305),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(182),
                             Name = "Brčko"
                         },
                         new
                         {
                             Id = 16,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6306),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(183),
                             Name = "Breza"
                         },
                         new
                         {
                             Id = 17,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6307),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(184),
                             Name = "Bugojno"
                         },
                         new
                         {
                             Id = 18,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6314),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(189),
                             Name = "Busovača"
                         },
                         new
                         {
                             Id = 19,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6315),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(190),
                             Name = "Bužim"
                         },
                         new
                         {
                             Id = 20,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6316),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(201),
                             Name = "Cazin"
                         },
                         new
                         {
                             Id = 21,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6317),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(202),
                             Name = "Čajniče"
                         },
                         new
                         {
                             Id = 22,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6318),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(203),
                             Name = "Čapljina"
                         },
                         new
                         {
                             Id = 23,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6319),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(205),
                             Name = "Čelić"
                         },
                         new
                         {
                             Id = 24,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6320),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(206),
                             Name = "Čelinac"
                         },
                         new
                         {
                             Id = 25,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6321),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(207),
                             Name = "Čitluk"
                         },
                         new
                         {
                             Id = 26,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6322),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(208),
                             Name = "Derventa"
                         },
                         new
                         {
                             Id = 27,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6323),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(209),
                             Name = "Doboj"
                         },
                         new
                         {
                             Id = 28,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6324),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(210),
                             Name = "Donji Vakuf"
                         },
                         new
                         {
                             Id = 29,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6325),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(211),
                             Name = "Drvar"
                         },
                         new
                         {
                             Id = 30,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6326),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(212),
                             Name = "Foča"
                         },
                         new
                         {
                             Id = 31,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6326),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(213),
                             Name = "Fojnica"
                         },
                         new
                         {
                             Id = 32,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6327),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(214),
                             Name = "Gacko"
                         },
                         new
                         {
                             Id = 33,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6328),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(215),
                             Name = "Glamoč"
                         },
                         new
                         {
                             Id = 34,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6331),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(217),
                             Name = "Goražde"
                         },
                         new
                         {
                             Id = 35,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6331),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(217),
                             Name = "Gornji Vakuf"
                         },
                         new
                         {
                             Id = 36,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6332),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(218),
                             Name = "Gračanica"
                         },
                         new
                         {
                             Id = 37,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6333),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(219),
                             Name = "Gradačac"
                         },
                         new
                         {
                             Id = 38,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6334),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(220),
                             Name = "Grude"
                         },
                         new
                         {
                             Id = 39,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6335),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(221),
                             Name = "Hadžići"
                         },
                         new
                         {
                             Id = 40,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6336),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(222),
                             Name = "Han-Pijesak"
                         },
                         new
                         {
                             Id = 41,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6337),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(222),
                             Name = "Hlivno"
                         },
                         new
                         {
                             Id = 42,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6338),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(224),
                             Name = "Ilijaš"
                         },
                         new
                         {
                             Id = 43,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6339),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(224),
                             Name = "Jablanica"
                         },
                         new
                         {
                             Id = 44,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6340),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(225),
                             Name = "Jajce"
                         },
                         new
                         {
                             Id = 45,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6341),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(226),
                             Name = "Kakanj"
                         },
                         new
                         {
                             Id = 46,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6341),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(227),
                             Name = "Kalesija"
                         },
                         new
                         {
                             Id = 47,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6342),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(228),
                             Name = "Kalinovik"
                         },
                         new
                         {
                             Id = 48,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6343),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(229),
                             Name = "Kiseljak"
                         },
                         new
                         {
                             Id = 49,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6344),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(229),
                             Name = "Kladanj"
                         },
                         new
                         {
                             Id = 50,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6345),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(230),
                             Name = "Ključ"
                         },
                         new
                         {
                             Id = 51,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6346),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(231),
                             Name = "Konjic"
                         },
                         new
                         {
                             Id = 52,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6347),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(232),
                             Name = "Kotor-Varoš"
                         },
                         new
                         {
                             Id = 53,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6348),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(233),
                             Name = "Kreševo"
                         },
                         new
                         {
                             Id = 54,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6348),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(234),
                             Name = "Kupres"
                         },
                         new
                         {
                             Id = 55,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6358),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(234),
                             Name = "Laktaši"
                         },
                         new
                         {
                             Id = 56,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6360),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(235),
                             Name = "Lopare"
                         },
                         new
                         {
                             Id = 57,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6361),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(236),
                             Name = "Lukavac"
                         },
                         new
                         {
                             Id = 58,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6362),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(237),
                             Name = "Ljubinje"
                         },
                         new
                         {
                             Id = 59,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6363),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(238),
                             Name = "Ljubuški"
                         },
                         new
                         {
                             Id = 60,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6364),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(239),
                             Name = "Maglaj"
                         },
                         new
                         {
                             Id = 61,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6365),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(240),
                             Name = "Modriča"
                         },
                         new
                         {
                             Id = 62,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6365),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(240),
                             Name = "Mostar"
                         },
                         new
                         {
                             Id = 63,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6366),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(241),
                             Name = "Mrkonjić-Grad"
                         },
                         new
                         {
                             Id = 64,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6367),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(242),
                             Name = "Neum"
                         },
                         new
                         {
                             Id = 65,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6368),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(243),
                             Name = "Nevesinje"
                         },
                         new
                         {
                             Id = 66,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6370),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(245),
                             Name = "Novi Travnik"
                         },
                         new
                         {
                             Id = 67,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6372),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(246),
                             Name = "Odžak"
                         },
                         new
                         {
                             Id = 68,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6373),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(247),
                             Name = "Olovo"
                         },
                         new
                         {
                             Id = 69,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6373),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(254),
                             Name = "Orašje"
                         },
                         new
                         {
                             Id = 70,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6374),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(255),
                             Name = "Pale"
                         },
                         new
                         {
                             Id = 71,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6375),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(256),
                             Name = "Posušje"
                         },
                         new
                         {
                             Id = 72,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6376),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(256),
                             Name = "Prijedor"
                         },
                         new
                         {
                             Id = 73,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6377),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(257),
                             Name = "Prnjavor"
                         },
                         new
                         {
                             Id = 74,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6378),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(258),
                             Name = "Prozor"
                         },
                         new
                         {
                             Id = 75,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6379),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(259),
                             Name = "Rogatica"
                         },
                         new
                         {
                             Id = 76,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6380),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(260),
                             Name = "Rudo"
                         },
                         new
                         {
                             Id = 77,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6380),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(261),
                             Name = "Sanski Most"
                         },
                         new
                         {
                             Id = 78,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6381),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(261),
                             Name = "Sarajevo"
                         },
                         new
                         {
                             Id = 79,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6382),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(262),
                             Name = "Skender-Vakuf"
                         },
                         new
                         {
                             Id = 80,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6383),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(263),
                             Name = "Sokolac"
                         },
                         new
                         {
                             Id = 81,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6384),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(264),
                             Name = "Srbac"
                         },
                         new
                         {
                             Id = 82,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6385),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(265),
                             Name = "Srebrenica"
                         },
                         new
                         {
                             Id = 83,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6386),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(265),
                             Name = "Srebrenik"
                         },
                         new
                         {
                             Id = 84,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6386),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(266),
                             Name = "Stolac"
                         },
                         new
                         {
                             Id = 85,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6387),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(267),
                             Name = "Šekovići"
                         },
                         new
                         {
                             Id = 86,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6388),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(268),
                             Name = "Šipovo"
                         },
                         new
                         {
                             Id = 87,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6389),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(269),
                             Name = "Široki Brijeg"
                         },
                         new
                         {
                             Id = 88,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6390),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(270),
                             Name = "Teslić"
                         },
                         new
                         {
                             Id = 89,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6391),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(270),
                             Name = "Tešanj"
                         },
                         new
                         {
                             Id = 90,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6392),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(271),
                             Name = "Tomislav-Grad"
                         },
                         new
                         {
                             Id = 91,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6392),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(272),
                             Name = "Travnik"
                         },
                         new
                         {
                             Id = 92,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6394),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(273),
                             Name = "Trebinje"
                         },
                         new
                         {
                             Id = 93,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6394),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(274),
                             Name = "Trnovo"
                         },
                         new
                         {
                             Id = 94,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6396),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(275),
                             Name = "Tuzla"
                         },
                         new
                         {
                             Id = 95,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6397),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(275),
                             Name = "Ugljevik"
                         },
                         new
                         {
                             Id = 96,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6397),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(276),
                             Name = "Vareš"
                         },
                         new
                         {
                             Id = 97,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6398),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(277),
                             Name = "Velika Kladuša"
                         },
                         new
                         {
                             Id = 98,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6399),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(278),
                             Name = "Visoko"
                         },
                         new
                         {
                             Id = 99,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6400),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(279),
                             Name = "Višegrad"
                         },
                         new
                         {
                             Id = 100,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6401),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(280),
                             Name = "Vitez"
                         },
                         new
                         {
                             Id = 101,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6402),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(281),
                             Name = "Vlasenica"
                         },
                         new
                         {
                             Id = 102,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6403),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(281),
                             Name = "Zavidovići"
                         },
                         new
                         {
                             Id = 103,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6404),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(282),
                             Name = "Zenica"
                         },
                         new
                         {
                             Id = 104,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6404),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(283),
                             Name = "Zvornik"
                         },
                         new
                         {
                             Id = 105,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6405),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(284),
                             Name = "Žepa"
                         },
                         new
                         {
                             Id = 106,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6406),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(285),
                             Name = "Žepče"
                         },
                         new
                         {
                             Id = 107,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 358, DateTimeKind.Utc).AddTicks(6407),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(285),
                             Name = "Živinice"
                         });
                 });
@@ -1420,10 +1418,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 506, DateTimeKind.Utc).AddTicks(1964),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 560, DateTimeKind.Utc).AddTicks(4740),
                             Email = "admin@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$B3UCayAvm0q2bz4PE64lB.aeuMIxtOOW.zCUhNlVjfppqtit9Gd9e",
+                            PasswordHash = "$2a$11$m/H5WvK1f/mdWm4EHXCxo.LXpL84P0290VRdkn4nKaGTHDbyuctfa",
                             Role = 0,
                             Username = "admin",
                             FullName = ""
@@ -1481,10 +1479,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 971, DateTimeKind.Utc).AddTicks(9590),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(5062),
                             Email = "scout1@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$kCOeNJ2CaTLSQt0V0bk4lOtPdnPZvS6p5lXp5W0p39INVq6lVLlSm",
+                            PasswordHash = "$2a$11$3wngNDujunTqbZ3Vor7uTOT.k.2TU6XjJudtZuik1HMfHujl9kIIO",
                             Role = 2,
                             Username = "scout1",
                             BirthDate = new DateTime(2005, 5, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1499,10 +1497,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 37, 121, DateTimeKind.Utc).AddTicks(3818),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 10, 257, DateTimeKind.Utc).AddTicks(2627),
                             Email = "scout2@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$wP9okmW1twqvdFqSUZELV.hkmlUsZSnruzccnixmAOjavgxjnY8cm",
+                            PasswordHash = "$2a$11$2Rl3vJiguygWxhzcIh1LwesgnZP/tOnYlG7pN1V1iSC9/tBRDoU/q",
                             Role = 2,
                             Username = "scout2",
                             BirthDate = new DateTime(2003, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1561,10 +1559,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 506, DateTimeKind.Utc).AddTicks(2754),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 560, DateTimeKind.Utc).AddTicks(6920),
                             Email = "troopbl@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$cvyOYyPlHGYbzBI1bZIhzOx/blh3YMJGwxQcf/YgW6.LxssERipTq",
+                            PasswordHash = "$2a$11$w5mNtaFCn32T4f1acYb6d.IzK6cm0xArecXVX/OGgl97sOJ8LojdG",
                             Role = 1,
                             Username = "troopbl",
                             CityId = 2,
@@ -1577,10 +1575,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 670, DateTimeKind.Utc).AddTicks(3217),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 744, DateTimeKind.Utc).AddTicks(217),
                             Email = "troopsarajevo@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$r967Lz7OCUAt5ITui4wpUeINX29GOj8dCjXqZh.9gXyk8yAjo84G2",
+                            PasswordHash = "$2a$11$BmSHU1rZZakPN3ufcTae0e6h0oDPOPxpo0NC31mgLTMA4390H8YlO",
                             Role = 1,
                             Username = "troopsarajevo",
                             CityId = 76,
@@ -1593,10 +1591,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 7, 3, 22, 38, 36, 823, DateTimeKind.Utc).AddTicks(3674),
+                            CreatedAt = new DateTime(2025, 7, 1, 21, 23, 9, 908, DateTimeKind.Utc).AddTicks(2914),
                             Email = "troopmostar@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$G2ZgoKLq9nojGZXjPFwwRuBS1gDgwiWWMOdTUp1iFRTO2nHBnK/7.",
+                            PasswordHash = "$2a$11$jnsvenNpZJD5GDAMpuqcbuSmeHcy1NJMK.3GsiwI9VD3WAOq7yJKm",
                             Role = 1,
                             Username = "troopmostar",
                             CityId = 63,

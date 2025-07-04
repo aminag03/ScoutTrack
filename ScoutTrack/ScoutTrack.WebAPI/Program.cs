@@ -6,6 +6,8 @@ using Microsoft.OpenApi.Models;
 using ScoutTrack.Services;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Interfaces;
+using ScoutTrack.Services.Services;
+using ScoutTrack.Services.Services.ActivityStateMachine;
 using ScoutTrack.WebAPI.Filters;
 using System.Text;
 
@@ -19,7 +21,16 @@ builder.Services.AddTransient<ICityService, CityService>();
 builder.Services.AddTransient<IAdminService, AdminService>();
 builder.Services.AddTransient<ITroopService, TroopService>();
 builder.Services.AddTransient<IMemberService, MemberService>();
+builder.Services.AddTransient<IActivityTypeService, ActivityTypeService>();
+builder.Services.AddTransient<IActivityService, ActivityService>();
 builder.Services.AddTransient<IAuthService, AuthService>();
+builder.Services.AddTransient<IAccessControlService, AccessControlService>();
+builder.Services.AddTransient<BaseActivityState>();
+builder.Services.AddTransient<InitialActivityState>();
+builder.Services.AddTransient<DraftActivityState>();
+builder.Services.AddTransient<ActiveActivityState>();
+builder.Services.AddTransient<DeactivatedActivityState>();
+
 
 builder.Services.AddMapster();
 // Configure database

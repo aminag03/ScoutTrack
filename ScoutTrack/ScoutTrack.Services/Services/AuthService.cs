@@ -199,5 +199,11 @@ namespace ScoutTrack.Services
             var member = await _context.Members.FindAsync(memberId);
             return member != null && member.TroopId == troopId;
         }
+
+        public async Task<bool> CanTroopAccessActivity(int activityId, int troopId)
+        {
+            var activity = await _context.Activities.FindAsync(activityId);
+            return activity != null && activity.TroopId == troopId;
+        }
     }
 } 

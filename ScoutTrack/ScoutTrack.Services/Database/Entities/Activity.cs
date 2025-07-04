@@ -48,5 +48,8 @@ namespace ScoutTrack.Services.Database.Entities
         public ICollection<Post> Posts { get; set; } = new List<Post>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<ActivityEquipment> EquipmentList { get; set; } = new List<ActivityEquipment>();
+
+        [MaxLength(1000)]
+        public string ActivityState { get; set; } = string.Empty;
     }
 }

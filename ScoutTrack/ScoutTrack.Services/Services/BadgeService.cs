@@ -1,5 +1,6 @@
 ﻿using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
@@ -40,13 +41,13 @@ namespace ScoutTrack.Services
         protected override async Task BeforeInsert(Badge entity, BadgeUpsertRequest request)
         {
             if (await _context.Badges.AnyAsync(b => b.Name == request.Name))
-                throw new System.Exception("Badge with this name already exists.");
+                throw new UserException("Badge with this name already exists.");
         }
 
         protected override async Task BeforeUpdate(Badge entity, BadgeUpsertRequest request)
         {
             if (await _context.Badges.AnyAsync(b => b.Name == request.Name && b.Id != entity.Id))
-                throw new System.Exception("Badge with this name already exists.");
+                throw new UserException("Badge with this name already exists.");
         }
     }
 }

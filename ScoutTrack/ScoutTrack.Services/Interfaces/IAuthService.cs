@@ -13,5 +13,6 @@ namespace ScoutTrack.Services.Interfaces
         int? GetUserId(System.Security.Claims.ClaimsPrincipal user);
         bool IsInRole(System.Security.Claims.ClaimsPrincipal user, string role);
         Task<bool> CanTroopAccessMember(System.Security.Claims.ClaimsPrincipal user, int memberId);
+        Task<bool> CanTroopAccessActivity(int activityId, int troopId);
     }
 } 

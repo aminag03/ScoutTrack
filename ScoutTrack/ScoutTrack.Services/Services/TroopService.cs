@@ -104,12 +104,10 @@ namespace ScoutTrack.Services
 
         public override async Task<bool> DeleteAsync(int id)
         {
-            // Delete all members with this TroopId
             var members = _context.Members.Where(m => m.TroopId == id);
             _context.Members.RemoveRange(members);
             await _context.SaveChangesAsync();
 
-            // Now delete the troop
             return await base.DeleteAsync(id);
         }
     }
