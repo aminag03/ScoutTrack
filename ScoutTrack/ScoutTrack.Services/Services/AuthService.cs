@@ -60,7 +60,7 @@ namespace ScoutTrack.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
             var refreshToken = GenerateRefreshToken();
-            var refreshTokenEntity = new Database.Entities.RefreshToken
+            var refreshTokenEntity = new RefreshToken
             {
                 Token = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
@@ -114,7 +114,7 @@ namespace ScoutTrack.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
             };
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -131,7 +131,7 @@ namespace ScoutTrack.Services
 
             // Issue a new refresh token
             var newRefreshToken = GenerateRefreshToken();
-            var newRefreshTokenEntity = new Database.Entities.RefreshToken
+            var newRefreshTokenEntity = new RefreshToken
             {
                 Token = newRefreshToken,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
