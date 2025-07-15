@@ -1,177 +1,204 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:scouttrack_desktop/models/search_result.dart';
+import 'package:scouttrack_desktop/providers/auth_provider.dart';
 
 abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   static String? _baseUrl;
-  final FlutterSecureStorage storage = const FlutterSecureStorage();
-  String _endpoint = "";
+  final AuthProvider authProvider;
+  final String _endpoint;
 
-  BaseProvider(String endpoint) {
-    _endpoint = endpoint;
-    _baseUrl = const String.fromEnvironment("baseUrl",
-        defaultValue: "http://localhost:5164/");
+  BaseProvider(this.authProvider, this._endpoint) {
+    _baseUrl = const String.fromEnvironment(
+      "baseUrl",
+      defaultValue: "http://localhost:5164/",
+    );
   }
 
-  Future<void> saveToken(String token) async {
-    await storage.write(key: 'jwt_token', value: token);
-  }
+  Future<SearchResult<T>> get({dynamic filter}) async {
+    var url = "$_baseUrl$_endpoint";
+    filter ??= {};
+    filter['includeTotalCount'] = true;
+    var queryString = getQueryString(filter);
+    url = "$url?$queryString";
 
-  Future<String?> getToken() async {
-    return await storage.read(key: 'jwt_token');
-  }
+    return await _handleWithRefresh(() async {
+      final headers = await createHeaders();
+      final response = await http.get(Uri.parse(url), headers: headers);
 
-  Future<void> clearToken() async {
-    await storage.delete(key: 'jwt_token');
-  }
-
-  Future<Map<String, String>> createHeaders() async {
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json; charset=UTF-8',
-    };
-    final String? token = await getToken();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
-  }
-
-  Future<List<T>> getAll({
-    String customEndpoint = '',
-    Map<String, dynamic>? filter,
-    required T Function(Map<String, dynamic>) fromJson,
-  }) async {
-    try {
-      String queryString =
-          filter != null ? Uri(queryParameters: filter).query : '';
-      String url =
-          '$baseUrl/$endpoint${customEndpoint.isNotEmpty ? '/$customEndpoint' : ''}${queryString.isNotEmpty ? '?$queryString' : ''}';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: await createHeaders(),
-      );
-      if (response.statusCode == 200) {
+      if (isValidResponse(response)) {
         final data = jsonDecode(response.body);
-        if (data is List) {
-          return data.map<T>((item) => fromJson(item)).toList();
-        } else if (data is Map && data['result'] is List) {
-          return (data['result'] as List).map<T>((item) => fromJson(item)).toList();
-        } else {
-          throw Exception('Unexpected response format');
-        }
+        return SearchResult<T>(
+          totalCount: data['totalCount'],
+          items: List<T>.from(data['items'].map((e) => fromJson(e))),
+        );
       } else {
-        handleHttpError(response);
-        throw Exception('Unhandled HTTP error');
+        throw Exception("Unknown error");
       }
-    } catch (e) {
-      rethrow;
-    }
+    });
   }
 
-  Future<T> getById(int id, {required T Function(Map<String, dynamic>) fromJson}) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/$endpoint/$id'),
-        headers: await createHeaders(),
+  Future<T> insert(dynamic request) async {
+    return await _handleWithRefresh(() async {
+      final headers = await createHeaders();
+      final response = await http.post(
+        Uri.parse("$_baseUrl$_endpoint"),
+        headers: headers,
+        body: jsonEncode(request),
       );
-      if (response.statusCode == 200) {
+
+      if (isValidResponse(response)) {
         final data = jsonDecode(response.body);
         return fromJson(data);
       } else {
-        handleHttpError(response);
-        throw Exception('Unhandled HTTP error');
+        throw Exception("Unknown error");
       }
-    } catch (e) {
-      rethrow;
-    }
+    });
   }
 
-  Future<void> insert(TInsertUpdate item, {required Map<String, dynamic> Function(TInsertUpdate) toJson}) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/$endpoint'),
-        headers: await createHeaders(),
-        body: jsonEncode(toJson(item)),
-      );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        notifyListeners();
-      } else {
-        handleHttpError(response);
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> update(int id, TInsertUpdate item, {required Map<String, dynamic> Function(TInsertUpdate) toJson}) async {
-    try {
+  Future<T> update(int id, [dynamic request]) async {
+    return await _handleWithRefresh(() async {
+      final headers = await createHeaders();
       final response = await http.put(
-        Uri.parse('$baseUrl/$endpoint/$id'),
-        headers: await createHeaders(),
-        body: jsonEncode(toJson(item)),
+        Uri.parse("$_baseUrl$_endpoint/$id"),
+        headers: headers,
+        body: jsonEncode(request),
       );
-      if (response.statusCode == 200) {
-        notifyListeners();
+
+      if (isValidResponse(response)) {
+        final data = jsonDecode(response.body);
+        return fromJson(data);
       } else {
-        handleHttpError(response);
+        throw Exception("Unknown error");
       }
-    } catch (e) {
-      rethrow;
-    }
+    });
   }
 
   Future<void> delete(int id) async {
-    try {
+    await _handleWithRefresh(() async {
+      final headers = await createHeaders();
       final response = await http.delete(
-        Uri.parse('$baseUrl/$endpoint/$id'),
-        headers: await createHeaders(),
+        Uri.parse("$_baseUrl$_endpoint/$id"),
+        headers: headers,
       );
+
       if (response.statusCode == 200 || response.statusCode == 204) {
         notifyListeners();
       } else {
         handleHttpError(response);
       }
-    } catch (e) {
-      rethrow;
-    }
+
+      return null;
+    });
   }
 
   void handleHttpError(http.Response response) {
     final responseBody = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+    String errorMsg = '';
+    if (responseBody != null && responseBody is Map && responseBody['message'] != null) {
+      errorMsg = responseBody['message'].toString().toLowerCase();
+    } else {
+      errorMsg = response.body.toLowerCase();
+    }
+
     if (response.statusCode == 401) {
       throw Exception('Unauthorized. Please log in again.');
     } else if (response.statusCode == 403) {
       throw Exception('Forbidden. You do not have permission.');
+    } else if (response.statusCode == 400) {
+      if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
+        throw Exception('Ovaj zapis ne može biti obrisan jer je referenciran od strane drugih entiteta.');
+      }
+      throw Exception('Neispravan zahtjev (400): ${responseBody?['message'] ?? response.statusCode}');
     } else if (responseBody != null && responseBody['errors'] != null) {
       final errors = responseBody['errors'] as Map<String, dynamic>?;
-      if (errors != null) {
-        final userErrors = errors['UserError'] as List<dynamic>?;
-        if (userErrors != null && userErrors.isNotEmpty) {
-          throw Exception(userErrors.join(', '));
-        }
+      final userErrors = errors?['UserError'] as List<dynamic>?;
+
+      if (userErrors != null && userErrors.isNotEmpty) {
+        throw Exception(userErrors.join(', '));
       }
+
       throw Exception('Server error: ${responseBody['message'] ?? response.statusCode}');
+    } else if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
+      throw Exception('Ovaj zapis ne može biti obrisan jer je referenciran od strane drugih entiteta.');
     } else {
       throw Exception('Unknown error. Status code: ${response.statusCode}');
     }
   }
 
-  Future<String?> getUserRole() async {
-    final token = await getToken();
-    if (token == null) return null;
-    final decoded = JwtDecoder.decode(token);
-    return decoded['role'] ?? decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+  T fromJson(data) {
+    throw Exception("Method not implemented");
   }
 
-  Future<int?> getUserId() async {
-    final token = await getToken();
-    if (token == null) return null;
-    final decoded = JwtDecoder.decode(token);
-    final id = decoded['nameid'] ?? decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
-    if (id is int) return id;
-    if (id is String) return int.tryParse(id);
-    return null;
+  bool isValidResponse(http.Response response) {
+    if (response.statusCode < 299) {
+      return true;
+    } else if (response.statusCode == 401) {
+      throw Exception("Unauthorized");
+    } else {
+      print(response.body);
+      throw Exception("Something bad happened. Please try again.");
+    }
+  }
+
+  Future<Map<String, String>> createHeaders() async {
+    final headers = {
+      'Content-Type': 'application/json; charset=UTF-8',
+    };
+
+    final token = authProvider.accessToken;
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
+  }
+
+  String getQueryString(Map params, {String prefix = '&', bool inRecursion = false}) {
+    String query = '';
+    params.forEach((key, value) {
+      if (inRecursion) {
+        if (key is int) {
+          key = '[$key]';
+        } else {
+          key = '.$key';
+        }
+      }
+      if (value is String || value is int || value is double || value is bool) {
+        var encoded = value;
+        if (value is String) {
+          encoded = Uri.encodeComponent(value);
+        }
+        query += '$prefix$key=$encoded';
+      } else if (value is DateTime) {
+        query += '$prefix$key=${value.toIso8601String()}';
+      } else if (value is List || value is Map) {
+        if (value is List) value = value.asMap();
+        value.forEach((k, v) {
+          query += getQueryString({k: v}, prefix: '$prefix$key', inRecursion: true);
+        });
+      }
+    });
+    return query;
+  }
+
+  Future<R> _handleWithRefresh<R>(Future<R> Function() requestFn) async {
+    try {
+      return await requestFn();
+    } catch (e) {
+      if (e.toString().contains("Unauthorized")) {
+        final success = await authProvider.refreshToken();
+        if (success) {
+          return await requestFn(); // retry once after refresh
+        } else {
+          rethrow;
+        }
+      } else {
+        rethrow;
+      }
+    }
   }
 }

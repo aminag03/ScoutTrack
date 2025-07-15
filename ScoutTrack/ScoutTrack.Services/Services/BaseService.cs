@@ -46,8 +46,6 @@ namespace ScoutTrack.Services
                 }
             }
 
-
-
             var list = await query.ToListAsync();
             return new PagedResult<T>
             {

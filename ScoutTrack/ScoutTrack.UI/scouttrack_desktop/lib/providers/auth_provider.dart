@@ -4,6 +4,27 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider with ChangeNotifier {
+  Future<String?> getUserRoleFromToken() async {
+    if (_accessToken == null) return null;
+    final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
+    return decoded?['role'] ?? decoded?['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+  }
+
+  Future<int?> getUserIdFromToken() async {
+    if (_accessToken == null) return null;
+    final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
+    final id = decoded?['nameid'] ?? decoded?['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    if (id is int) return id;
+    if (id is String) return int.tryParse(id);
+    return null;
+  }
+
+  Map<String, dynamic>? _decodeJwt(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    return jsonDecode(payload);
+  }
   static String? _accessToken;
   String? _refreshToken;
   String? _role;

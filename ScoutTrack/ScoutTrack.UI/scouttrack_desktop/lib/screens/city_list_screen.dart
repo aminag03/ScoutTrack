@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/layouts/master_screen.dart';
+import 'package:scouttrack_desktop/models/city.dart';
+import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
 
@@ -12,40 +15,94 @@ class CitiesPage extends StatefulWidget {
 }
 
 class _CitiesPageState extends State<CitiesPage> {
-  List<String> _cities = [];
+  SearchResult<City>? _cities;
   bool _loading = false;
   String? _error;
   String? _role;
 
+  TextEditingController searchController = TextEditingController();
+  Timer? _debounce;
+
+  late CityProvider _cityProvider;
+
+  int currentPage = 1;
+  int pageSize = 10;
+  int totalPages = 1;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _cityProvider = CityProvider(authProvider);
+    _loadInitialData();
+  }
+
   @override
   void initState() {
     super.initState();
-    _loadRole();
+    searchController.addListener(_onSearchChanged);
   }
 
-  Future<void> _loadRole() async {
+  @override
+  void dispose() {
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = await authProvider.getUserRole();
     setState(() {
       _role = role;
     });
+
+    if (role == 'Admin') {
+      await _fetchCities();
+    }
   }
 
-  Future<void> _loadCities() async {
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        currentPage = 1;
+      });
+      _fetchCities();
+    });
+  }
+
+  Future<void> _fetchCities({int? page}) async {
+    if (_loading) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final cities = await CityProvider().getCities(authProvider);
+      var filter = {
+        if (searchController.text.isNotEmpty) "Name": searchController.text,
+        "Page": ((page ?? currentPage) - 1),
+        "PageSize": pageSize,
+        "IncludeTotalCount": true,
+      };
+
+      var result = await _cityProvider.get(filter: filter);
+
       setState(() {
-        _cities = cities;
+        _cities = result;
+        currentPage = page ?? currentPage;
+        totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
+        if (totalPages == 0) totalPages = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
       });
     } catch (e) {
       setState(() {
         _error = e.toString();
+        _cities = null;
       });
     } finally {
       setState(() {
@@ -56,15 +113,12 @@ class _CitiesPageState extends State<CitiesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
     if (_role == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_role != 'Admin') {
       return MasterScreen(
-        title: 'Zabranjen pristup',
         role: _role!,
         child: const Center(
           child: Text(
@@ -78,32 +132,269 @@ class _CitiesPageState extends State<CitiesPage> {
     return MasterScreen(
       role: _role!,
       selectedMenu: 'Gradovi',
-      child: Padding(
+      child: Container(
+        color: Colors.white,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ElevatedButton(
-              onPressed: _loading ? null : _loadCities,
-              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-              child: _loading
-                  ? const CircularProgressIndicator()
-                  : const Text("Učitaj gradove"),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Pretraži...',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _onAddCity,
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Dodaj novi grad',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F8055),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            if (_cities.isNotEmpty)
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _cities.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(title: Text(_cities[index]));
-                  },
-                ),
-              ),
+            Expanded(child: _buildResultView()),
+            const SizedBox(height: 8),
+            // Always show pagination at the bottom, even if no results
+            _buildPaginationControls(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildResultView() {
+    if (_loading && _cities == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Text(
+          'Greška pri učitavanju: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    if (_cities == null || _cities!.items == null || _cities!.items!.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nema dostupnih gradova',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 900),
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+              (states) => Colors.grey.shade100,
+            ),
+            columnSpacing: 32,
+            columns: const [
+              DataColumn(label: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('NAZIV'),
+              )),
+              DataColumn(label: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('DATUM KREIRANJA'),
+              )),
+              DataColumn(label: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('DATUM IZMJENE'),
+              )),
+              DataColumn(label: Text('')),
+              DataColumn(label: Text('')),
+            ],
+            rows: _cities!.items!.map((city) {
+              return DataRow(
+                cells: [
+                  DataCell(Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(city.name),
+                  )),
+                  DataCell(Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(_formatDate(city.createdAt)),
+                  )),
+                  DataCell(Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      city.modifiedAt != null
+                          ? _formatDate(city.modifiedAt!)
+                          : '-',
+                    ),
+                  )),
+                  DataCell(
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      tooltip: 'Uredi',
+                      onPressed: () => _onEditCity(city),
+                    ),
+                  ),
+                  DataCell(
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Obriši',
+                      onPressed: () => _onDeleteCity(city),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls() {
+    int maxPageButtons = 5;
+    int safeTotalPages = totalPages > 0 ? totalPages : 1;
+    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
+
+    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(1, (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages));
+    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
+    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
+
+    bool hasResults = (_cities?.totalCount ?? 0) > 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.first_page),
+            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchCities(page: 1) : null,
+          ),
+
+          TextButton(
+            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchCities(page: safeCurrentPage - 1) : null,
+            child: const Text('Prethodna'),
+          ),
+
+          ...pageNumbers.map((page) => TextButton(
+                onPressed: hasResults && page != safeCurrentPage ? () => _fetchCities(page: page) : null,
+                child: Text(
+                  '$page',
+                  style: TextStyle(
+                    fontWeight: page == safeCurrentPage ? FontWeight.bold : FontWeight.normal,
+                    color: page == safeCurrentPage ? Colors.blue : Colors.black,
+                  ),
+                ),
+              )),
+
+          TextButton(
+            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchCities(page: safeCurrentPage + 1) : null,
+            child: const Text('Sljedeća'),
+          ),
+
+          IconButton(
+            icon: const Icon(Icons.last_page),
+            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchCities(page: safeTotalPages) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onAddCity() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Dodavanje novog grada nije implementirano.'),
+      ),
+    );
+  }
+
+  void _onEditCity(City city) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Uređivanje grada ${city.name} nije implementirano.'),
+      ),
+    );
+  }
+
+  Future<void> _onDeleteCity(City city) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Potvrda brisanja'),
+        content: Text('Jeste li sigurni da želite obrisati grad ${city.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Obriši', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _cityProvider.delete(city.id);
+        await _fetchCities();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Grad ${city.name} je obrisan.')),
+        );
+      } catch (e) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('referenc')) {
+          errorMsg =
+              'Ne može se obrisati grad jer je referenciran u drugim zapisima.';
+        } else {
+          errorMsg = 'Došlo je do greške pri brisanju.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text(errorMsg)),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day}.${date.month}.${date.year}";
   }
 }
