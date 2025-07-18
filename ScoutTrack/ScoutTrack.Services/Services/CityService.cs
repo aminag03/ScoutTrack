@@ -49,6 +49,12 @@ namespace ScoutTrack.Services
                 throw new UserException("City with this name already exists.");
         }
 
+        protected override void MapUpdateToEntity(City entity, CityUpsertRequest request)
+        {
+            entity.UpdatedAt = DateTime.UtcNow;
+            base.MapUpdateToEntity(entity, request);
+        }
+
         protected override async Task BeforeDelete(City entity)
         {
             var hasTroops = await _context.Troops.AnyAsync(t => t.CityId == entity.Id);

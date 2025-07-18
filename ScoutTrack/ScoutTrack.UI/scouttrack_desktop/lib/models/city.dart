@@ -7,13 +7,13 @@ class City {
   final int id;
   final String name;
   final DateTime createdAt;
-  final DateTime? modifiedAt;
+  final DateTime? updatedAt;
 
   City({
     this.id = 0,
     this.name = '',
     required this.createdAt,
-    this.modifiedAt,
+    this.updatedAt,
   });
 
   factory City.fromJson(Map<String, dynamic> json) {

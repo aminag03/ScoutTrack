@@ -6,7 +6,7 @@ namespace ScoutTrack.Model.Requests
     {
         [Required]
         [MaxLength(100, ErrorMessage = "Name must not exceed 100 characters.")]
-        [RegularExpression(@"^[A-Za-z���掞����\s'-]+$", ErrorMessage = "City name contains invalid characters.")]
+        [RegularExpression(@"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$", ErrorMessage = "City name can only contain letters (A-Ž, a-ž), whitespaces and hyphens (-).")]
         public string Name { get; set; } = string.Empty;
     }
 } 

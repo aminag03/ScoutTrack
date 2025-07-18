@@ -6,6 +6,7 @@ import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
+import 'package:scouttrack_desktop/utils/error_utils.dart';
 
 class CitiesPage extends StatefulWidget {
   const CitiesPage({super.key});
@@ -248,8 +249,8 @@ class _CitiesPageState extends State<CitiesPage> {
                   DataCell(Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
-                      city.modifiedAt != null
-                          ? _formatDate(city.modifiedAt!)
+                      city.updatedAt != null
+                          ? _formatDate(city.updatedAt!)
                           : '-',
                     ),
                   )),
@@ -329,19 +330,11 @@ class _CitiesPageState extends State<CitiesPage> {
   }
 
   void _onAddCity() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Dodavanje novog grada nije implementirano.'),
-      ),
-    );
+    _showCityDialog();
   }
 
   void _onEditCity(City city) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Uređivanje grada ${city.name} nije implementirano.'),
-      ),
-    );
+    _showCityDialog(city: city);
   }
 
   Future<void> _onDeleteCity(City city) async {
@@ -371,30 +364,81 @@ class _CitiesPageState extends State<CitiesPage> {
           SnackBar(content: Text('Grad ${city.name} je obrisan.')),
         );
       } catch (e) {
-        String errorMsg = e.toString();
-        if (errorMsg.contains('referenc')) {
-          errorMsg =
-              'Ne može se obrisati grad jer je referenciran u drugim zapisima.';
-        } else {
-          errorMsg = 'Došlo je do greške pri brisanju.';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text(errorMsg)),
-              ],
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showErrorSnackbar(context, e);
       }
     }
   }
 
   String _formatDate(DateTime date) {
     return "${date.day}.${date.month}.${date.year}";
+  }
+
+  Future<void> _showCityDialog({City? city}) async {
+    final _formKey = GlobalKey<FormState>();
+    final TextEditingController nameController =
+        TextEditingController(text: city?.name ?? '');
+
+    final isEdit = city != null;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isEdit ? 'Uredi grad' : 'Dodaj grad'),
+          content: Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Naziv'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Naziv je obavezan.';
+                }
+                if (value.length > 100) {
+                  return 'Naziv ne smije imati više od 100 znakova.';
+                }
+                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
+                if (!regex.hasMatch(value.trim())) {
+                  return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_formKey.currentState?.validate() ?? false) {
+                  try {
+                    final requestBody = {"name": nameController.text.trim()};
+                    if (isEdit) {
+                      await _cityProvider.update(city!.id, requestBody);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
+                      );
+                    } else {
+                      await _cityProvider.insert(requestBody);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Grad je dodan.')),
+                      );
+                    }
+                    await _fetchCities();
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    Navigator.of(context).pop();
+                    showErrorSnackbar(context, e);
+                  }
+                }
+              },
+              child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

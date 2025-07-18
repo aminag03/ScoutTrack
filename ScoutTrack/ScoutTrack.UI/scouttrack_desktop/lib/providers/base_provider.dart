@@ -105,27 +105,27 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     }
 
     if (response.statusCode == 401) {
-      throw Exception('Unauthorized. Please log in again.');
+      throw Exception('Greška: Niste autorizovani. Molimo prijavite se ponovo.');
     } else if (response.statusCode == 403) {
-      throw Exception('Forbidden. You do not have permission.');
+      throw Exception('Greška: Nemate dozvolu za ovu akciju.');
     } else if (response.statusCode == 400) {
       if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
-        throw Exception('Ovaj zapis ne može biti obrisan jer je referenciran od strane drugih entiteta.');
+        throw Exception('Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.');
       }
-      throw Exception('Neispravan zahtjev (400): ${responseBody?['message'] ?? response.statusCode}');
+      throw Exception('Greška: Neispravan zahtjev. (${responseBody?['message'] ?? response.statusCode})');
     } else if (responseBody != null && responseBody['errors'] != null) {
       final errors = responseBody['errors'] as Map<String, dynamic>?;
       final userErrors = errors?['UserError'] as List<dynamic>?;
 
       if (userErrors != null && userErrors.isNotEmpty) {
-        throw Exception(userErrors.join(', '));
+        throw Exception('Greška: ${userErrors.join(', ')}');
       }
 
-      throw Exception('Server error: ${responseBody['message'] ?? response.statusCode}');
+      throw Exception('Greška: ${responseBody['message'] ?? response.statusCode}');
     } else if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
-      throw Exception('Ovaj zapis ne može biti obrisan jer je referenciran od strane drugih entiteta.');
+      throw Exception('Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.');
     } else {
-      throw Exception('Unknown error. Status code: ${response.statusCode}');
+      throw Exception('Greška: Nepoznata greška. Status kod: ${response.statusCode}');
     }
   }
 
@@ -137,10 +137,10 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     if (response.statusCode < 299) {
       return true;
     } else if (response.statusCode == 401) {
-      throw Exception("Unauthorized");
+      throw Exception("Greška: Niste autorizovani.");
     } else {
       print(response.body);
-      throw Exception("Something bad happened. Please try again.");
+      throw Exception("Greška: Došlo je do problema. Pokušajte ponovo.");
     }
   }
 
