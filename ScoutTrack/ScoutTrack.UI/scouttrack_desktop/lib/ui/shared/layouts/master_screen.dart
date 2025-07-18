@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scouttrack_desktop/main.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
-import 'package:scouttrack_desktop/screens/city_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/admin_home_screen.dart';
+import 'package:scouttrack_desktop/ui/troop/screens/troop_home_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/city_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;

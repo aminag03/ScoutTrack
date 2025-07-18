@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scouttrack_desktop/layouts/master_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/date_utils.dart';
 
 class CitiesPage extends StatefulWidget {
   const CitiesPage({super.key});
@@ -134,7 +135,7 @@ class _CitiesPageState extends State<CitiesPage> {
       role: _role!,
       selectedMenu: 'Gradovi',
       child: Container(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -155,21 +156,10 @@ class _CitiesPageState extends State<CitiesPage> {
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
                   onPressed: _onAddCity,
-                  icon: const Icon(Icons.add, color: Colors.white),
+                  icon: const Icon(Icons.add),
                   label: const Text(
                     'Dodaj novi grad',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F8055),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ],
@@ -177,7 +167,6 @@ class _CitiesPageState extends State<CitiesPage> {
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            // Always show pagination at the bottom, even if no results
             _buildPaginationControls(),
           ],
         ),
@@ -244,13 +233,13 @@ class _CitiesPageState extends State<CitiesPage> {
                   )),
                   DataCell(Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(_formatDate(city.createdAt)),
+                    child: Text(formatDate(city.createdAt)),
                   )),
                   DataCell(Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       city.updatedAt != null
-                          ? _formatDate(city.updatedAt!)
+                          ? formatDate(city.updatedAt!)
                           : '-',
                     ),
                   )),
@@ -369,10 +358,6 @@ class _CitiesPageState extends State<CitiesPage> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return "${date.day}.${date.month}.${date.year}";
-  }
-
   Future<void> _showCityDialog({City? city}) async {
     final _formKey = GlobalKey<FormState>();
     final TextEditingController nameController =
@@ -381,64 +366,89 @@ class _CitiesPageState extends State<CitiesPage> {
     final isEdit = city != null;
 
     await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(isEdit ? 'Uredi grad' : 'Dodaj grad'),
-          content: Form(
-            key: _formKey,
-            child: TextFormField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Naziv'),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Naziv je obavezan.';
-                }
-                if (value.length > 100) {
-                  return 'Naziv ne smije imati više od 100 znakova.';
-                }
-                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
-                if (!regex.hasMatch(value.trim())) {
-                  return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                }
-                return null;
-              },
+    context: context,
+    builder: (context) {
+      return Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 500,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  isEdit ? 'Uredi grad' : 'Dodaj grad',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Form(
+                  key: _formKey,
+                  child: TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Naziv'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Naziv je obavezan.';
+                      }
+                      if (value.length > 100) {
+                        return 'Naziv ne smije imati više od 100 znakova.';
+                      }
+                      final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
+                      if (!regex.hasMatch(value.trim())) {
+                        return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Otkaži'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          try {
+                            final requestBody = {"name": nameController.text.trim()};
+                            if (isEdit) {
+                              await _cityProvider.update(city!.id, requestBody);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
+                              );
+                            } else {
+                              await _cityProvider.insert(requestBody);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Grad je dodan.')),
+                              );
+                            }
+                            await _fetchCities();
+                            Navigator.of(context).pop();
+                          } catch (e) {
+                            Navigator.of(context).pop();
+                            showErrorSnackbar(context, e);
+                          }
+                        }
+                      },
+                      child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Otkaži'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState?.validate() ?? false) {
-                  try {
-                    final requestBody = {"name": nameController.text.trim()};
-                    if (isEdit) {
-                      await _cityProvider.update(city!.id, requestBody);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
-                      );
-                    } else {
-                      await _cityProvider.insert(requestBody);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Grad je dodan.')),
-                      );
-                    }
-                    await _fetchCities();
-                    Navigator.of(context).pop();
-                  } catch (e) {
-                    Navigator.of(context).pop();
-                    showErrorSnackbar(context, e);
-                  }
-                }
-              },
-              child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
-            ),
-          ],
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 }
