@@ -53,6 +53,8 @@ namespace ScoutTrack.Services.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Latitude = table.Column<double>(type: "float", nullable: false),
+                    Longitude = table.Column<double>(type: "float", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -250,7 +252,8 @@ namespace ScoutTrack.Services.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TroopId = table.Column<int>(type: "int", nullable: false),
-                    ActivityTypeId = table.Column<int>(type: "int", nullable: false)
+                    ActivityTypeId = table.Column<int>(type: "int", nullable: false),
+                    ActivityState = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -397,8 +400,7 @@ namespace ScoutTrack.Services.Migrations
                     ActivityId = table.Column<int>(type: "int", nullable: false),
                     MemberId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MemberId1 = table.Column<int>(type: "int", nullable: true)
+                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -412,11 +414,6 @@ namespace ScoutTrack.Services.Migrations
                     table.ForeignKey(
                         name: "FK_ActivityRegistrations_Members_MemberId",
                         column: x => x.MemberId,
-                        principalTable: "Members",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_ActivityRegistrations_Members_MemberId1",
-                        column: x => x.MemberId1,
                         principalTable: "Members",
                         principalColumn: "Id");
                 });
@@ -459,8 +456,7 @@ namespace ScoutTrack.Services.Migrations
                     MemberId = table.Column<int>(type: "int", nullable: false),
                     BadgeId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    MemberId1 = table.Column<int>(type: "int", nullable: true)
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -474,11 +470,6 @@ namespace ScoutTrack.Services.Migrations
                     table.ForeignKey(
                         name: "FK_MemberBadges_Members_MemberId",
                         column: x => x.MemberId,
-                        principalTable: "Members",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_MemberBadges_Members_MemberId1",
-                        column: x => x.MemberId1,
                         principalTable: "Members",
                         principalColumn: "Id");
                 });
@@ -620,123 +611,65 @@ namespace ScoutTrack.Services.Migrations
                 columns: new[] { "Id", "CreatedAt", "Description", "ImageUrl", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4980), "Basic first aid skills", "", "First Aid", null },
-                    { 2, new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4994), "Learn how to safely handle fire", "", "Fire Safety", null },
-                    { 3, new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(4996), "Orientation and map skills", "", "Map Reading", null }
+                    { 1, new DateTime(2025, 7, 21, 20, 1, 37, 409, DateTimeKind.Utc).AddTicks(7056), "Basic first aid skills", "", "First Aid", null },
+                    { 2, new DateTime(2025, 7, 21, 20, 1, 37, 409, DateTimeKind.Utc).AddTicks(7073), "Learn how to safely handle fire", "", "Fire Safety", null },
+                    { 3, new DateTime(2025, 7, 21, 20, 1, 37, 409, DateTimeKind.Utc).AddTicks(7078), "Orientation and map skills", "", "Map Reading", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Cities",
-                columns: new[] { "Id", "CreatedAt", "Name", "UpdatedAt" },
+                columns: new[] { "Id", "CreatedAt", "Latitude", "Longitude", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(151), "Banovići", null },
-                    { 2, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(167), "Banja Luka", null },
-                    { 3, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(168), "Bihać", null },
-                    { 4, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(169), "Bijeljina", null },
-                    { 5, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(170), "Bileća", null },
-                    { 6, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(173), "Bosanski Brod", null },
-                    { 7, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(174), "Bosanska Dubica", null },
-                    { 8, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(175), "Bosanska Gradiška", null },
-                    { 9, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(176), "Bosansko Grahovo", null },
-                    { 10, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(178), "Bosanska Krupa", null },
-                    { 11, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(178), "Bosanski Novi", null },
-                    { 12, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(179), "Bosanski Petrovac", null },
-                    { 13, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(180), "Bosanski Šamac", null },
-                    { 14, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(181), "Bratunac", null },
-                    { 15, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(182), "Brčko", null },
-                    { 16, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(183), "Breza", null },
-                    { 17, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(184), "Bugojno", null },
-                    { 18, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(189), "Busovača", null },
-                    { 19, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(190), "Bužim", null },
-                    { 20, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(201), "Cazin", null },
-                    { 21, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(202), "Čajniče", null },
-                    { 22, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(203), "Čapljina", null },
-                    { 23, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(205), "Čelić", null },
-                    { 24, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(206), "Čelinac", null },
-                    { 25, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(207), "Čitluk", null },
-                    { 26, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(208), "Derventa", null },
-                    { 27, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(209), "Doboj", null },
-                    { 28, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(210), "Donji Vakuf", null },
-                    { 29, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(211), "Drvar", null },
-                    { 30, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(212), "Foča", null },
-                    { 31, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(213), "Fojnica", null },
-                    { 32, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(214), "Gacko", null },
-                    { 33, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(215), "Glamoč", null },
-                    { 34, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(217), "Goražde", null },
-                    { 35, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(217), "Gornji Vakuf", null },
-                    { 36, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(218), "Gračanica", null },
-                    { 37, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(219), "Gradačac", null },
-                    { 38, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(220), "Grude", null },
-                    { 39, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(221), "Hadžići", null },
-                    { 40, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(222), "Han-Pijesak", null },
-                    { 41, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(222), "Hlivno", null },
-                    { 42, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(224), "Ilijaš", null },
-                    { 43, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(224), "Jablanica", null },
-                    { 44, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(225), "Jajce", null },
-                    { 45, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(226), "Kakanj", null },
-                    { 46, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(227), "Kalesija", null },
-                    { 47, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(228), "Kalinovik", null },
-                    { 48, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(229), "Kiseljak", null },
-                    { 49, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(229), "Kladanj", null },
-                    { 50, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(230), "Ključ", null },
-                    { 51, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(231), "Konjic", null },
-                    { 52, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(232), "Kotor-Varoš", null },
-                    { 53, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(233), "Kreševo", null },
-                    { 54, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(234), "Kupres", null },
-                    { 55, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(234), "Laktaši", null },
-                    { 56, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(235), "Lopare", null },
-                    { 57, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(236), "Lukavac", null },
-                    { 58, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(237), "Ljubinje", null },
-                    { 59, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(238), "Ljubuški", null },
-                    { 60, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(239), "Maglaj", null },
-                    { 61, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(240), "Modriča", null },
-                    { 62, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(240), "Mostar", null },
-                    { 63, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(241), "Mrkonjić-Grad", null },
-                    { 64, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(242), "Neum", null },
-                    { 65, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(243), "Nevesinje", null },
-                    { 66, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(245), "Novi Travnik", null },
-                    { 67, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(246), "Odžak", null },
-                    { 68, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(247), "Olovo", null },
-                    { 69, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(254), "Orašje", null },
-                    { 70, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(255), "Pale", null },
-                    { 71, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(256), "Posušje", null },
-                    { 72, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(256), "Prijedor", null },
-                    { 73, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(257), "Prnjavor", null },
-                    { 74, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(258), "Prozor", null },
-                    { 75, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(259), "Rogatica", null },
-                    { 76, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(260), "Rudo", null },
-                    { 77, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(261), "Sanski Most", null },
-                    { 78, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(261), "Sarajevo", null },
-                    { 79, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(262), "Skender-Vakuf", null },
-                    { 80, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(263), "Sokolac", null },
-                    { 81, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(264), "Srbac", null },
-                    { 82, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(265), "Srebrenica", null },
-                    { 83, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(265), "Srebrenik", null },
-                    { 84, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(266), "Stolac", null },
-                    { 85, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(267), "Šekovići", null },
-                    { 86, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(268), "Šipovo", null },
-                    { 87, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(269), "Široki Brijeg", null },
-                    { 88, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(270), "Teslić", null },
-                    { 89, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(270), "Tešanj", null },
-                    { 90, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(271), "Tomislav-Grad", null },
-                    { 91, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(272), "Travnik", null },
-                    { 92, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(273), "Trebinje", null },
-                    { 93, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(274), "Trnovo", null },
-                    { 94, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(275), "Tuzla", null },
-                    { 95, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(275), "Ugljevik", null },
-                    { 96, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(276), "Vareš", null },
-                    { 97, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(277), "Velika Kladuša", null },
-                    { 98, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(278), "Visoko", null },
-                    { 99, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(279), "Višegrad", null },
-                    { 100, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(280), "Vitez", null },
-                    { 101, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(281), "Vlasenica", null },
-                    { 102, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(281), "Zavidovići", null },
-                    { 103, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(282), "Zenica", null },
-                    { 104, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(283), "Zvornik", null },
-                    { 105, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(284), "Žepa", null },
-                    { 106, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(285), "Žepče", null },
-                    { 107, new DateTime(2025, 7, 1, 21, 23, 9, 395, DateTimeKind.Utc).AddTicks(285), "Živinice", null }
+                    { 1, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9755), 43.856299999999997, 18.4131, "Sarajevo", null },
+                    { 2, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9794), 44.772199999999998, 17.190999999999999, "Banja Luka", null },
+                    { 3, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9827), 44.539999999999999, 18.678999999999998, "Tuzla", null },
+                    { 4, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9831), 44.203600000000002, 17.9084, "Zenica", null },
+                    { 5, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9834), 43.3431, 17.8078, "Mostar", null },
+                    { 6, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9842), 44.816699999999997, 15.8667, "Bihać", null },
+                    { 7, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9846), 44.755800000000001, 19.214400000000001, "Bijeljina", null },
+                    { 8, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9849), 44.981900000000003, 16.7133, "Prijedor", null },
+                    { 9, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9853), 44.875599999999999, 18.802, "Brčko", null },
+                    { 10, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9859), 44.737200000000001, 18.083300000000001, "Doboj", null },
+                    { 11, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9862), 44.994399999999999, 15.8225, "Cazin", null },
+                    { 12, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9866), 42.711399999999998, 18.3444, "Trebinje", null },
+                    { 13, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9870), 44.369199999999999, 19.106400000000001, "Zvornik", null },
+                    { 14, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9875), 45.212200000000003, 15.827500000000001, "Velika Kladuša", null },
+                    { 15, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9879), 44.884999999999998, 18.453299999999999, "Gradačac", null },
+                    { 16, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9882), 44.4178, 18.671700000000001, "Gračanica", null },
+                    { 17, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9886), 44.229399999999998, 17.660299999999999, "Travnik", null },
+                    { 18, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9908), 44.767200000000003, 16.686699999999998, "Sanski Most", null },
+                    { 19, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9912), 44.032499999999999, 17.4556, "Bugojno", null },
+                    { 20, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9916), 43.983899999999998, 18.185300000000002, "Visoko", null },
+                    { 21, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9919), 44.147500000000001, 18.177199999999999, "Kakanj", null },
+                    { 22, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9922), 44.543900000000001, 18.648599999999998, "Lukavac", null },
+                    { 23, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9926), 44.555, 18.487200000000001, "Srebrenik", null },
+                    { 24, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9929), 44.444200000000002, 18.223600000000001, "Zavidovići", null },
+                    { 25, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9933), 43.671700000000001, 18.947199999999999, "Goražde", null },
+                    { 26, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9936), 43.648600000000002, 17.861899999999999, "Konjic", null },
+                    { 27, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9939), 43.353099999999998, 17.431699999999999, "Široki Brijeg", null },
+                    { 28, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9943), 43.109400000000001, 17.6953, "Čapljina", null },
+                    { 29, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9946), 43.467500000000001, 17.375299999999999, "Grude", null },
+                    { 30, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9949), 44.342799999999997, 17.2714, "Jajce", null },
+                    { 31, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9952), 44.578099999999999, 17.1539, "Mrkonjić-Grad", null },
+                    { 32, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9956), 44.968600000000002, 18.051100000000002, "Modriča", null },
+                    { 33, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9959), 44.883299999999998, 16.149999999999999, "Bosanska Krupa", null },
+                    { 34, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9965), 44.272199999999998, 18.1053, "Kiseljak", null },
+                    { 35, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9969), 43.202500000000001, 17.684699999999999, "Čitluk", null },
+                    { 36, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9974), 42.925800000000002, 17.607800000000001, "Neum", null },
+                    { 37, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9980), 43.825299999999999, 17.015599999999999, "Livno", null },
+                    { 38, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9983), 43.649999999999999, 17.216699999999999, "Tomislav-Grad", null },
+                    { 39, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9986), 44.227499999999999, 17.659199999999998, "Novi Travnik", null },
+                    { 40, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9989), 43.4925, 18.805599999999998, "Foča", null },
+                    { 41, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9992), 44.559699999999999, 16.049700000000001, "Bosanski Petrovac", null },
+                    { 42, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9996), 44.4056, 18.531400000000001, "Banovići", null },
+                    { 43, new DateTime(2025, 7, 21, 20, 1, 36, 43, DateTimeKind.Utc).AddTicks(9999), 44.445300000000003, 18.585599999999999, "Olovo", null },
+                    { 44, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(2), 43.957500000000003, 18.344999999999999, "Ilijaš", null },
+                    { 45, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(4), 44.6111, 18.4178, "Tešanj", null },
+                    { 46, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(12), 44.536900000000003, 18.704999999999998, "Kalesija", null },
+                    { 47, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(14), 43.835000000000001, 17.5733, "Prozor", null },
+                    { 49, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(17), 45.145299999999999, 17.2592, "Bosanska Gradiška", null },
+                    { 50, new DateTime(2025, 7, 21, 20, 1, 36, 44, DateTimeKind.Utc).AddTicks(20), 43.059699999999999, 17.944400000000002, "Stolac", null }
                 });
 
             migrationBuilder.InsertData(
@@ -744,12 +677,12 @@ namespace ScoutTrack.Services.Migrations
                 columns: new[] { "Id", "CreatedAt", "Email", "IsActive", "LastLoginAt", "PasswordHash", "Role", "UpdatedAt", "Username" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 7, 1, 21, 23, 9, 560, DateTimeKind.Utc).AddTicks(4740), "admin@scouttrack.ba", true, null, "$2a$11$m/H5WvK1f/mdWm4EHXCxo.LXpL84P0290VRdkn4nKaGTHDbyuctfa", 0, null, "admin" },
-                    { 2, new DateTime(2025, 7, 1, 21, 23, 9, 560, DateTimeKind.Utc).AddTicks(6920), "troopbl@scouttrack.ba", true, null, "$2a$11$w5mNtaFCn32T4f1acYb6d.IzK6cm0xArecXVX/OGgl97sOJ8LojdG", 1, null, "troopbl" },
-                    { 3, new DateTime(2025, 7, 1, 21, 23, 9, 744, DateTimeKind.Utc).AddTicks(217), "troopsarajevo@scouttrack.ba", true, null, "$2a$11$BmSHU1rZZakPN3ufcTae0e6h0oDPOPxpo0NC31mgLTMA4390H8YlO", 1, null, "troopsarajevo" },
-                    { 4, new DateTime(2025, 7, 1, 21, 23, 9, 908, DateTimeKind.Utc).AddTicks(2914), "troopmostar@scouttrack.ba", true, null, "$2a$11$jnsvenNpZJD5GDAMpuqcbuSmeHcy1NJMK.3GsiwI9VD3WAOq7yJKm", 1, null, "troopmostar" },
-                    { 5, new DateTime(2025, 7, 1, 21, 23, 10, 91, DateTimeKind.Utc).AddTicks(5062), "scout1@scouttrack.ba", true, null, "$2a$11$3wngNDujunTqbZ3Vor7uTOT.k.2TU6XjJudtZuik1HMfHujl9kIIO", 2, null, "scout1" },
-                    { 6, new DateTime(2025, 7, 1, 21, 23, 10, 257, DateTimeKind.Utc).AddTicks(2627), "scout2@scouttrack.ba", true, null, "$2a$11$2Rl3vJiguygWxhzcIh1LwesgnZP/tOnYlG7pN1V1iSC9/tBRDoU/q", 2, null, "scout2" }
+                    { 1, new DateTime(2025, 7, 21, 20, 1, 36, 405, DateTimeKind.Utc).AddTicks(3392), "admin@scouttrack.ba", true, null, "$2a$11$L2RZKdM5Nb5CaZimLUAcx.nJLfCaKQz2s.pNpK54o787cRA7IqwdC", 0, null, "admin" },
+                    { 2, new DateTime(2025, 7, 21, 20, 1, 36, 405, DateTimeKind.Utc).AddTicks(4550), "troopbl@scouttrack.ba", true, null, "$2a$11$qxgHFggQm9J7pPevh.NvmuUtBzxaweAmR4ee8l8c6aIu6fDe5nvzy", 1, null, "troopbl" },
+                    { 3, new DateTime(2025, 7, 21, 20, 1, 36, 738, DateTimeKind.Utc).AddTicks(9895), "troopsarajevo@scouttrack.ba", true, null, "$2a$11$E7pCmoJHtzi5vh0OAn9yvuri1PvqPg0p7uXBbCw7pPxtx4zEsiisy", 1, null, "troopsarajevo" },
+                    { 4, new DateTime(2025, 7, 21, 20, 1, 37, 67, DateTimeKind.Utc).AddTicks(5687), "troopmostar@scouttrack.ba", true, null, "$2a$11$EpS6Hk8gzq7Kkwf0/UWrlO3dHP04SUf3HKHS7CVzAy/2gXtxXGjwa", 1, null, "troopmostar" },
+                    { 5, new DateTime(2025, 7, 21, 20, 1, 37, 409, DateTimeKind.Utc).AddTicks(7236), "scout1@scouttrack.ba", true, null, "$2a$11$4GAe8FsfIBcJjlewbf3AieBdpQhz7HLAxGrNT93zWlOZcaATfxriW", 2, null, "scout1" },
+                    { 6, new DateTime(2025, 7, 21, 20, 1, 37, 794, DateTimeKind.Utc).AddTicks(5320), "scout2@scouttrack.ba", true, null, "$2a$11$1169o4BZRA/2W/5ObgXEoOn5X.UMKhSgwBv6Uk5IvtNauh2HHNFFq", 2, null, "scout2" }
                 });
 
             migrationBuilder.InsertData(
@@ -763,8 +696,8 @@ namespace ScoutTrack.Services.Migrations
                 values: new object[,]
                 {
                     { 2, 2, "", 0.0, "", 0.0, "Troop Banja Luka" },
-                    { 3, 76, "", 0.0, "", 0.0, "Troop Sarajevo" },
-                    { 4, 63, "", 0.0, "", 0.0, "Troop Mostar" }
+                    { 3, 1, "", 0.0, "", 0.0, "Troop Sarajevo" },
+                    { 4, 5, "", 0.0, "", 0.0, "Troop Mostar" }
                 });
 
             migrationBuilder.InsertData(
@@ -773,7 +706,7 @@ namespace ScoutTrack.Services.Migrations
                 values: new object[,]
                 {
                     { 5, new DateTime(2005, 5, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "", "John", 0, "Doe", "", 2 },
-                    { 6, new DateTime(2003, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 76, "", "Jane", 1, "Doe", "", 3 }
+                    { 6, new DateTime(2003, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "", "Jane", 1, "Doe", "", 3 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -792,10 +725,9 @@ namespace ScoutTrack.Services.Migrations
                 column: "TroopId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ActivityEquipments_ActivityId_EquipmentId",
+                name: "IX_ActivityEquipments_ActivityId",
                 table: "ActivityEquipments",
-                columns: new[] { "ActivityId", "EquipmentId" },
-                unique: true);
+                column: "ActivityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ActivityEquipments_EquipmentId",
@@ -817,11 +749,6 @@ namespace ScoutTrack.Services.Migrations
                 name: "IX_ActivityRegistrations_MemberId",
                 table: "ActivityRegistrations",
                 column: "MemberId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ActivityRegistrations_MemberId1",
-                table: "ActivityRegistrations",
-                column: "MemberId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ActivityTypes_Name",
@@ -916,11 +843,6 @@ namespace ScoutTrack.Services.Migrations
                 table: "MemberBadges",
                 columns: new[] { "MemberId", "BadgeId" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MemberBadges_MemberId1",
-                table: "MemberBadges",
-                column: "MemberId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Members_CityId",

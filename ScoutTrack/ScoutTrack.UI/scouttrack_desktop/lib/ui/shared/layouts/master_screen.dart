@@ -5,6 +5,7 @@ import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/admin_home_screen.dart';
 import 'package:scouttrack_desktop/ui/troop/screens/troop_home_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/city_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/troop_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -99,6 +100,9 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
                     onTap: () => _handleTap('Odredi', () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const TroopListScreen()),
+                      );
                     }),
                   ),
                   _SidebarItem(
@@ -123,6 +127,9 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Odred',
                     selected: selectedLabel == 'Odred',
                     onTap: () => _handleTap('Odred', () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const TroopListScreen()),
+                      );
                     }),
                   ),
                 ],
@@ -150,7 +157,34 @@ class _MasterScreenState extends State<MasterScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: widget.child,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.title != null || widget.title?.isNotEmpty == true)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        children: [
+                          if (widget.selectedMenu == null)
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () {
+                                Navigator.of(context).maybePop();
+                              },
+                            ),
+                          Text(
+                            widget.title ?? '',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(child: widget.child),
+                ],
+              ),
             ),
           ),
         ],

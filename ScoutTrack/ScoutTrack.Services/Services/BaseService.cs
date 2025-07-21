@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
+using ScoutTrack.Services.Extensions;
 using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -45,6 +46,19 @@ namespace ScoutTrack.Services
                     query = query.Take(search.PageSize.Value);
                 }
             }
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                if (search.OrderBy.StartsWith("-"))
+                {
+                    query = query.OrderByDescendingDynamic(search.OrderBy[1..]);
+                }
+                else
+                {
+                    query = query.OrderByDynamic(search.OrderBy);
+                }
+            }
+
 
             var list = await query.ToListAsync();
             return new PagedResult<T>

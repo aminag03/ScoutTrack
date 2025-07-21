@@ -3,10 +3,20 @@ import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'providers/auth_provider.dart';
+import 'providers/troop_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(create: (_) => AuthProvider(), child: const MyApp()),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, TroopProvider>(
+          create: (context) => TroopProvider(Provider.of<AuthProvider>(context, listen: false)),
+          update: (_, auth, __) => TroopProvider(auth),
+        ),
+      ],
+      child: const MyApp(),
+    ),
   );
 }
 

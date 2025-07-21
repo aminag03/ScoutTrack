@@ -8,6 +8,9 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class CitiesPage extends StatefulWidget {
   const CitiesPage({super.key});
@@ -215,11 +218,11 @@ class _CitiesPageState extends State<CitiesPage> {
               )),
               DataColumn(label: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('DATUM KREIRANJA'),
+                child: Text('VRIJEME KREIRANJA'),
               )),
               DataColumn(label: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('DATUM IZMJENE'),
+                child: Text('VRIJEME IZMJENE'),
               )),
               DataColumn(label: Text('')),
               DataColumn(label: Text('')),
@@ -233,13 +236,13 @@ class _CitiesPageState extends State<CitiesPage> {
                   )),
                   DataCell(Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(formatDate(city.createdAt)),
+                    child: Text(formatDateTime(city.createdAt)),
                   )),
                   DataCell(Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       city.updatedAt != null
-                          ? formatDate(city.updatedAt!)
+                          ? formatDateTime(city.updatedAt!)
                           : '-',
                     ),
                   )),
@@ -360,95 +363,182 @@ class _CitiesPageState extends State<CitiesPage> {
 
   Future<void> _showCityDialog({City? city}) async {
     final _formKey = GlobalKey<FormState>();
-    final TextEditingController nameController =
+    final TextEditingController nameController = 
         TextEditingController(text: city?.name ?? '');
+    
+    LatLng selectedLocation = (city?.latitude != null && city?.longitude != null)
+        ? LatLng(city!.latitude!, city.longitude!)
+        : LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
 
     final isEdit = city != null;
 
     await showDialog(
-    context: context,
-    builder: (context) {
-      return Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 500,
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  isEdit ? 'Uredi grad' : 'Dodaj grad',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> _openMapPicker() async {
+              final initialLocation = selectedLocation;
+              
+              final result = await showDialog<Map<String, double>>(
+                context: context,
+                builder: (context) => MapPickerDialog(
+                  initialLocation: initialLocation,
                 ),
-                const SizedBox(height: 16),
-                Form(
-                  key: _formKey,
-                  child: TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Naziv'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Naziv je obavezan.';
-                      }
-                      if (value.length > 100) {
-                        return 'Naziv ne smije imati više od 100 znakova.';
-                      }
-                      final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
-                      if (!regex.hasMatch(value.trim())) {
-                        return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                      }
-                      return null;
-                    },
+              );
+
+              if (result != null) {
+                setState(() {
+                  selectedLocation = LatLng(result['latitude']!, result['longitude']!);
+                });
+              }
+            }
+
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 800,
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        isEdit ? 'Uredi grad' : 'Dodaj grad',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: nameController,
+                              decoration: const InputDecoration(labelText: 'Naziv'),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Naziv je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Naziv ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Lokacija grada:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              selectedLocation != null
+                                  ? 'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}'
+                                  : 'Nije odabrana lokacija',
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 300,
+                              child: FlutterMap(
+                                options: MapOptions(
+                                  center: selectedLocation ?? const LatLng(43.8563, 18.4131),
+                                  zoom: selectedLocation != null ? 10 : 6,
+                                  onTap: (tapPosition, point) {
+                                    setState(() {
+                                      selectedLocation = point;
+                                    });
+                                  },
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.scouttrack_desktop',
+                                  ),
+                                  if (selectedLocation != null)
+                                    MarkerLayer(
+                                      markers: [
+                                        Marker(
+                                          point: selectedLocation!,
+                                          width: 40,
+                                          height: 40,
+                                          child: const Icon(
+                                            Icons.location_pin,
+                                            color: Colors.red,
+                                            size: 40,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Otkaži'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState?.validate() ?? false) {
+                                if (selectedLocation == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Molimo odaberite lokaciju na mapi')),
+                                  );
+                                  return;
+                                }
+
+                                try {
+                                  final requestBody = {
+                                    "name": nameController.text.trim(),
+                                    "latitude": selectedLocation!.latitude,
+                                    "longitude": selectedLocation!.longitude,
+                                  };
+                                  
+                                  if (isEdit) {
+                                    await _cityProvider.update(city!.id, requestBody);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
+                                    );
+                                  } else {
+                                    await _cityProvider.insert(requestBody);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Grad je dodan.')),
+                                    );
+                                  }
+                                  await _fetchCities();
+                                  Navigator.of(context).pop();
+                                } catch (e) {
+                                  showErrorSnackbar(context, e);
+                                }
+                              }
+                            },
+                            child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Otkaži'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          try {
-                            final requestBody = {"name": nameController.text.trim()};
-                            if (isEdit) {
-                              await _cityProvider.update(city!.id, requestBody);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
-                              );
-                            } else {
-                              await _cityProvider.insert(requestBody);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Grad je dodan.')),
-                              );
-                            }
-                            await _fetchCities();
-                            Navigator.of(context).pop();
-                          } catch (e) {
-                            Navigator.of(context).pop();
-                            showErrorSnackbar(context, e);
-                          }
-                        }
-                      },
-                      child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

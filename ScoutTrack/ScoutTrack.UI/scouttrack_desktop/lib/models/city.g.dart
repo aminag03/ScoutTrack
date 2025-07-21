@@ -9,6 +9,8 @@ part of 'city.dart';
 City _$CityFromJson(Map<String, dynamic> json) => City(
   id: (json['id'] as num?)?.toInt() ?? 0,
   name: json['name'] as String? ?? '',
+  latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
+  longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: json['updatedAt'] == null
       ? null
@@ -18,6 +20,8 @@ City _$CityFromJson(Map<String, dynamic> json) => City(
 Map<String, dynamic> _$CityToJson(City instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
+  'latitude': instance.latitude,
+  'longitude': instance.longitude,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
 };

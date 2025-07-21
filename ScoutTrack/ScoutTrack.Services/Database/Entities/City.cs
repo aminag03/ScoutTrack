@@ -17,6 +17,12 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        [Required]
+        public double Latitude { get; set; }
+
+        [Required]
+        public double Longitude { get; set; }
+
         public List<Troop> Troops { get; set; } = new List<Troop>();
         public List<Member> Members { get; set; } = new List<Member>();
 

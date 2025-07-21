@@ -18,5 +18,6 @@ namespace ScoutTrack.Model.Responses
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
+        public int MemberCount { get; set; } = 0; // Default to 0 if not set
     }
 } 

@@ -8,5 +8,6 @@ namespace ScoutTrack.Services.Interfaces
 {
     public interface ITroopService : ICRUDService<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
     {
+        Task<TroopResponse?> DeActivateAsync(int id);
     }
 } 

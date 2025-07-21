@@ -176,14 +176,9 @@ namespace ScoutTrack.Services.Database
                 .IsUnique();
             modelBuilder.Entity<ActivityRegistration>()
                 .HasOne(ar => ar.Member)
-                .WithMany()
+                .WithMany(m => m.ActivityRegistrations)
                 .HasForeignKey(ar => ar.MemberId)
                 .OnDelete(DeleteBehavior.NoAction);
-
-            // ActivityEquipment
-            modelBuilder.Entity<ActivityEquipment>()
-                .HasIndex(ae => new { ae.ActivityId, ae.EquipmentId })
-                .IsUnique();
 
             // MemberBadge
             modelBuilder.Entity<MemberBadge>()
@@ -191,7 +186,7 @@ namespace ScoutTrack.Services.Database
                 .IsUnique();
             modelBuilder.Entity<MemberBadge>()
                 .HasOne(mb => mb.Member)
-                .WithMany()
+                .WithMany(m => m.MemberBadges)
                 .HasForeignKey(mb => mb.MemberId)
                 .OnDelete(DeleteBehavior.NoAction);
 

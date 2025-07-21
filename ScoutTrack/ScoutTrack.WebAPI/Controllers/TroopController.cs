@@ -12,9 +12,11 @@ namespace ScoutTrack.WebAPI.Controllers
     public class TroopController : BaseCRUDController<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
     {
         private readonly IAuthService _authService;
+        private readonly ITroopService _troopService;
         public TroopController(ITroopService troopService, IAuthService authService) : base(troopService)
         {
             _authService = authService;
+            _troopService = troopService;
         }
 
         [HttpPost]
@@ -50,6 +52,24 @@ namespace ScoutTrack.WebAPI.Controllers
                 }
             }
             return await base.Delete(id);
+        }
+
+        [HttpPatch("{id}/de-activate")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> DeActivate(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (_authService.GetUserId(User) != id)
+                {
+                    return Forbid();
+                }
+            }
+
+            var result = await _troopService.DeActivateAsync(id);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
         }
     }
 } 

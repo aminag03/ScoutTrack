@@ -41,6 +41,6 @@ namespace ScoutTrack.Services.Database.Entities
         public ICollection<Activity> Activities { get; set; } = new List<Activity>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<ActivityRegistration> ActivityRegistrations { get; set; } = new List<ActivityRegistration>();
-        public ICollection<MemberBadge> Badges { get; set; } = new List<MemberBadge>();
+        public ICollection<MemberBadge> MemberBadges { get; set; } = new List<MemberBadge>();
     }
 }

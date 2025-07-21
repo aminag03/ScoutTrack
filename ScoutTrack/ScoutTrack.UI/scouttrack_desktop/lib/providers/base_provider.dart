@@ -6,25 +6,29 @@ import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 
 abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
-  static String? _baseUrl;
-  final AuthProvider authProvider;
-  final String _endpoint;
+  @protected
+  static String? baseUrl;
 
-  BaseProvider(this.authProvider, this._endpoint) {
-    _baseUrl = const String.fromEnvironment(
+  @protected
+  final String endpoint;
+  
+  final AuthProvider? authProvider;
+
+  BaseProvider(this.authProvider, this.endpoint) {
+    baseUrl ??= const String.fromEnvironment(
       "baseUrl",
       defaultValue: "http://localhost:5164/",
     );
   }
 
   Future<SearchResult<T>> get({dynamic filter}) async {
-    var url = "$_baseUrl$_endpoint";
+    var url = "$baseUrl$endpoint";
     filter ??= {};
     filter['includeTotalCount'] = true;
     var queryString = getQueryString(filter);
     url = "$url?$queryString";
 
-    return await _handleWithRefresh(() async {
+    return await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.get(Uri.parse(url), headers: headers);
 
@@ -41,10 +45,10 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   Future<T> insert(dynamic request) async {
-    return await _handleWithRefresh(() async {
+    return await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.post(
-        Uri.parse("$_baseUrl$_endpoint"),
+        Uri.parse("$baseUrl$endpoint"),
         headers: headers,
         body: jsonEncode(request),
       );
@@ -59,10 +63,10 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   Future<T> update(int id, [dynamic request]) async {
-    return await _handleWithRefresh(() async {
+    return await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.put(
-        Uri.parse("$_baseUrl$_endpoint/$id"),
+        Uri.parse("$baseUrl$endpoint/$id"),
         headers: headers,
         body: jsonEncode(request),
       );
@@ -77,10 +81,10 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   Future<void> delete(int id) async {
-    await _handleWithRefresh(() async {
+    await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.delete(
-        Uri.parse("$_baseUrl$_endpoint/$id"),
+        Uri.parse("$baseUrl$endpoint/$id"),
         headers: headers,
       );
 
@@ -139,6 +143,28 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     } else if (response.statusCode == 401) {
       throw Exception("Greška: Niste autorizovani.");
     } else {
+      String errorMsg = response.body;
+      try {
+        final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+        if (decoded != null && decoded is Map && decoded['message'] != null) {
+          errorMsg = decoded['message'].toString().toLowerCase();
+        } else {
+          errorMsg = response.body.toLowerCase();
+        }
+      } catch (_) {
+        errorMsg = response.body.toLowerCase();
+      }
+
+      if (errorMsg.contains('username') && errorMsg.contains('already exists')) {
+        throw Exception('Greška: Korisničko ime već postoji.');
+      }
+      if (errorMsg.contains('email') && errorMsg.contains('already exists')) {
+        throw Exception('Greška: Email već postoji.');
+      }
+      if (errorMsg.contains('name') && errorMsg.contains('already exists')) {
+        throw Exception('Greška: Naziv već postoji.');
+      }
+
       print(response.body);
       throw Exception("Greška: Došlo je do problema. Pokušajte ponovo.");
     }
@@ -149,9 +175,10 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       'Content-Type': 'application/json; charset=UTF-8',
     };
 
-    final token = authProvider.accessToken;
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
+    if (authProvider?.accessToken != null) {
+      headers['Authorization'] = 'Bearer ${authProvider!.accessToken}';
+    } else {
+      debugPrint('⚠️ AuthProvider ili accessToken je null – ne dodajem Authorization header.');
     }
 
     return headers;
@@ -185,16 +212,23 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     return query;
   }
 
-  Future<R> _handleWithRefresh<R>(Future<R> Function() requestFn) async {
+  Future<R> handleWithRefresh<R>(Future<R> Function() requestFn) async {
     try {
       return await requestFn();
     } catch (e) {
-      if (e.toString().contains("Unauthorized")) {
-        final success = await authProvider.refreshToken();
+      final message = e.toString();
+      final unauthorized = message.contains("Greška: Niste autorizovani.") || message.contains("Unauthorized");
+
+      if (unauthorized) {
+        if (authProvider == null) {
+          throw Exception("Greška: Niste autorizovani i AuthProvider nije dostupan.");
+        }
+
+        final success = await authProvider!.refreshToken();
         if (success) {
-          return await requestFn(); // retry once after refresh
+          return await requestFn(); // Retry
         } else {
-          rethrow;
+          throw Exception("Greška: Token nije moguće osvježiti.");
         }
       } else {
         rethrow;

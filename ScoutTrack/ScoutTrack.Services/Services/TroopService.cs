@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Services.Interfaces;
+using ScoutTrack.Services.Extensions;
 
 namespace ScoutTrack.Services
 {
@@ -24,6 +25,92 @@ namespace ScoutTrack.Services
         {
             _context = context;
         }
+
+        public override async Task<PagedResult<TroopResponse>> GetAsync(TroopSearchObject search)
+        {
+            var query = _context.Set<Troop>().AsQueryable();
+            query = ApplyFilter(query, search);
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var entities = await query.ToListAsync();
+
+            var responseList = entities.Select(MapToResponse).ToList();
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                if (search.OrderBy.StartsWith("-"))
+                {
+                    query = query.OrderByDescendingDynamic(search.OrderBy[1..]);
+                }
+                else
+                {
+                    query = query.OrderByDynamic(search.OrderBy);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                var orderBy = search.OrderBy;
+
+                if (orderBy.Equals("memberCount", StringComparison.OrdinalIgnoreCase))
+                {
+                    responseList = responseList.OrderBy(x => x.MemberCount).ToList();
+                }
+                else if (orderBy.Equals("-memberCount", StringComparison.OrdinalIgnoreCase))
+                {
+                    responseList = responseList.OrderByDescending(x => x.MemberCount).ToList();
+                }
+                else
+                {
+                    bool descending = false;
+                    if (orderBy.StartsWith("-"))
+                    {
+                        descending = true;
+                        orderBy = orderBy[1..];
+                    }
+
+                    responseList = orderBy.ToLower() switch
+                    {
+                        "name" => descending
+                            ? responseList.OrderByDescending(x => x.Name).ToList()
+                            : responseList.OrderBy(x => x.Name).ToList(),
+
+                        "email" => descending
+                            ? responseList.OrderByDescending(x => x.Email).ToList()
+                            : responseList.OrderBy(x => x.Email).ToList(),
+
+                        "username" => descending
+                            ? responseList.OrderByDescending(x => x.Username).ToList()
+                            : responseList.OrderBy(x => x.Username).ToList(),
+
+                        _ => responseList
+                    };
+                }
+            }
+
+            if (!search.RetrieveAll)
+            {
+                if (search.Page.HasValue && search.PageSize.HasValue)
+                {
+                    responseList = responseList
+                        .Skip(search.Page.Value * search.PageSize.Value)
+                        .Take(search.PageSize.Value)
+                        .ToList();
+                }
+            }
+
+            return new PagedResult<TroopResponse>
+            {
+                Items = responseList,
+                TotalCount = totalCount
+            };
+        }
+
 
         protected override IQueryable<Troop> ApplyFilter(IQueryable<Troop> query, TroopSearchObject search)
         {
@@ -53,6 +140,9 @@ namespace ScoutTrack.Services
                                         t.Email.Contains(search.FTS) || 
                                         t.Name.Contains(search.FTS));
             }
+
+            query = query.Include(t => t.City);
+
             return query;
         }
 
@@ -102,13 +192,48 @@ namespace ScoutTrack.Services
             await _context.SaveChangesAsync();
         }
 
-        public override async Task<bool> DeleteAsync(int id)
+        protected override async Task BeforeDelete(Troop entity)
         {
-            var members = _context.Members.Where(m => m.TroopId == id);
-            _context.Members.RemoveRange(members);
-            await _context.SaveChangesAsync();
+            var hasMembers = await _context.Members.AnyAsync(m => m.TroopId == entity.Id);
+            if (hasMembers)
+                throw new UserException("Cannot delete troop: it is referenced by one or more entities.");
+        }
 
-            return await base.DeleteAsync(id);
+        public async Task<TroopResponse?> DeActivateAsync(int id)
+        {
+            var troop = await _context.Set<Troop>().FindAsync(id);
+            if (troop == null)
+                return null;
+
+            if (!troop.IsActive)
+                troop.IsActive = true;
+            else
+                troop.IsActive = false;
+
+            await _context.SaveChangesAsync();
+            return MapToResponse(troop);
+        }
+
+        protected override TroopResponse MapToResponse(Troop entity)
+        {
+            return new TroopResponse
+            {
+                Id = entity.Id,
+                Username = entity.Username,
+                Email = entity.Email,
+                Name = entity.Name,
+                CityId = entity.CityId,
+                CityName = entity.City?.Name ?? string.Empty,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
+                ContactPhone = entity.ContactPhone,
+                LogoUrl = entity.LogoUrl,
+                IsActive = entity.IsActive,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt,
+                LastLoginAt = entity.LastLoginAt,
+                MemberCount = _context.Members.Count(m => m.TroopId == entity.Id)
+            };
         }
     }
 } 
