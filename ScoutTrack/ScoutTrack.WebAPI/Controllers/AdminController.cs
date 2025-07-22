@@ -11,7 +11,7 @@ namespace ScoutTrack.WebAPI.Controllers
     [ApiController]
     [Route("[controller]")]
     [Authorize(Roles = "Admin")]
-    public class AdminController : BaseCRUDController<AdminResponse, AdminSearchObject, AdminUpsertRequest, AdminUpsertRequest>
+    public class AdminController : BaseCRUDController<AdminResponse, AdminSearchObject, AdminInsertRequest, AdminUpdateRequest>
     {
         public AdminController(IAdminService adminService) : base(adminService)
         {

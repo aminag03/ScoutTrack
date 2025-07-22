@@ -17,7 +17,7 @@ using ScoutTrack.Services.Extensions;
 
 namespace ScoutTrack.Services
 {
-    public class TroopService : BaseCRUDService<TroopResponse, TroopSearchObject, Troop, TroopUpsertRequest, TroopUpsertRequest>, ITroopService
+    public class TroopService : BaseCRUDService<TroopResponse, TroopSearchObject, Troop, TroopInsertRequest, TroopUpdateRequest>, ITroopService
     {
         private readonly ScoutTrackDbContext _context;
 
@@ -146,7 +146,7 @@ namespace ScoutTrack.Services
             return query;
         }
 
-        protected override async Task BeforeInsert(Troop entity, TroopUpsertRequest request)
+        protected override async Task BeforeInsert(Troop entity, TroopInsertRequest request)
         {
             entity.Role = Role.Troop;
             
@@ -165,7 +165,7 @@ namespace ScoutTrack.Services
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
-        protected override async Task BeforeUpdate(Troop entity, TroopUpsertRequest request)
+        protected override async Task BeforeUpdate(Troop entity, TroopUpdateRequest request)
         {
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
                 throw new UserException("User with this username already exists.");

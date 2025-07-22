@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Interfaces
 {
-    public interface ITroopService : ICRUDService<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
+    public interface ITroopService : ICRUDService<TroopResponse, TroopSearchObject, TroopInsertRequest, TroopUpdateRequest>
     {
         Task<TroopResponse?> DeActivateAsync(int id);
     }

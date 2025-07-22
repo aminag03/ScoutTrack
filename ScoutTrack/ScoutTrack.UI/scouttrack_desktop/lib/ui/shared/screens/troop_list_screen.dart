@@ -106,7 +106,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
         "PageSize": pageSize,
         "IncludeTotalCount": true,
         };
+      print("Pozivam troopProvider.get s filterom: $filter");
       var result = await _troopProvider.get(filter: filter);
+      print("Broj dobijenih odreda: ${result.items?.length}");
+
       setState(() {
         _troops = result;
         currentPage = page ?? currentPage;
@@ -213,6 +216,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                   ),
                 ),
 
+                if (_role == 'Admin')
                 ElevatedButton.icon(
                   onPressed: _onAddTroop,
                   icon: const Icon(Icons.add),
@@ -224,7 +228,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   ),
                 ),
-              ],
+              ]
             ),
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
@@ -327,32 +331,44 @@ class _TroopListScreenState extends State<TroopListScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: troop.isActive ? const Icon(Icons.check, color: Colors.green) : const Icon(Icons.close, color: Colors.red),
                     )),
-                    DataCell(
+                    if (_role == 'Admin') ...[
+                      DataCell(
                         IconButton(
-                        icon: const Icon(Icons.visibility, color: Colors.grey),
-                        tooltip: 'Detalji',
-                        onPressed: () => _navigateToTroopDetails(troop),
+                          icon: const Icon(Icons.visibility, color: Colors.grey),
+                          tooltip: 'Detalji',
+                          onPressed: () => _navigateToTroopDetails(troop),
                         ),
-                    ),
-                    DataCell(
+                      ),
+                      DataCell(
                         IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        tooltip: 'Uredi',
-                        onPressed: () => _onEditTroop(troop),
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          tooltip: 'Uredi',
+                          onPressed: () => _onEditTroop(troop),
                         ),
-                    ),
-                    DataCell(
+                      ),
+                      DataCell(
                         IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'Obriši',
-                        onPressed: () => _onDeleteTroop(troop),
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          tooltip: 'Obriši',
+                          onPressed: () => _onDeleteTroop(troop),
                         ),
-                    ),
+                      ),
+                    ] else ...[
+                      DataCell(
+                        IconButton(
+                          icon: const Icon(Icons.visibility, color: Colors.grey),
+                          tooltip: 'Detalji',
+                          onPressed: () => _navigateToTroopDetails(troop),
+                        ),
+                      ),
+                      const DataCell(SizedBox()),
+                      const DataCell(SizedBox()), 
                     ],
+                  ]
                 );
-                }).toList(),
+              }).toList(),
             ),
-            ),
+          ),
         ),
       ),
     );
@@ -442,12 +458,24 @@ class _TroopListScreenState extends State<TroopListScreen> {
     }
   }
 
-  void _navigateToTroopDetails(Troop troop) {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => TroopDetailsScreen(troop: troop)),
-    );
-    }
+  void _navigateToTroopDetails(Troop troop) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userInfo = await authProvider.getCurrentUserInfo();
 
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TroopDetailsScreen(
+          troop: troop,
+          role: userInfo?['role'] ?? '',
+          loggedInUserId: userInfo?['id'] ?? 0,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _fetchTroops();
+    }
+  }
 
   Future<void> _showTroopDialog({Troop? troop}) async {
   final _formKey = GlobalKey<FormState>();

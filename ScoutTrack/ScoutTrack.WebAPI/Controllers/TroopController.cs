@@ -9,7 +9,7 @@ namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class TroopController : BaseCRUDController<TroopResponse, TroopSearchObject, TroopUpsertRequest, TroopUpsertRequest>
+    public class TroopController : BaseCRUDController<TroopResponse, TroopSearchObject, TroopInsertRequest, TroopUpdateRequest>
     {
         private readonly IAuthService _authService;
         private readonly ITroopService _troopService;
@@ -21,14 +21,14 @@ namespace ScoutTrack.WebAPI.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public override async Task<IActionResult> Create([FromBody] TroopUpsertRequest request)
+        public override async Task<IActionResult> Create([FromBody] TroopInsertRequest request)
         {
             return await base.Create(request);
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Troop")]
-        public override async Task<IActionResult> Update(int id, [FromBody] TroopUpsertRequest request)
+        public override async Task<IActionResult> Update(int id, [FromBody] TroopUpdateRequest request)
         {
             if (_authService.IsInRole(User, "Troop"))
             {

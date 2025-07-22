@@ -124,9 +124,9 @@ class _MasterScreenState extends State<MasterScreen> {
                   ),
                   _SidebarItem(
                     icon: Icons.badge,
-                    label: 'Odred',
-                    selected: selectedLabel == 'Odred',
-                    onTap: () => _handleTap('Odred', () {
+                    label: 'Odredi',
+                    selected: selectedLabel == 'Odredi',
+                    onTap: () => _handleTap('Odredi', () {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => const TroopListScreen()),
                       );
@@ -169,7 +169,7 @@ class _MasterScreenState extends State<MasterScreen> {
                             IconButton(
                               icon: const Icon(Icons.arrow_back),
                               onPressed: () {
-                                Navigator.of(context).maybePop();
+                                Navigator.of(context).pop(true);
                               },
                             ),
                           Text(

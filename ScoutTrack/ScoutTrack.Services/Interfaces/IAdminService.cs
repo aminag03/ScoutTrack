@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Interfaces
 {
-    public interface IAdminService : ICRUDService<AdminResponse, AdminSearchObject, AdminUpsertRequest, AdminUpsertRequest>
+    public interface IAdminService : ICRUDService<AdminResponse, AdminSearchObject, AdminInsertRequest, AdminUpdateRequest>
     {
     }
 } 

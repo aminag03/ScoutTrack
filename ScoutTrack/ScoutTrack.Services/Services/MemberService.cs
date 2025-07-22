@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
 {
-    public class MemberService : BaseCRUDService<MemberResponse, MemberSearchObject, Member, MemberUpsertRequest, MemberUpsertRequest>, IMemberService
+    public class MemberService : BaseCRUDService<MemberResponse, MemberSearchObject, Member, MemberInsertRequest, MemberUpdateRequest>, IMemberService
     {
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<MemberService> _logger;
@@ -75,7 +75,7 @@ namespace ScoutTrack.Services
             return query;
         }
 
-        protected override async Task BeforeInsert(Member entity, MemberUpsertRequest request)
+        protected override async Task BeforeInsert(Member entity, MemberInsertRequest request)
         {
             entity.Role = Role.Member;
             
@@ -95,7 +95,7 @@ namespace ScoutTrack.Services
             entity.Gender = request.Gender;
         }
 
-        protected override async Task BeforeUpdate(Member entity, MemberUpsertRequest request)
+        protected override async Task BeforeUpdate(Member entity, MemberUpdateRequest request)
         {
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
                 throw new UserException("User with this username already exists.");

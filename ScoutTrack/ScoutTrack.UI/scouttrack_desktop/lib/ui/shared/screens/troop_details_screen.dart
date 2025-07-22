@@ -9,8 +9,15 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
+  final String role;
+  final int loggedInUserId;
 
-  const TroopDetailsScreen({super.key, required this.troop});
+  const TroopDetailsScreen({
+    super.key,
+    required this.troop,
+    required this.role,
+    required this.loggedInUserId,
+  });
 
   @override
   State<TroopDetailsScreen> createState() => _TroopDetailsScreenState();
@@ -21,11 +28,20 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   bool _isLoading = false;
   late MapController _mapController;
   LatLng? _selectedLocation;
+  late String _role;
+  late int _loggedInUserId;
+
+  bool get isAdmin => _role == 'Admin';
+  bool get isTroop => _role == 'Troop';
+  bool get isViewingOwnProfile => isTroop && _loggedInUserId == _troop.id;
 
   @override
   void initState() {
     super.initState();
     _troop = widget.troop;
+    _role = widget.role;
+    _loggedInUserId = widget.loggedInUserId;
+
     _mapController = MapController();
     if (_troop.latitude != null && _troop.longitude != null) {
       _selectedLocation = LatLng(_troop.latitude!, _troop.longitude!);
@@ -105,7 +121,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
     return MasterScreen(
       selectedMenu: null,
-      role: 'Admin',
+      role: _role,
       title: _troop.name,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -147,9 +163,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
             _buildDetailRow('Broj članova', _troop.memberCount.toString()),
             _buildDetailRow('Kontakt telefon', _troop.contactPhone),
             _buildDetailRow('Aktivan', _troop.isActive ? 'Da' : 'Ne'),
-            _buildDetailRow('Kreiran', formatDateTime(_troop.createdAt)),
-            _buildDetailRow('Zadnja prijava', _troop.lastLoginAt != null ? formatDateTime(_troop.lastLoginAt!) : '-'),
-            
+            if (isAdmin || isViewingOwnProfile) ...[
+              _buildDetailRow('Kreiran', formatDateTime(_troop.createdAt)),
+              _buildDetailRow('Zadnja prijava', _troop.lastLoginAt != null ? formatDateTime(_troop.lastLoginAt!) : '-'),
+            ],
+
             const SizedBox(height: 24),
             const Text('Lokacija:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
@@ -196,19 +214,20 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
             ),
             
             const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ElevatedButton.icon(
-                icon: Icon(_troop.isActive ? Icons.block : Icons.check_circle),
-                label: Text(_troop.isActive ? 'Deaktiviraj odred' : 'Aktiviraj odred'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _troop.isActive ? Colors.red : Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            if (isAdmin || isViewingOwnProfile)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton.icon(
+                  icon: Icon(_troop.isActive ? Icons.block : Icons.check_circle),
+                  label: Text(_troop.isActive ? 'Deaktiviraj odred' : 'Aktiviraj odred'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _troop.isActive ? Colors.red : Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: _isLoading ? null : _toggleActivation,
                 ),
-                onPressed: _isLoading ? null : _toggleActivation,
               ),
-            ),
           ],
         ),
       ),

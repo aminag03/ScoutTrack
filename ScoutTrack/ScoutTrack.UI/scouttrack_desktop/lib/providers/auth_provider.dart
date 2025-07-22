@@ -25,6 +25,19 @@ class AuthProvider with ChangeNotifier {
     final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
     return jsonDecode(payload);
   }
+
+  Future<Map<String, dynamic>?> getCurrentUserInfo() async {
+    final role = await getUserRoleFromToken();
+    final id = await getUserIdFromToken();
+
+    if (role == null || id == null) return null;
+
+    return {
+      'id': id,
+      'role': role,
+    };
+  }
+  
   static String? _accessToken;
   String? _refreshToken;
   String? _role;

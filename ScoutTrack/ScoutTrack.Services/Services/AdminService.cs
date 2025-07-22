@@ -15,7 +15,7 @@ using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.Services
 {
-    public class AdminService : BaseCRUDService<AdminResponse, AdminSearchObject, Admin, AdminUpsertRequest, AdminUpsertRequest>, IAdminService
+    public class AdminService : BaseCRUDService<AdminResponse, AdminSearchObject, Admin, AdminInsertRequest, AdminUpdateRequest>, IAdminService
     {
         private readonly ScoutTrackDbContext _context;
 
@@ -50,7 +50,7 @@ namespace ScoutTrack.Services
             return query;
         }
 
-        protected override async Task BeforeInsert(Admin entity, AdminUpsertRequest request)
+        protected override async Task BeforeInsert(Admin entity, AdminInsertRequest request)
         {
             entity.Role = Role.Admin;
             
@@ -66,7 +66,7 @@ namespace ScoutTrack.Services
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
-        protected override async Task BeforeUpdate(Admin entity, AdminUpsertRequest request)
+        protected override async Task BeforeUpdate(Admin entity, AdminUpdateRequest request)
         {
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
                 throw new InvalidOperationException("User with this username already exists.");

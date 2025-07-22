@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using ScoutTrack.Common.Enums;
 
 namespace ScoutTrack.Model.Requests
 {
-    public class MemberUpsertRequest
+    public class MemberUpdateRequest
     {
         [Required]
         [MaxLength(100)]
@@ -42,10 +42,5 @@ namespace ScoutTrack.Model.Requests
 
         [Required]
         public int CityId { get; set; }
-
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters long.")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$",
-        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
-        public string? Password { get; set; }
     }
 }

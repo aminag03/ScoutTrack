@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Interfaces
 {
-    public interface IMemberService : ICRUDService<MemberResponse, MemberSearchObject, MemberUpsertRequest, MemberUpsertRequest>
+    public interface IMemberService : ICRUDService<MemberResponse, MemberSearchObject, MemberInsertRequest, MemberUpdateRequest>
     {
     }
 } 
