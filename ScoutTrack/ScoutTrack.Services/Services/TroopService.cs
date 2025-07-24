@@ -1,19 +1,20 @@
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using ScoutTrack.Common.Enums;
+using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Database.Entities;
-using ScoutTrack.Common.Enums;
+using ScoutTrack.Services.Extensions;
+using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ScoutTrack.Model.Exceptions;
-using ScoutTrack.Services.Interfaces;
-using ScoutTrack.Services.Extensions;
 
 namespace ScoutTrack.Services
 {
@@ -111,6 +112,17 @@ namespace ScoutTrack.Services
             };
         }
 
+        public override async Task<TroopResponse?> GetByIdAsync(int id)
+        {
+            var entity = await _context.Troops
+                .Include(t => t.City)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (entity == null)
+                return null;
+
+            return MapToResponse(entity);
+        }
 
         protected override IQueryable<Troop> ApplyFilter(IQueryable<Troop> query, TroopSearchObject search)
         {
@@ -180,16 +192,39 @@ namespace ScoutTrack.Services
                 throw new UserException($"City with ID {request.CityId} does not exist.");
         }
 
-        public async Task ChangePasswordAsync(int troopId, string newPassword)
+        protected override void MapUpdateToEntity(Troop entity, TroopUpdateRequest request)
         {
-            var troop = await _context.Troops.FindAsync(troopId)
-                ?? throw new KeyNotFoundException("Troop not found.");
+            entity.UpdatedAt = DateTime.UtcNow;
+            base.MapUpdateToEntity(entity, request);
+        }
 
-            if (string.IsNullOrWhiteSpace(newPassword))
-                throw new ArgumentException("Password is required.");
+        public async Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request)
+        {
+            var entity = await _context.Troops.FindAsync(id);
+            if (entity == null)
+                return null;
 
-            troop.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, entity.PasswordHash))
+                throw new UserException("Old password is not valid.");
+
+            if (BCrypt.Net.BCrypt.Verify(request.NewPassword, entity.PasswordHash))
+                throw new UserException("New password cannot be same as old password.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+                throw new UserException("New password must have at least 8 characters.");
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+                throw new UserException("New password and confirmation do not match.");
+
+            if (!Regex.IsMatch(request.NewPassword, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"))
+                throw new UserException("Password must contain at least one uppercase letter, one " +
+                    "lowercase letter, one number and one special character.");
+
+            entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            entity.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
+            return true;
         }
 
         protected override async Task BeforeDelete(Troop entity)

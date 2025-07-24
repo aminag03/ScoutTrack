@@ -6,7 +6,7 @@ namespace ScoutTrack.Model.Requests
     {
         [Required]
         [MaxLength(50, ErrorMessage = "Username most not exceed 50 characters.")]
-        [RegularExpression(@"^[a-zA-Z0-9_.-]+$", ErrorMessage = "Username can only contain letters, numbers, dots, underscores, or hyphens.")]
+        [RegularExpression(@"^[A-Za-z0-9_.]+$", ErrorMessage = "Username can only contain letters, numbers, dots, underscores, or hyphens.")]
         public string Username { get; set; } = string.Empty;
 
         [Required]
@@ -16,7 +16,7 @@ namespace ScoutTrack.Model.Requests
 
         [Required]
         [MaxLength(100, ErrorMessage = "Name must not exceed 100 characters.")]
-        [RegularExpression(@"^[A-Za-z���掞����\s'-]{2,}$", ErrorMessage = "Name contains invalid characters.")]
+        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
         public string Name { get; set; } = string.Empty;
 
         [Required]

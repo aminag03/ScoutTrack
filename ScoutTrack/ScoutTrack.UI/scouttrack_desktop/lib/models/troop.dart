@@ -39,7 +39,6 @@ class Troop {
   });
 
   factory Troop.fromJson(Map<String, dynamic> json) {
-    print("Deserializing Troop: $json");
     return _$TroopFromJson(json);
   }
 }

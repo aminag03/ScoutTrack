@@ -21,7 +21,6 @@ class City {
   });
 
   factory City.fromJson(Map<String, dynamic> json) {
-    print("Deserializing City: $json");
     return _$CityFromJson(json);
   }
 }

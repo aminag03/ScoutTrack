@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
@@ -112,16 +113,33 @@ namespace ScoutTrack.Services
             entity.Gender = request.Gender;
         }
 
-        public async Task ChangePasswordAsync(int memberId, string newPassword)
+        public async Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request)
         {
-            var member = await _context.Members.FindAsync(memberId)
-                ?? throw new KeyNotFoundException("Member not found.");
+            var entity = await _context.Members.FindAsync(id);
+            if (entity == null)
+                return null;
 
-            if (string.IsNullOrWhiteSpace(newPassword))
-                throw new ArgumentException("Password is required.");
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, entity.PasswordHash))
+                throw new UserException("Old password is not valid.");
 
-            member.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            if (BCrypt.Net.BCrypt.Verify(request.NewPassword, entity.PasswordHash))
+                throw new UserException("New password cannot be same as old password.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+                throw new UserException("New password must have at least 8 characters.");
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+                throw new UserException("New password and confirmation do not match.");
+
+            if (!Regex.IsMatch(request.NewPassword, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"))
+                throw new UserException("Password must contain at least one uppercase letter, one " +
+                    "lowercase letter, one number and one special character.");
+
+            entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            entity.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
+            return true;
         }
     }
 } 

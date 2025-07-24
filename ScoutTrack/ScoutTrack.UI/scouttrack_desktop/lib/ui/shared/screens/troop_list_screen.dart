@@ -106,9 +106,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
         "PageSize": pageSize,
         "IncludeTotalCount": true,
         };
-      print("Pozivam troopProvider.get s filterom: $filter");
       var result = await _troopProvider.get(filter: filter);
-      print("Broj dobijenih odreda: ${result.items?.length}");
 
       setState(() {
         _troops = result;
@@ -141,95 +139,143 @@ class _TroopListScreenState extends State<TroopListScreen> {
         child: Column(
           children: [
             Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Pretraži odrede...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
+  children: [
+    Expanded(
+      flex: 3,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: TextField(
+          controller: searchController,
+          decoration: const InputDecoration(
+            hintText: 'Pretraži odrede...',
+            prefixIcon: Icon(Icons.search),
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+      ),
+    ),
 
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedCityId,
-                      decoration: const InputDecoration(
-                        labelText: 'Grad',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCityId = value;
-                          currentPage = 1;
-                        });
-                        _fetchTroops();
-                      },
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text("Svi gradovi")),
-                        ..._cities.map((city) => DropdownMenuItem(value: city.id, child: Text(city.name))),
-                      ],
-                    ),
-                  ),
+    // Grad Dropdown
+    Expanded(
+      flex: 2,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownButtonFormField<int?>(
+              value: _selectedCityId,
+              decoration: InputDecoration(
+                labelText: 'Grad',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth,
                 ),
+              ),
+              isExpanded: true,  // This makes the dropdown take full width
+              onChanged: (value) {
+                setState(() {
+                  _selectedCityId = value;
+                  currentPage = 1;
+                });
+                _fetchTroops();
+              },
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text("Svi gradovi", overflow: TextOverflow.ellipsis),
+                ),
+                ..._cities.map((city) => DropdownMenuItem(
+                  value: city.id,
+                  child: Text(
+                    city.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                )),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
 
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedSort,
-                      decoration: const InputDecoration(
-                        labelText: 'Sortiraj',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSort = value;
-                          currentPage = 1;
-                        });
-                        _fetchTroops();
-                      },
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Bez sortiranja')),
-                        DropdownMenuItem(value: 'name', child: Text('Naziv (A-Ž)')),
-                        DropdownMenuItem(value: '-name', child: Text('Naziv (Ž-A)')),
-                        DropdownMenuItem(value: 'memberCount', child: Text('Broj članova (rastuće)')),
-                        DropdownMenuItem(value: '-memberCount', child: Text('Broj članova (opadajuće)')),
-                      ],
-                    ),
-                  ),
+    // Sortiraj Dropdown
+    Expanded(
+      flex: 2,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownButtonFormField<String?>(
+              value: _selectedSort,
+              decoration: InputDecoration(
+                labelText: 'Sortiraj',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth,
                 ),
+              ),
+              isExpanded: true,  // This makes the dropdown take full width
+              onChanged: (value) {
+                setState(() {
+                  _selectedSort = value;
+                  currentPage = 1;
+                });
+                _fetchTroops();
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text('Bez sortiranja', overflow: TextOverflow.ellipsis),
+                ),
+                DropdownMenuItem(
+                  value: 'name',
+                  child: Text('Naziv (A-Ž)', overflow: TextOverflow.ellipsis),
+                ),
+                DropdownMenuItem(
+                  value: '-name',
+                  child: Text('Naziv (Ž-A)', overflow: TextOverflow.ellipsis),
+                ),
+                DropdownMenuItem(
+                  value: 'memberCount',
+                  child: Text('Broj članova (rastuće)', overflow: TextOverflow.ellipsis),
+                ),
+                DropdownMenuItem(
+                  value: '-memberCount',
+                  child: Text('Broj članova (opadajuće)', overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
 
-                if (_role == 'Admin')
-                ElevatedButton.icon(
-                  onPressed: _onAddTroop,
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'Dodaj novi odred',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  ),
-                ),
-              ]
-            ),
+    if (_role == 'Admin')
+    Flexible(
+      child: ElevatedButton.icon(
+        onPressed: _onAddTroop,
+        icon: const Icon(Icons.add),
+        label: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Dodaj novi odred',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+    ),
+  ]
+),
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
@@ -468,6 +514,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
           troop: troop,
           role: userInfo?['role'] ?? '',
           loggedInUserId: userInfo?['id'] ?? 0,
+          selectedMenu: 'Odredi',
         ),
       ),
     );
@@ -478,293 +525,296 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Future<void> _showTroopDialog({Troop? troop}) async {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController nameController = TextEditingController(text: troop?.name ?? '');
-  final TextEditingController usernameController = TextEditingController(text: troop?.username ?? '');
-  final TextEditingController emailController = TextEditingController(text: troop?.email ?? '');
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController contactPhoneController = TextEditingController(text: troop?.contactPhone ?? '');
-  final TextEditingController logoUrlController = TextEditingController(text: troop?.logoUrl ?? '');
-  
-  LatLng selectedLocation = (troop?.latitude != null && troop?.longitude != null)
-      ? LatLng(troop!.latitude!, troop.longitude!)
-      : const LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
-  
-  int? selectedCityId = troop?.cityId;
-  String? selectedCityName;
-  final isEdit = troop != null;
-  final MapController _mapController = MapController();
+    final _formKey = GlobalKey<FormState>();
+    final TextEditingController nameController = TextEditingController(text: troop?.name ?? '');
+    final TextEditingController usernameController = TextEditingController(text: troop?.username ?? '');
+    final TextEditingController emailController = TextEditingController(text: troop?.email ?? '');
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController contactPhoneController = TextEditingController(text: troop?.contactPhone ?? '');
+    final TextEditingController logoUrlController = TextEditingController(text: troop?.logoUrl ?? '');
+    
+    LatLng selectedLocation = (troop?.latitude != null && troop?.longitude != null)
+        ? LatLng(troop!.latitude!, troop.longitude!)
+        : const LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
+    
+    int? selectedCityId = troop?.cityId;
+    String? selectedCityName;
+    final isEdit = troop != null;
+    final MapController _mapController = MapController();
 
-  if (isEdit && troop?.cityId != null) {
-    selectedCityName = _cities.firstWhere((c) => c.id == troop?.cityId).name;
-  }
+    if (isEdit && troop?.cityId != null) {
+      selectedCityName = _cities.firstWhere((c) => c.id == troop?.cityId).name;
+    }
 
-  await showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          Future<void> _openMapPicker() async {
-            final initialLocation = selectedLocation ?? const LatLng(43.8563, 18.4131);
-            
-            final result = await showDialog<Map<String, double>>(
-              context: context,
-              builder: (context) => MapPickerDialog(
-                initialLocation: initialLocation,
-              ),
-            );
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> _openMapPicker() async {
+              final initialLocation = selectedLocation ?? const LatLng(43.8563, 18.4131);
+              
+              final result = await showDialog<Map<String, double>>(
+                context: context,
+                builder: (context) => MapPickerDialog(
+                  initialLocation: initialLocation,
+                ),
+              );
 
-            if (result != null) {
-              final newLocation = LatLng(result['latitude']!, result['longitude']!);
-              setState(() {
-                selectedLocation = newLocation;
-              });
-              _mapController.move(newLocation, _mapController.zoom);
-            }
-          }
-
-          void _updateCityLocation(int? cityId) {
-            if (cityId != null) {
-              final selectedCity = _cities.firstWhere((c) => c.id == cityId);
-              if (selectedCity.latitude != null && selectedCity.longitude != null) {
-                final newLocation = LatLng(selectedCity.latitude!, selectedCity.longitude!);
+              if (result != null) {
+                final newLocation = LatLng(result['latitude']!, result['longitude']!);
                 setState(() {
                   selectedLocation = newLocation;
                 });
                 _mapController.move(newLocation, _mapController.zoom);
               }
             }
-          }
 
-          return Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 800,
-                maxHeight: MediaQuery.of(context).size.height * 0.9,
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      isEdit ? 'Uredi odred' : 'Dodaj odred',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: nameController,
-                            decoration: const InputDecoration(labelText: 'Naziv'),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Naziv je obavezan.';
-                              }
-                              if (value.length > 100) {
-                                return 'Naziv ne smije imati više od 100 znakova.';
-                              }
-                              final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
-                              if (!regex.hasMatch(value.trim())) {
-                                return 'Naziv smije sadržavati samo slova, razmake i crtice.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: usernameController,
-                            decoration: const InputDecoration(labelText: 'Korisničko ime'),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Korisničko ime je obavezno.';
-                              }
-                              if (value.length > 50) {
-                                return 'Korisničko ime ne smije imati više od 50 znakova.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: emailController,
-                            decoration: const InputDecoration(labelText: 'E-mail'),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'E-mail je obavezan.';
-                              }
-                              if (!RegExp(r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}").hasMatch(value.trim())) {
-                                return 'Unesite ispravan e-mail.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          if (!isEdit) ...[
+            void _updateCityLocation(int? cityId) {
+              if (cityId != null) {
+                final selectedCity = _cities.firstWhere((c) => c.id == cityId);
+                if (selectedCity.latitude != null && selectedCity.longitude != null) {
+                  final newLocation = LatLng(selectedCity.latitude!, selectedCity.longitude!);
+                  setState(() {
+                    selectedLocation = newLocation;
+                  });
+                  _mapController.move(newLocation, _mapController.zoom);
+                }
+              }
+            }
+
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 800,
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        isEdit ? 'Uredi odred' : 'Dodaj odred',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
                             TextFormField(
-                              controller: passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(labelText: 'Lozinka'),
+                              controller: nameController,
+                              decoration: const InputDecoration(labelText: 'Naziv'),
                               validator: (value) {
-                                if (value == null || value.isEmpty) return 'Lozinka je obavezna.';
-                                if (value.length < 8) return 'Lozinka mora imati najmanje 8 znakova.';
-                                if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])').hasMatch(value)) {
-                                  return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Naziv je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Naziv ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Naziv smije sadržavati samo slova, razmake i crtice.';
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 12),
-                          ],
-                          TextFormField(
-                            controller: contactPhoneController,
-                            decoration: const InputDecoration(labelText: 'Kontakt telefon'),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return 'Telefon je obavezan.';
-                              if (!RegExp(r'^\+?\d{6,20}$').hasMatch(value)) {
-                                return 'Unesite ispravan broj telefona.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<int>(
-                            value: selectedCityId,
-                            decoration: const InputDecoration(labelText: 'Grad'),
-                            items: _cities
-                                .map((c) => DropdownMenuItem<int>(
-                                      value: c.id,
-                                      child: Text(c.name),
-                                    ))
-                                .toList(),
-                            validator: (value) => value == null ? 'Grad je obavezan.' : null,
-                            onChanged: (val) {
-                              setState(() {
-                                selectedCityId = val;
-                                selectedCityName = _cities.firstWhere((c) => c.id == val).name;
-                              });
-                              _updateCityLocation(val);
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Lokacija odreda:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}',
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                      height: 300,
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          center: selectedLocation,
-                          zoom: 10,
-                          onTap: (tapPosition, point) {
-                            setState(() {
-                              selectedLocation = point;
-                            });
-                          },
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.scouttrack_desktop',
-                          ),
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: selectedLocation,
-                                width: 40,
-                                height: 40,
-                                child: const Icon(
-                                  Icons.location_pin,
-                                  color: Colors.red,
-                                  size: 40,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: logoUrlController,
-                            decoration: const InputDecoration(labelText: 'Logo URL (opcionalno)'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Otkaži'),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState?.validate() ?? false) {
-                              if (selectedLocation == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Molimo odaberite lokaciju na mapi')),
-                                );
-                                return;
-                              }
-
-                              try {
-                                final requestBody = {
-                                  "name": nameController.text.trim(),
-                                  "username": usernameController.text.trim(),
-                                  "email": emailController.text.trim(),
-                                  if (!isEdit) "password": passwordController.text.trim(),
-                                  "cityId": selectedCityId,
-                                  "latitude": selectedLocation!.latitude,
-                                  "longitude": selectedLocation!.longitude,
-                                  "contactPhone": contactPhoneController.text.trim(),
-                                  "logoUrl": logoUrlController.text.trim(),
-                                };
-                                
-                                if (isEdit) {
-                                  await _troopProvider.update(troop!.id, requestBody);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Odred "${troop.name}" je ažuriran.')),
-                                  );
-                                } else {
-                                  await _troopProvider.insert(requestBody);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Odred je dodan.')),
-                                  );
+                            TextFormField(
+                              controller: usernameController,
+                              decoration: const InputDecoration(labelText: 'Korisničko ime'),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
                                 }
-                                await _fetchTroops();
-                                Navigator.of(context).pop();
-                              } catch (e) {
-                                showErrorSnackbar(context, e);
-                              }
-                            }
-                          },
-                          child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(r"^[A-Za-z0-9_.]+$").hasMatch(value.trim())) {
+                                  return 'Dozvoljena su slova, brojevi, tačka i donja crta';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: emailController,
+                              decoration: const InputDecoration(labelText: 'E-mail'),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (!RegExp(r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}").hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            if (!isEdit) ...[
+                              TextFormField(
+                                controller: passwordController,
+                                obscureText: true,
+                                decoration: const InputDecoration(labelText: 'Lozinka'),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Lozinka je obavezna.';
+                                  if (value.length < 8) return 'Lozinka mora imati najmanje 8 znakova.';
+                                  if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])').hasMatch(value)) {
+                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            TextFormField(
+                              controller: contactPhoneController,
+                              decoration: const InputDecoration(labelText: 'Kontakt telefon'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) return 'Telefon je obavezan.';
+                                if (!RegExp(r'^\+?\d{6,20}$').hasMatch(value)) {
+                                  return 'Unesite ispravan broj telefona.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<int>(
+                              value: selectedCityId,
+                              decoration: const InputDecoration(labelText: 'Grad'),
+                              items: _cities
+                                  .map((c) => DropdownMenuItem<int>(
+                                        value: c.id,
+                                        child: Text(c.name),
+                                      ))
+                                  .toList(),
+                              validator: (value) => value == null ? 'Grad je obavezan.' : null,
+                              onChanged: (val) {
+                                setState(() {
+                                  selectedCityId = val;
+                                  selectedCityName = _cities.firstWhere((c) => c.id == val).name;
+                                });
+                                _updateCityLocation(val);
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Lokacija odreda:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}',
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                        height: 300,
+                        child: FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            center: selectedLocation,
+                            zoom: 10,
+                            onTap: (tapPosition, point) {
+                              setState(() {
+                                selectedLocation = point;
+                              });
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.scouttrack_desktop',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: selectedLocation,
+                                  width: 40,
+                                  height: 40,
+                                  child: const Icon(
+                                    Icons.location_pin,
+                                    color: Colors.red,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: logoUrlController,
+                              decoration: const InputDecoration(labelText: 'Logo URL (opcionalno)'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Otkaži'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState?.validate() ?? false) {
+                                if (selectedLocation == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Molimo odaberite lokaciju na mapi')),
+                                  );
+                                  return;
+                                }
+
+                                try {
+                                  final requestBody = {
+                                    "name": nameController.text.trim(),
+                                    "username": usernameController.text.trim(),
+                                    "email": emailController.text.trim(),
+                                    if (!isEdit) "password": passwordController.text.trim(),
+                                    "cityId": selectedCityId,
+                                    "latitude": selectedLocation!.latitude,
+                                    "longitude": selectedLocation!.longitude,
+                                    "contactPhone": contactPhoneController.text.trim(),
+                                    "logoUrl": logoUrlController.text.trim(),
+                                  };
+                                  
+                                  if (isEdit) {
+                                    await _troopProvider.update(troop!.id, requestBody);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Odred "${troop.name}" je ažuriran.')),
+                                    );
+                                  } else {
+                                    await _troopProvider.insert(requestBody);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Odred je dodan.')),
+                                    );
+                                  }
+                                  await _fetchTroops();
+                                  Navigator.of(context).pop();
+                                } catch (e) {
+                                  showErrorSnackbar(context, e);
+                                }
+                              }
+                            },
+                            child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 }

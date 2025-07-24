@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passController = TextEditingController();
   String? _error;
   bool _loading = false;
+  bool _obscurePassword = true; // Track password visibility state
 
   void _login() async {
     setState(() {
@@ -70,8 +71,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -111,11 +110,23 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _passController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Lozinka',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword 
+                              ? Icons.visibility_off 
+                              : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       enabled: !_loading,
                     ),
                     const SizedBox(height: 16),

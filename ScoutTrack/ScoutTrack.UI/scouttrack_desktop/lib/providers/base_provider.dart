@@ -44,6 +44,23 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     });
   }
 
+  Future<T> getById(int id) async {
+    return await handleWithRefresh(() async {
+      final headers = await createHeaders();
+      final response = await http.get(
+        Uri.parse("$baseUrl$endpoint/$id"),
+        headers: headers,
+      );
+
+      if (isValidResponse(response)) {
+        final data = jsonDecode(response.body);
+        return fromJson(data);
+      } else {
+        throw Exception("Greška: Neuspješno dohvaćanje podataka.");
+      }
+    });
+  }
+
   Future<T> insert(dynamic request) async {
     return await handleWithRefresh(() async {
       final headers = await createHeaders();

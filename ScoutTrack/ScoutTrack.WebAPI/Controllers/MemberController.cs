@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
-using Microsoft.AspNetCore.Authorization;
+using ScoutTrack.Services;
 using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.WebAPI.Controllers
@@ -13,10 +14,13 @@ namespace ScoutTrack.WebAPI.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IAccessControlService _accessControlService;
+        private readonly IMemberService _memberService;
+
         public MemberController(IMemberService memberService, IAuthService authService, IAccessControlService accessControlService) : base(memberService)
         {
             _authService = authService;
             _accessControlService = accessControlService;
+            _memberService = memberService;
         }
 
         [HttpPost]
@@ -76,5 +80,19 @@ namespace ScoutTrack.WebAPI.Controllers
             return await base.Delete(id);
         }
 
+        [HttpPatch("{id}/change-password")]
+        [Authorize(Roles = "Member")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
+        {
+            if (_authService.GetUserId(User) != id)
+            {
+                return Forbid();
+            }
+
+            var result = await _memberService.ChangePasswordAsync(id, request);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
+        }
     }
 } 

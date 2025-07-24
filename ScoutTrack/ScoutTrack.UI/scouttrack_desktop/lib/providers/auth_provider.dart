@@ -74,7 +74,21 @@ class AuthProvider with ChangeNotifier {
 
       notifyListeners();
     } else {
-      throw Exception('Neuspješna prijava.');
+      final errorData = jsonDecode(response.body);
+      String errorMessage = 'Neuspješna prijava.';
+
+      if (errorData is Map<String, dynamic>) {
+        if (errorData.containsKey('title')) {
+          errorMessage = errorData['title'];
+        } else if (errorData.containsKey('errors')) {
+          final errors = errorData['errors'];
+          if (errors is Map<String, dynamic> && errors.containsKey('userError')) {
+            errorMessage = errors['userError'] is List 
+                ? errors['userError'].first 
+                : errors['userError'].toString();
+          }
+        }
+      }
     }
   }
 

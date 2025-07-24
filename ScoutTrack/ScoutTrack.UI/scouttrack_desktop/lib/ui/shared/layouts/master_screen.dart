@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
+import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/providers/admin_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/admin_home_screen.dart';
 import 'package:scouttrack_desktop/ui/troop/screens/troop_home_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/city_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_list_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/admin_details_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
-  final String? title; // not used anymore, optional to keep
+  final String? title;
   final String role;
   final String? selectedMenu;
 
@@ -136,6 +140,62 @@ class _MasterScreenState extends State<MasterScreen> {
 
                 const Spacer(),
 
+                if (widget.role == 'Admin') ...[
+                  _SidebarItem(
+                    icon: Icons.account_circle,
+                    label: 'Moj profil',
+                    selected: selectedLabel == 'Moj profil',
+                    onTap: () async {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final userInfo = await authProvider.getCurrentUserInfo();
+
+                      if (userInfo != null && userInfo['id'] != null) {
+                        final adminId = userInfo['id'] as int;
+
+                        final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+                        final admin = await adminProvider.getById(adminId);
+
+                        _handleTap('Moj profil', () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => AdminDetailsScreen(admin: admin),
+                            ),
+                          );
+                        });
+                      }
+                    },
+                  ),
+                ] else if (widget.role == 'Troop') ...[
+                  _SidebarItem(
+                    icon: Icons.account_circle,
+                    label: 'Moj profil',
+                    selected: selectedLabel == 'Moj profil',
+                    onTap: () async {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final userInfo = await authProvider.getCurrentUserInfo();
+
+                      if (userInfo != null && userInfo['id'] != null) {
+                        final troopId = userInfo['id'] as int;
+
+                        final troopProvider = Provider.of<TroopProvider>(context, listen: false);
+                        final troop = await troopProvider.getById(troopId);
+
+                        _handleTap('Moj profil', () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => TroopDetailsScreen(
+                                troop: troop,
+                                role: widget.role,
+                                loggedInUserId: troopId,
+                                selectedMenu: 'Moj profil',
+                              ),
+                            ),
+                          );
+                        });
+                      }
+                    },
+                  ),
+                ],
                 _SidebarItem(
                   icon: Icons.logout,
                   label: 'Odjava',
@@ -165,7 +225,7 @@ class _MasterScreenState extends State<MasterScreen> {
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
                         children: [
-                          if (widget.selectedMenu == null)
+                          if (Navigator.canPop(context))
                             IconButton(
                               icon: const Icon(Icons.arrow_back),
                               onPressed: () {

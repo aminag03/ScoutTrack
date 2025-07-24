@@ -71,5 +71,20 @@ namespace ScoutTrack.WebAPI.Controllers
                 return NotFound();
             return Ok(result);
         }
+
+        [HttpPatch("{id}/change-password")]
+        [Authorize(Roles = "Troop")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
+        {
+            if (_authService.GetUserId(User) != id)
+            {
+                return Forbid();
+            }
+
+            var result = await _troopService.ChangePasswordAsync(id, request);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
+        }
     }
 } 
