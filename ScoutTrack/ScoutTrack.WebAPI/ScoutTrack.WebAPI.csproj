@@ -20,4 +20,9 @@
     <ProjectReference Include="..\ScoutTrack.Services\ScoutTrack.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\images\members\" />
+    <Folder Include="wwwroot\images\troops\" />
+  </ItemGroup>
+
 </Project>

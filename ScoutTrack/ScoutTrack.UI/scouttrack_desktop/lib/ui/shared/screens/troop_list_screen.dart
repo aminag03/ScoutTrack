@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
@@ -14,8 +17,9 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 
 class TroopListScreen extends StatefulWidget {
   const TroopListScreen({super.key});
@@ -139,143 +143,130 @@ class _TroopListScreenState extends State<TroopListScreen> {
         child: Column(
           children: [
             Row(
-  children: [
-    Expanded(
-      flex: 3,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            hintText: 'Pretraži odrede...',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-        ),
-      ),
-    ),
-
-    // Grad Dropdown
-    Expanded(
-      flex: 2,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return DropdownButtonFormField<int?>(
-              value: _selectedCityId,
-              decoration: InputDecoration(
-                labelText: 'Grad',
-                border: const OutlineInputBorder(),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                constraints: BoxConstraints(
-                  maxWidth: constraints.maxWidth,
-                ),
-              ),
-              isExpanded: true,  // This makes the dropdown take full width
-              onChanged: (value) {
-                setState(() {
-                  _selectedCityId = value;
-                  currentPage = 1;
-                });
-                _fetchTroops();
-              },
-              items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text("Svi gradovi", overflow: TextOverflow.ellipsis),
-                ),
-                ..._cities.map((city) => DropdownMenuItem(
-                  value: city.id,
-                  child: Text(
-                    city.name,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Pretraži odrede...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
                   ),
-                )),
-              ],
-            );
-          },
-        ),
-      ),
-    ),
+                ),
 
-    // Sortiraj Dropdown
-    Expanded(
-      flex: 2,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return DropdownButtonFormField<String?>(
-              value: _selectedSort,
-              decoration: InputDecoration(
-                labelText: 'Sortiraj',
-                border: const OutlineInputBorder(),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                constraints: BoxConstraints(
-                  maxWidth: constraints.maxWidth,
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: DropdownButtonFormField<int?>(
+                      value: _selectedCityId,
+                      decoration: const InputDecoration(
+                        labelText: 'Grad',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      isExpanded: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCityId = value;
+                          currentPage = 1;
+                        });
+                        _fetchTroops();
+                      },
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text("Svi gradovi"),
+                        ),
+                        ..._cities.map((city) => DropdownMenuItem(
+                          value: city.id,
+                          child: Text(city.name),
+                        )),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              isExpanded: true,  // This makes the dropdown take full width
-              onChanged: (value) {
-                setState(() {
-                  _selectedSort = value;
-                  currentPage = 1;
-                });
-                _fetchTroops();
-              },
-              items: const [
-                DropdownMenuItem(
-                  value: null,
-                  child: Text('Bez sortiranja', overflow: TextOverflow.ellipsis),
+
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedSort,
+                      decoration: const InputDecoration(
+                        labelText: 'Sortiraj',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      isExpanded: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSort = value;
+                          currentPage = 1;
+                        });
+                        _fetchTroops();
+                      },
+                      items: const [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('Bez sortiranja'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'name',
+                          child: Text('Naziv (A-Ž)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-name',
+                          child: Text('Naziv (Ž-A)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'memberCount',
+                          child: Text('Broj članova (rastuće)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-memberCount',
+                          child: Text('Broj članova (opadajuće)'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                DropdownMenuItem(
-                  value: 'name',
-                  child: Text('Naziv (A-Ž)', overflow: TextOverflow.ellipsis),
-                ),
-                DropdownMenuItem(
-                  value: '-name',
-                  child: Text('Naziv (Ž-A)', overflow: TextOverflow.ellipsis),
-                ),
-                DropdownMenuItem(
-                  value: 'memberCount',
-                  child: Text('Broj članova (rastuće)', overflow: TextOverflow.ellipsis),
-                ),
-                DropdownMenuItem(
-                  value: '-memberCount',
-                  child: Text('Broj članova (opadajuće)', overflow: TextOverflow.ellipsis),
+
+                if (_role == 'Admin')
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: ElevatedButton.icon(
+                      onPressed: _onAddTroop,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        'Dodaj novi odred',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        minimumSize: const Size(0, 48),
+                      ),
+                    ),
+                  ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
-    ),
-
-    if (_role == 'Admin')
-    Flexible(
-      child: ElevatedButton.icon(
-        onPressed: _onAddTroop,
-        icon: const Icon(Icons.add),
-        label: const FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Dodaj novi odred',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-      ),
-    ),
-  ]
-),
+            ),
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
@@ -531,11 +522,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
     final TextEditingController emailController = TextEditingController(text: troop?.email ?? '');
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController contactPhoneController = TextEditingController(text: troop?.contactPhone ?? '');
-    final TextEditingController logoUrlController = TextEditingController(text: troop?.logoUrl ?? '');
+    XFile? selectedImage;
+    Uint8List? imageBytes;
     
     LatLng selectedLocation = (troop?.latitude != null && troop?.longitude != null)
         ? LatLng(troop!.latitude!, troop.longitude!)
-        : const LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
+        : const LatLng(43.8563, 18.4131);
     
     int? selectedCityId = troop?.cityId;
     String? selectedCityName;
@@ -551,6 +543,54 @@ class _TroopListScreenState extends State<TroopListScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            Future<Uint8List> _compressImage(Uint8List bytes, {int quality = 30, int maxWidth = 800}) async {
+              try {
+                final image = img.decodeImage(bytes);
+                if (image == null) return bytes;
+
+                int width = image.width;
+                int height = image.height;
+                if (width > maxWidth) {
+                  height = (height * maxWidth / width).round();
+                  width = maxWidth;
+                }
+
+                final resizedImage = img.copyResize(image, width: width, height: height);
+                final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
+
+                return Uint8List.fromList(compressedBytes);
+              } catch (e) {
+                return bytes;
+              }
+            }
+
+            Future<void> _pickImage() async {
+              final picker = ImagePicker();
+              final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+              if (pickedFile != null) {
+                try {
+                  final bytes = await pickedFile.readAsBytes();
+                  final compressedBytes = await _compressImage(bytes);
+
+                  print('Compressed size: ${compressedBytes.length / 1024} KB');
+                  
+                  setState(() {
+                    selectedImage = pickedFile;
+                    imageBytes = compressedBytes;
+                  });
+                } catch (e) {
+                  showErrorSnackbar(context, e);
+                }
+              }
+            }
+
+            void _removeImage() {
+              setState(() {
+                selectedImage = null;
+                imageBytes = null;
+              });
+            }
+
             Future<void> _openMapPicker() async {
               final initialLocation = selectedLocation ?? const LatLng(43.8563, 18.4131);
               
@@ -700,6 +740,51 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 _updateCityLocation(val);
                               },
                             ),
+                             if (!isEdit) ...[
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Logo odreda:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Column(
+                                children: [
+                                  if (imageBytes != null)
+                                    Container(
+                                      height: 150,
+                                      width: 150,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.memory(imageBytes!, fit: BoxFit.cover),
+                                      ),
+                                    ),
+                                  if (imageBytes != null) const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.image),
+                                        label: const Text('Odaberi sliku'),
+                                        onPressed: _pickImage,
+                                      ),
+                                      if (imageBytes != null) ...[
+                                        const SizedBox(width: 16),
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                          label: const Text('Ukloni', style: TextStyle(color: Colors.red)),
+                                          onPressed: _removeImage,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: 24),
                             const SizedBox(height: 24),
                             const Text(
                               'Lokacija odreda:',
@@ -711,44 +796,39 @@ class _TroopListScreenState extends State<TroopListScreen> {
                             ),
                             const SizedBox(height: 8),
                             SizedBox(
-                        height: 300,
-                        child: FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            center: selectedLocation,
-                            zoom: 10,
-                            onTap: (tapPosition, point) {
-                              setState(() {
-                                selectedLocation = point;
-                              });
-                            },
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.scouttrack_desktop',
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: selectedLocation,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.location_pin,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
+                              height: 300,
+                              child: FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  center: selectedLocation,
+                                  zoom: 10,
+                                  onTap: (tapPosition, point) {
+                                    setState(() {
+                                      selectedLocation = point;
+                                    });
+                                  },
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: logoUrlController,
-                              decoration: const InputDecoration(labelText: 'Logo URL (opcionalno)'),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.scouttrack_desktop',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: selectedLocation,
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(
+                                          Icons.location_pin,
+                                          color: Colors.red,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -779,23 +859,31 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     "email": emailController.text.trim(),
                                     if (!isEdit) "password": passwordController.text.trim(),
                                     "cityId": selectedCityId,
-                                    "latitude": selectedLocation!.latitude,
-                                    "longitude": selectedLocation!.longitude,
+                                    "latitude": selectedLocation.latitude,
+                                    "longitude": selectedLocation.longitude,
                                     "contactPhone": contactPhoneController.text.trim(),
-                                    "logoUrl": logoUrlController.text.trim(),
                                   };
-                                  
+
                                   if (isEdit) {
                                     await _troopProvider.update(troop!.id, requestBody);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('Odred "${troop.name}" je ažuriran.')),
                                     );
                                   } else {
-                                    await _troopProvider.insert(requestBody);
+                                    final createdTroop = await _troopProvider.insert(requestBody);
+
+                                    if (selectedImage != null) {
+                                      final imageUrl = await _troopProvider.updateLogo(
+                                        createdTroop.id,
+                                        File(selectedImage!.path),
+                                      );
+                                    }
+
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Odred je dodan.')),
                                     );
                                   }
+
                                   await _fetchTroops();
                                   Navigator.of(context).pop();
                                 } catch (e) {
@@ -803,6 +891,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 }
                               }
                             },
+
                             child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
                           ),
                         ],

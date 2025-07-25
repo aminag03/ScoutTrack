@@ -24,7 +24,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   Future<SearchResult<T>> get({dynamic filter}) async {
     var url = "$baseUrl$endpoint";
     filter ??= {};
-    filter['includeTotalCount'] = true;
+    filter['IncludeTotalCount'] = true;
     var queryString = getQueryString(filter);
     url = "$url?$queryString";
 

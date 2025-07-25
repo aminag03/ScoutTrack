@@ -1,5 +1,7 @@
 using MapsterMapper;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScoutTrack.Common.Enums;
 using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
@@ -11,6 +13,7 @@ using ScoutTrack.Services.Extensions;
 using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -21,10 +24,14 @@ namespace ScoutTrack.Services
     public class TroopService : BaseCRUDService<TroopResponse, TroopSearchObject, Troop, TroopInsertRequest, TroopUpdateRequest>, ITroopService
     {
         private readonly ScoutTrackDbContext _context;
+        private readonly ILogger<MemberService> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public TroopService(ScoutTrackDbContext context, IMapper mapper) : base(context, mapper) 
+        public TroopService(ScoutTrackDbContext context, IMapper mapper, ILogger<MemberService> logger, IWebHostEnvironment env) : base(context, mapper) 
         {
             _context = context;
+            _logger = logger;
+            _env = env;
         }
 
         public override async Task<PagedResult<TroopResponse>> GetAsync(TroopSearchObject search)
@@ -248,6 +255,37 @@ namespace ScoutTrack.Services
             await _context.SaveChangesAsync();
             return MapToResponse(troop);
         }
+
+        public async Task<TroopResponse?> UpdateLogoAsync(int id, string? logoUrl)
+        {
+            var entity = await _context.Troops.FindAsync(id);
+            if (entity == null)
+                return null;
+
+            if (!string.IsNullOrWhiteSpace(entity.LogoUrl))
+            {
+                try
+                {
+                    var oldUri = new Uri(entity.LogoUrl);
+                    var relativePath = oldUri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+
+                    if (File.Exists(fullPath))
+                        File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error while deleting old logo image");
+                }
+            }
+
+            entity.LogoUrl = string.IsNullOrWhiteSpace(logoUrl) ? "" : logoUrl;
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<TroopResponse>(entity);
+        }
+
 
         protected override TroopResponse MapToResponse(Troop entity)
         {

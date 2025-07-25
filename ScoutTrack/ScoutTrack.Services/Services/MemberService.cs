@@ -1,4 +1,5 @@
 using MapsterMapper;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScoutTrack.Common.Enums;
@@ -11,6 +12,7 @@ using ScoutTrack.Services.Database.Entities;
 using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,11 +24,13 @@ namespace ScoutTrack.Services
     {
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<MemberService> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public MemberService(ScoutTrackDbContext context, IMapper mapper, ILogger<MemberService> logger) : base(context, mapper) 
+        public MemberService(ScoutTrackDbContext context, IMapper mapper, ILogger<MemberService> logger, IWebHostEnvironment env) : base(context, mapper) 
         {
             _context = context;
             _logger = logger;
+            _env = env;
         }
 
         protected override IQueryable<Member> ApplyFilter(IQueryable<Member> query, MemberSearchObject search)
@@ -140,6 +144,38 @@ namespace ScoutTrack.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<MemberResponse?> UpdateProfilePictureAsync(int id, string profilePictureUrl)
+        {
+            var entity = await _context.Members.FindAsync(id);
+            if (entity == null)
+                return null;
+
+            if (!string.IsNullOrWhiteSpace(entity.ProfilePictureUrl))
+            {
+                try
+                {
+                    var oldUri = new Uri(entity.ProfilePictureUrl);
+                    var relativePath = oldUri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+
+                    var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+                    if (File.Exists(fullPath))
+                    {
+                        File.Delete(fullPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Greška pri brisanju stare slike");
+                }
+            }
+
+            entity.ProfilePictureUrl = profilePictureUrl;
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<MemberResponse>(entity);
         }
     }
 } 

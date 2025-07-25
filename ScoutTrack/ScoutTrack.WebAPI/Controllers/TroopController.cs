@@ -86,5 +86,43 @@ namespace ScoutTrack.WebAPI.Controllers
                 return NotFound();
             return Ok(result);
         }
+
+        [HttpPost("{id}/update-logo")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> UploadLogo(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)
+        {
+            if (_authService.IsInRole(User, "Troop") && _authService.GetUserId(User) != id)
+                return Forbid();
+
+            if (request == null || request.Image == null || request.Image.Length == 0)
+            {
+                var updated = await _troopService.UpdateLogoAsync(id, null);
+                return Ok(updated);
+            }
+
+            var extension = Path.GetExtension(request.Image.FileName);
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+            if (!allowedExtensions.Contains(extension.ToLower()))
+                return BadRequest("Unsupported file type.");
+
+            var folder = Path.Combine(env.WebRootPath, "images", "troops");
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(folder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await request.Image.CopyToAsync(stream);
+            }
+
+            var imageUrl = $"{Request.Scheme}://{Request.Host}/images/troops/{fileName}";
+
+            var updatedResponse = await _troopService.UpdateLogoAsync(id, imageUrl);
+
+            return Ok(updatedResponse);
+        }
+
     }
 } 
