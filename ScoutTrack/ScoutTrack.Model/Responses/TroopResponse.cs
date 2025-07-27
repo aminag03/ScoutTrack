@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace ScoutTrack.Model.Responses
 {
@@ -12,6 +13,9 @@ namespace ScoutTrack.Model.Responses
         public string CityName { get; set; } = string.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+        public string ScoutMaster { get; set; } = string.Empty;
+        public string TroopLeader { get; set; } = string.Empty;
+        public DateTime FoundingDate { get; set; }
         public string ContactPhone { get; set; } = string.Empty;
         public string LogoUrl { get; set; } = string.Empty;
         public bool IsActive { get; set; }

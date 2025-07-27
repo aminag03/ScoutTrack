@@ -19,6 +19,9 @@ class Troop {
   final DateTime? updatedAt;
   final DateTime? lastLoginAt;
   final int memberCount;
+  final String scoutMaster;
+  final String troopLeader;
+  final DateTime foundingDate;
 
   Troop({
     this.id = 0,
@@ -35,7 +38,10 @@ class Troop {
     required this.createdAt,
     this.updatedAt,
     this.lastLoginAt,
-    this.memberCount = 0
+    this.memberCount = 0,
+    this.scoutMaster = '',
+    this.troopLeader = '',
+    required this.foundingDate,
   });
 
   factory Troop.fromJson(Map<String, dynamic> json) {

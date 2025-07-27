@@ -14,6 +14,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -72,7 +73,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cityProvider = CityProvider(authProvider);
-      var filter = { "RetrieveAll": true };
+      var filter = {"RetrieveAll": true};
       final cityResult = await cityProvider.get(filter: filter);
       setState(() {
         _cities = cityResult.items ?? [];
@@ -145,20 +146,76 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
   Future<bool> _onEdit() async {
     final _formKey = GlobalKey<FormState>();
-    final TextEditingController nameController = TextEditingController(text: _troop.name);
-    final TextEditingController usernameController = TextEditingController(text: _troop.username);
-    final TextEditingController emailController = TextEditingController(text: _troop.email);
-    final TextEditingController contactPhoneController = TextEditingController(text: _troop.contactPhone);
-    final TextEditingController logoUrlController = TextEditingController(text: _troop.logoUrl);
+    final TextEditingController nameController = TextEditingController(
+      text: _troop.name,
+    );
+    final TextEditingController usernameController = TextEditingController(
+      text: _troop.username,
+    );
+    final TextEditingController emailController = TextEditingController(
+      text: _troop.email,
+    );
+    final TextEditingController contactPhoneController = TextEditingController(
+      text: _troop.contactPhone,
+    );
+    final TextEditingController scoutMasterController = TextEditingController(
+      text: _troop.scoutMaster,
+    );
+    final TextEditingController troopLeaderController = TextEditingController(
+      text: _troop.troopLeader,
+    );
+    final TextEditingController foundingDateController = TextEditingController(
+      text: _troop.foundingDate != null ? formatDate(_troop.foundingDate!) : '',
+    );
     final MapController _mapController = MapController();
-    
-    LatLng selectedLocation = _selectedLocation ?? const LatLng(43.8563, 18.4131);
+
+    LatLng selectedLocation =
+        _selectedLocation ?? const LatLng(43.8563, 18.4131);
     int? selectedCityId = _troop.cityId;
     String? selectedCityName;
     bool isUpdated = false;
 
     if (_troop.cityId != null) {
       selectedCityName = _cities.firstWhere((c) => c.id == _troop.cityId).name;
+    }
+
+    Future<void> _selectFoundingDate(
+      BuildContext context,
+      StateSetter setState,
+    ) async {
+      final DateTime? picked = await showDialog<DateTime>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Odaberite datum osnivanja'),
+          content: SizedBox(
+            width: 300,
+            height: 400,
+            child: SfDateRangePicker(
+              initialSelectedDate: _troop.foundingDate ?? DateTime.now(),
+              minDate: DateTime(1907),
+              maxDate: DateTime.now(),
+              selectionMode: DateRangePickerSelectionMode.single,
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                if (args.value is DateTime) {
+                  Navigator.pop(context, args.value as DateTime);
+                }
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Odustani'),
+            ),
+          ],
+        ),
+      );
+
+      if (picked != null) {
+        setState(() {
+          foundingDateController.text = formatDate(picked);
+        });
+      }
     }
 
     await showDialog(
@@ -168,7 +225,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
           builder: (context, setState) {
             Future<void> _openMapPicker() async {
               final initialLocation = selectedLocation;
-              
+
               final result = await showDialog<Map<String, double>>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -190,8 +247,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.scouttrack_desktop',
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName:
+                              'com.example.scouttrack_desktop',
                         ),
                         MarkerLayer(
                           markers: [
@@ -220,7 +279,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
               );
 
               if (result != null) {
-                final newLocation = LatLng(result['latitude']!, result['longitude']!);
+                final newLocation = LatLng(
+                  result['latitude']!,
+                  result['longitude']!,
+                );
                 setState(() {
                   selectedLocation = newLocation;
                 });
@@ -230,8 +292,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
             void _updateCityLocation(int? cityId) {
               if (cityId != null) {
                 final selectedCity = _cities.firstWhere((c) => c.id == cityId);
-                if (selectedCity.latitude != null && selectedCity.longitude != null) {
-                  final newLocation = LatLng(selectedCity.latitude!, selectedCity.longitude!);
+                if (selectedCity.latitude != null &&
+                    selectedCity.longitude != null) {
+                  final newLocation = LatLng(
+                    selectedCity.latitude!,
+                    selectedCity.longitude!,
+                  );
                   setState(() {
                     selectedLocation = newLocation;
                   });
@@ -241,7 +307,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
             }
 
             return Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: 800,
@@ -255,16 +324,21 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                     children: [
                       const Text(
                         'Uredi odred',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Form(
                         key: _formKey,
                         child: Column(
                           children: [
                             TextFormField(
                               controller: nameController,
-                              decoration: const InputDecoration(labelText: 'Naziv'),
+                              decoration: const InputDecoration(
+                                labelText: 'Naziv *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Naziv je obavezan.';
@@ -272,17 +346,23 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                 if (value.length > 100) {
                                   return 'Naziv ne smije imati više od 100 znakova.';
                                 }
-                                final regex = RegExp(r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$");
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$",
+                                );
                                 if (!regex.hasMatch(value.trim())) {
                                   return 'Naziv smije sadržavati samo slova, brojeve razmake, crtice i apostrofe.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: usernameController,
-                              decoration: const InputDecoration(labelText: 'Korisničko ime'),
+                              decoration: const InputDecoration(
+                                labelText: 'Korisničko ime *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Korisničko ime je obavezno.';
@@ -292,48 +372,135 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: emailController,
-                              decoration: const InputDecoration(labelText: 'E-mail'),
+                              decoration: const InputDecoration(
+                                labelText: 'E-mail *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'E-mail je obavezan.';
                                 }
-                                if (!RegExp(r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}").hasMatch(value.trim())) {
+                                if (!RegExp(
+                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
+                                ).hasMatch(value.trim())) {
                                   return 'Unesite ispravan e-mail.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: contactPhoneController,
-                              decoration: const InputDecoration(labelText: 'Kontakt telefon'),
+                              decoration: const InputDecoration(
+                                labelText: 'Kontakt telefon *',
+                              ),
                               validator: (value) {
-                                if (value == null || value.isEmpty) return 'Telefon je obavezan.';
-                                if (!RegExp(r'^\+?\d{6,20}$').hasMatch(value)) {
-                                  return 'Unesite ispravan broj telefona.';
+                                if (value == null || value.isEmpty)
+                                  return 'Telefon je obavezan.';
+                                if (!RegExp(r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$').hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: scoutMasterController,
+                              decoration: const InputDecoration(
+                                labelText: 'Starješina *',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime starješine su obavezni.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: troopLeaderController,
+                              decoration: const InputDecoration(
+                                labelText: 'Načelnik *',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime načelnika su obavezni.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: foundingDateController,
+                              decoration: const InputDecoration(
+                                labelText: 'Datum osnivanja *',
+                                suffixIcon: Icon(Icons.calendar_today),
+                              ),
+                              readOnly: true,
+                              onTap: () =>
+                                  _selectFoundingDate(context, setState),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Molimo odaberite datum osnivanja';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<int>(
                               value: selectedCityId,
-                              decoration: const InputDecoration(labelText: 'Grad'),
+                              decoration: const InputDecoration(
+                                labelText: 'Grad *',
+                              ),
                               items: _cities
-                                  .map((c) => DropdownMenuItem<int>(
-                                        value: c.id,
-                                        child: Text(c.name),
-                                      ))
+                                  .map(
+                                    (c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.name),
+                                    ),
+                                  )
                                   .toList(),
-                              validator: (value) => value == null ? 'Grad je obavezan.' : null,
+                              validator: (value) =>
+                                  value == null ? 'Grad je obavezan.' : null,
                               onChanged: (val) {
                                 setState(() {
                                   selectedCityId = val;
-                                  selectedCityName = _cities.firstWhere((c) => c.id == val).name;
+                                  selectedCityName = _cities
+                                      .firstWhere((c) => c.id == val)
+                                      .name;
                                 });
                                 _updateCityLocation(val);
                               },
@@ -363,8 +530,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                 ),
                                 children: [
                                   TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.scouttrack_desktop',
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.scouttrack_desktop',
                                   ),
                                   MarkerLayer(
                                     markers: [
@@ -406,26 +575,45 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                     "cityId": selectedCityId,
                                     "latitude": selectedLocation.latitude,
                                     "longitude": selectedLocation.longitude,
-                                    "contactPhone": contactPhoneController.text.trim(),
-                                    "logoUrl": logoUrlController.text.trim(),
+                                    "contactPhone": contactPhoneController.text
+                                        .trim(),
+                                    "scoutMaster": scoutMasterController.text
+                                        .trim(),
+                                    "troopLeader": troopLeaderController.text
+                                        .trim(),
+                                    "foundingDate": parseDate(
+                                      foundingDateController.text,
+                                    ).toIso8601String(),
                                   };
-                                  
-                                  final troopProvider = Provider.of<TroopProvider>(context, listen: false);
-                                  final updatedTroop = await troopProvider.update(_troop.id, requestBody);
-                                  
+
+                                  final troopProvider =
+                                      Provider.of<TroopProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  final updatedTroop = await troopProvider
+                                      .update(_troop.id, requestBody);
+
                                   setState(() {
                                     _troop = updatedTroop;
-                                    _selectedLocation = LatLng(updatedTroop.latitude!, updatedTroop.longitude!);
+                                    _selectedLocation = LatLng(
+                                      updatedTroop.latitude!,
+                                      updatedTroop.longitude!,
+                                    );
                                   });
 
                                   isUpdated = true;
-                                  
+
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Odred "${_troop.name}" je ažuriran.')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Odred "${_troop.name}" je ažuriran.',
+                                        ),
+                                      ),
                                     );
                                   }
-                                  
+
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   if (context.mounted) {
@@ -498,9 +686,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             labelText: 'Stara lozinka',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                oldPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                oldPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -509,7 +697,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               },
                             ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Unesite staru lozinku' : null,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Unesite staru lozinku'
+                              : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -519,9 +710,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             labelText: 'Nova lozinka',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                newPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                newPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -531,13 +722,17 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Unesite novu lozinku';
+                            if (v == null || v.isEmpty)
+                              return 'Unesite novu lozinku';
                             if (v.length < 8) return 'Najmanje 8 znakova';
-                            if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$').hasMatch(v)) {
+                            if (!RegExp(
+                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$',
+                            ).hasMatch(v)) {
                               return 'Mora imati veliko, malo slovo, broj i spec. znak';
                             }
                             return null;
                           },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -547,19 +742,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             labelText: 'Potvrdi lozinku',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                confirmPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                confirmPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  confirmPasswordVisible = !confirmPasswordVisible;
+                                  confirmPasswordVisible =
+                                      !confirmPasswordVisible;
                                 });
                               },
                             ),
                           ),
-                          validator: (v) =>
-                              v != newPassController.text ? 'Lozinke se ne poklapaju' : null,
+                          validator: (v) => v != newPassController.text
+                              ? 'Lozinke se ne poklapaju'
+                              : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],
                     ),
@@ -575,7 +773,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                   onPressed: () async {
                     if (formKey.currentState!.validate()) {
                       try {
-                        final provider = Provider.of<TroopProvider>(context, listen: false);
+                        final provider = Provider.of<TroopProvider>(
+                          context,
+                          listen: false,
+                        );
                         await provider.changePassword(_troop.id, {
                           'oldPassword': oldPassController.text,
                           'newPassword': newPassController.text,
@@ -584,30 +785,49 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Lozinka promijenjena. Preusmjeravanje...')),
+                            const SnackBar(
+                              content: Text(
+                                'Lozinka promijenjena. Preusmjeravanje...',
+                              ),
+                            ),
                           );
 
                           await Future.delayed(const Duration(seconds: 2));
 
                           if (!context.mounted) return;
 
-                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                          final authProvider = Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          );
                           await authProvider.logout();
 
-                          Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/', (_) => false);
                         }
                       } catch (e) {
                         if (context.mounted) {
                           setState(() {
                             final message = e.toString();
-                            if (message.contains('Stara lozinka nije ispravna')) {
+                            if (message.contains(
+                              'Stara lozinka nije ispravna',
+                            )) {
                               generalError = 'Stara lozinka nije ispravna.';
-                            } else if (message.contains('Nova lozinka ne smije biti ista kao stara.')) {
-                              generalError = 'Nova lozinka ne smije biti ista kao stara.';
-                            } else if (message.contains('Lozinke se ne poklapaju')) {
+                            } else if (message.contains(
+                              'Nova lozinka ne smije biti ista kao stara.',
+                            )) {
+                              generalError =
+                                  'Nova lozinka ne smije biti ista kao stara.';
+                            } else if (message.contains(
+                              'Lozinke se ne poklapaju',
+                            )) {
                               generalError = 'Lozinke se ne poklapaju.';
                             } else {
-                              generalError = message.replaceFirst('Greška: ', '');
+                              generalError = message.replaceFirst(
+                                'Greška: ',
+                                '',
+                              );
                             }
                           });
 
@@ -636,7 +856,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     confirmPassController.dispose();
   }
 
-  Future<Uint8List> _compressImage(Uint8List bytes, {int quality = 30, int maxWidth = 800}) async {
+  Future<Uint8List> _compressImage(
+    Uint8List bytes, {
+    int quality = 30,
+    int maxWidth = 800,
+  }) async {
     try {
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
@@ -686,78 +910,24 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                     fit: BoxFit.cover,
                                   )
                                 : (_troop.logoUrl.isNotEmpty
-                                    ? Image.network(
-                                        _troop.logoUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Center(
-                                            child: Icon(Icons.broken_image, size: 50),
-                                          );
-                                        },
-                                      )
-                                    : const Center(
-                                        child: Icon(Icons.image, size: 50),
-                                      )),
+                                      ? Image.network(
+                                          _troop.logoUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    size: 50,
+                                                  ),
+                                                );
+                                              },
+                                        )
+                                      : const Center(
+                                          child: Icon(Icons.image, size: 50),
+                                        )),
                           ),
                         ),
-                        if (_troop.logoUrl.isNotEmpty && _selectedImageBytes == null)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Obriši logo'),
-                                    content: const Text('Jeste li sigurni da želite obrisati logo odreda?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(false),
-                                        child: const Text('Odustani'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(true),
-                                        child: const Text('Obriši', style: TextStyle(color: Colors.red)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                
-                                if (confirm == true) {
-                                  try {
-                                    setState(() {
-                                      _isImageLoading = true;
-                                    });
-                                    
-                                    final troopProvider = Provider.of<TroopProvider>(context, listen: false);
-                                    final updatedTroop = await troopProvider.updateLogo(_troop.id, null);
-                                    
-                                    setState(() {
-                                      _troop = updatedTroop;
-                                    });
-                                    
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Logo je uspješno obrisan.')),
-                                      );
-                                    }
-                                    
-                                    Navigator.of(context).pop(true);
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      showErrorSnackbar(context, e);
-                                    }
-                                  } finally {
-                                    setState(() {
-                                      _isImageLoading = false;
-                                    });
-                                  }
-                                }
-                              },
-                            ),
-                          ),
                       ],
                     )
                   else
@@ -780,7 +950,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       final picker = ImagePicker();
-                      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                      final pickedFile = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (pickedFile != null) {
                         final bytes = await pickedFile.readAsBytes();
                         final compressedBytes = await _compressImage(bytes);
@@ -822,41 +994,43 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   Future<void> _uploadImage(File imageFile) async {
-  try {
-    setState(() {
-      _isImageLoading = true;
-    });
+    try {
+      setState(() {
+        _isImageLoading = true;
+      });
 
-    final troopProvider = Provider.of<TroopProvider>(context, listen: false);
-    final updatedTroop = await troopProvider.updateLogo(
-      _troop.id,
-      imageFile,
-    );
+      final troopProvider = Provider.of<TroopProvider>(context, listen: false);
+      final updatedTroop = await troopProvider.updateLogo(_troop.id, imageFile);
 
-    setState(() {
-      _troop = updatedTroop;
-    });
+      final refreshedTroop = await troopProvider.getById(_troop.id);
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Slika je uspješno promijenjena.')),
-      );
+      setState(() {
+        _troop = refreshedTroop;
+        if (_troop.latitude != null && _troop.longitude != null) {
+          _selectedLocation = LatLng(_troop.latitude!, _troop.longitude!);
+        }
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Slika je uspješno promijenjena.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      setState(() {
+        _isImageLoading = false;
+      });
     }
-  } catch (e) {
-    if (context.mounted) {
-      showErrorSnackbar(context, e);
-    }
-  } finally {
-    setState(() {
-      _isImageLoading = false;
-    });
   }
-}
 
   @override
   Widget build(BuildContext context) {
-    final String? imageUrl = _troop.logoUrl.isNotEmpty ? _troop.logoUrl : null;
     final hasCoordinates = _troop.latitude != null && _troop.longitude != null;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return MasterScreen(
       selectedMenu: widget.selectedMenu,
@@ -864,272 +1038,378 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       title: 'Odred izviđača "${_troop.name}"',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.3,
+            Container(
+              width: screenWidth * 0.7,
+              margin: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.grey.shade300,
-                              child: _troop.logoUrl.isNotEmpty
-                                  ? ClipOval(
-                                      child: Image.network(
-                                        _troop.logoUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(Icons.group, size: 40, color: Colors.white);
-                                        },
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return const CircularProgressIndicator();
-                                        },
-                                      ),
-                                    )
-                                  : const Icon(Icons.group, size: 40, color: Colors.white),
-                            ),
-                            if (_isImageLoading)
-                              Positioned.fill(
-                                child: Container(
-                                  color: Colors.black.withOpacity(0.5),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if ((isAdmin || isViewingOwnProfile) && _troop.logoUrl.isNotEmpty && !_isImageLoading)
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Obriši logo'),
-                                        content: const Text('Jeste li sigurni da želite obrisati logo odreda?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(false),
-                                            child: const Text('Odustani'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(true),
-                                            child: const Text('Obriši', style: TextStyle(color: Colors.red)),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    
-                                    if (confirm == true) {
-                                      try {
-                                        setState(() {
-                                          _isImageLoading = true;
-                                        });
-                                        
-                                        final troopProvider = Provider.of<TroopProvider>(context, listen: false);
-                                        final updatedTroop = await troopProvider.updateLogo(_troop.id, null);
-                                        
-                                        setState(() {
-                                          _troop = updatedTroop;
-                                        });
-                                        
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Logo je uspješno obrisan.')),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (context.mounted) {
-                                          showErrorSnackbar(context, e);
-                                        }
-                                      } finally {
-                                        setState(() {
-                                          _isImageLoading = false;
-                                        });
-                                      }
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Icon(Icons.delete, size: 16, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if ((isAdmin || isViewingOwnProfile) && !_isLoading)
-                          Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Column(
+                        children: [
+                          Stack(
                             children: [
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.image, size: 16),
-                                label: const Text('Promijeni sliku'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(140, 36),
-                                ),
-                                onPressed: _showImagePickerDialog,
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey.shade300,
+                                child: _troop.logoUrl.isNotEmpty
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          _troop.logoUrl,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Icon(
+                                                  Icons.group,
+                                                  size: 50,
+                                                  color: Colors.white,
+                                                );
+                                              },
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.group,
+                                        size: 50,
+                                        color: Colors.white,
+                                      ),
                               ),
+                              if ((isAdmin || isViewingOwnProfile) &&
+                                  _troop.logoUrl.isNotEmpty &&
+                                  !_isImageLoading)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Obriši logo'),
+                                          content: const Text(
+                                            'Jeste li sigurni da želite obrisati logo odreda?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                              child: const Text('Odustani'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(true),
+                                              child: const Text(
+                                                'Obriši',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm == true) {
+                                        try {
+                                          setState(() {
+                                            _isImageLoading = true;
+                                          });
+
+                                          final troopProvider = Provider.of<TroopProvider>(
+                                            context,
+                                            listen: false,
+                                          );
+                                          await troopProvider.updateLogo(_troop.id, null);
+                                          
+                                          final refreshedTroop = await troopProvider.getById(_troop.id);
+
+                                          setState(() {
+                                            _troop = refreshedTroop;
+                                          });
+
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Logo je uspješno obrisan.'),
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            showErrorSnackbar(context, e);
+                                          }
+                                        } finally {
+                                          setState(() {
+                                            _isImageLoading = false;
+                                          });
+                                        }
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
+                          const SizedBox(height: 16),
+                          if (isAdmin || isViewingOwnProfile)
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.image, size: 16),
+                              label: const Text('Promijeni sliku'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(160, 40),
+                              ),
+                              onPressed: _showImagePickerDialog,
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(width: 40),
+
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             _troop.name,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Text(
                             _troop.cityName,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(color: Colors.grey[600]),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              _buildInfoChip(
+                                'Članovi: ${_troop.memberCount}',
+                                Icons.people,
+                              ),
+                              const SizedBox(width: 16),
+                              _buildInfoChip(
+                                _troop.isActive ? 'Aktivan' : 'Neaktivan',
+                                _troop.isActive
+                                    ? Icons.check_circle
+                                    : Icons.block,
+                                color: _troop.isActive
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                    if (isAdmin || isViewingOwnProfile) ...[
-                      SizedBox(
-                        width: 160,
-                        child: Column(
+
+                      const SizedBox(width: 40),
+
+                      if (isAdmin || isViewingOwnProfile)
+                        Column(
                           children: [
                             ElevatedButton.icon(
                               icon: const Icon(Icons.edit, size: 20),
-                              label: const Text('Uredi'),
+                              label: const Text('Uredi podatke'),
                               style: ElevatedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(40),
+                                minimumSize: const Size(180, 48),
                               ),
                               onPressed: () async {
-                                final isUpdated = await _onEdit();
-                                if (isUpdated && mounted) {
-                                  setState(() {
-                                    _mapController = MapController();
-                                    if (_troop.latitude != null && _troop.longitude != null) {
-                                      _selectedLocation = LatLng(_troop.latitude!, _troop.longitude!);
-                                    }
-                                  });
-                                  
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    if (_selectedLocation != null) {
-                                      _mapController.move(_selectedLocation!, 13.0);
-                                    }
-                                  });
-                                }
+                                _onEdit();
                               },
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 16),
                             if (isViewingOwnProfile)
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.password, size: 20),
                                 label: const Text('Promijeni lozinku'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(40),
+                                  minimumSize: const Size(180, 48),
                                 ),
                                 onPressed: _showChangePasswordDialog,
                               ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              icon: Icon(
+                                _troop.isActive
+                                    ? Icons.block
+                                    : Icons.check_circle,
+                              ),
+                              label: Text(
+                                _troop.isActive ? 'Deaktiviraj' : 'Aktiviraj',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(180, 48),
+                                backgroundColor: _troop.isActive
+                                    ? Colors.red
+                                    : Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _isLoading ? null : _toggleActivation,
+                            ),
                           ],
                         ),
-                      ),
                     ],
-                  ],
-                ),
-
-                  const SizedBox(height: 24),
-                  _buildDetailRow('Korisničko ime', _troop.username),
-                  _buildDetailRow('E-mail', _troop.email),
-                  _buildDetailRow('Grad', _troop.cityName),
-                  _buildDetailRow('Broj članova', _troop.memberCount.toString()),
-                  _buildDetailRow('Kontakt telefon', _troop.contactPhone),
-                  _buildDetailRow('Aktivan', _troop.isActive ? 'Da' : 'Ne'),
-                  if (isAdmin || isViewingOwnProfile) ...[
-                    _buildDetailRow('Kreiran', formatDateTime(_troop.createdAt)),
-                    _buildDetailRow('Izmijenjen',  _troop.updatedAt != null ? formatDateTime(_troop.updatedAt!) : '-'),
-                    _buildDetailRow('Zadnja prijava', _troop.lastLoginAt != null ? formatDateTime(_troop.lastLoginAt!) : '-'),
-                  ],
-
-                  const SizedBox(height: 24),
-                  const Text('Lokacija:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 300,
-                    child: Card(
-                      elevation: 4,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: hasCoordinates
-                            ? FlutterMap(
-                                mapController: _mapController,
-                                options: MapOptions(
-                                  center: _selectedLocation,
-                                  zoom: 13.0,
-                                  interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                                  onTap: (tapPosition, point) {
-                                    // Disable tap-to-change location in details view
-                                  },
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.scouttrack_desktop',
-                                  ),
-                                  MarkerLayer(
-                                    markers: [
-                                      Marker(
-                                        point: _selectedLocation!,
-                                        width: 40,
-                                        height: 40,
-                                        child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-                            : const Center(child: Text('Nema dostupnih koordinata')),
-                      ),
-                    ),
                   ),
-
-                  const SizedBox(height: 24),
-                  if (isAdmin || isViewingOwnProfile)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ElevatedButton.icon(
-                        icon: Icon(_troop.isActive ? Icons.block : Icons.check_circle),
-                        label: Text(_troop.isActive ? 'Deaktiviraj odred' : 'Aktiviraj odred'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _troop.isActive ? Colors.red : Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        onPressed: _isLoading ? null : _toggleActivation,
-                      ),
-                    ),
                 ],
               ),
             ),
 
-            Expanded(
-              child: Container(),
+            const SizedBox(height: 40),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailSection('Kontakt informacije', [
+                        _buildDetailRow('E-mail', _troop.email, Icons.email),
+                        _buildDetailRow(
+                          'Telefon',
+                          _troop.contactPhone,
+                          Icons.phone,
+                        ),
+                        _buildDetailRow(
+                          'Korisničko ime',
+                          _troop.username,
+                          Icons.person,
+                        ),
+                        _buildDetailRow(
+                          'Starješina',
+                          _troop.scoutMaster,
+                          Icons.person,
+                        ),
+                        _buildDetailRow(
+                          'Načelnik',
+                          _troop.troopLeader,
+                          Icons.person,
+                        ),
+                        _buildDetailRow(
+                          'Datum osnivanja',
+                          formatDate(_troop.foundingDate),
+                          Icons.calendar_today,
+                        ),
+                      ]),
+
+                      const SizedBox(height: 30),
+                      if (isAdmin || isViewingOwnProfile)
+                        _buildDetailSection('Sistem informacije', [
+                          _buildDetailRow(
+                            'Kreiran',
+                            formatDateTime(_troop.createdAt),
+                          ),
+                          if (_troop.updatedAt != null)
+                            _buildDetailRow(
+                              'Izmijenjen',
+                              formatDateTime(_troop.updatedAt!),
+                            ),
+                          if (_troop.lastLoginAt != null)
+                            _buildDetailRow(
+                              'Zadnja prijava',
+                              formatDateTime(_troop.lastLoginAt!),
+                            ),
+                        ]),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 40),
+
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 280,
+                        child: Card(
+                          elevation: 6,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: hasCoordinates
+                                ? FlutterMap(
+                                    mapController: _mapController,
+                                    options: MapOptions(
+                                      center: _selectedLocation,
+                                      zoom: 13.0,
+                                    ),
+                                    children: [
+                                      TileLayer(
+                                        urlTemplate:
+                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                        userAgentPackageName:
+                                            'com.example.scouttrack_desktop',
+                                      ),
+                                      MarkerLayer(
+                                        markers: [
+                                          Marker(
+                                            point: _selectedLocation!,
+                                            width: 50,
+                                            height: 50,
+                                            child: const Icon(
+                                              Icons.location_pin,
+                                              color: Colors.red,
+                                              size: 50,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : const Center(
+                                    child: Text(
+                                      'Nema dostupnih koordinata',
+                                      style: TextStyle(fontSize: 18),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildBigActionButton(
+                            icon: Icons.people,
+                            label: 'Članovi',
+                            color: Colors.blue,
+                            onPressed: _navigateToMembers,
+                          ),
+                          const SizedBox(width: 24),
+                          _buildBigActionButton(
+                            icon: Icons.event,
+                            label: 'Aktivnosti',
+                            color: Colors.green,
+                            onPressed: _navigateToActivities,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1137,23 +1417,91 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildInfoChip(String text, IconData icon, {Color? color}) {
+    return Chip(
+      avatar: Icon(icon, size: 18, color: color),
+      label: Text(text),
+      backgroundColor: Colors.grey[100],
+      side: BorderSide.none,
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, [IconData? icon]) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (icon != null) ...[
+            Icon(icon, size: 20, color: Colors.grey[600]),
+            const SizedBox(width: 12),
+          ],
           SizedBox(
             width: 120,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value)),
+          const SizedBox(width: 12),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
         ],
       ),
     );
   }
+
+  Widget _buildBigActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 200,
+      height: 80,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+        ),
+        onPressed: onPressed,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  _navigateToActivities() {}
+
+  _navigateToMembers() {}
 }

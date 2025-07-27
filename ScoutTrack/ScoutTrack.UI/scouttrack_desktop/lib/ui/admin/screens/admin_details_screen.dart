@@ -40,7 +40,10 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
           child: Form(
             key: formKey,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 4.0,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -49,45 +52,63 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: TextFormField(
                         controller: usernameController,
-                        decoration: const InputDecoration(labelText: 'Korisničko ime'),
+                        decoration: const InputDecoration(
+                          labelText: 'Korisničko ime *',
+                        ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Unesite korisničko ime';
+                          if (value == null || value.isEmpty)
+                            return 'Unesite korisničko ime';
                           if (value.length > 50) return 'Maksimalno 50 znakova';
-                          if (!RegExp(r"^[A-Za-z0-9_.]+$").hasMatch(value.trim())) {
+                          if (!RegExp(
+                            r"^[A-Za-z0-9_.]+$",
+                          ).hasMatch(value.trim())) {
                             return 'Dozvoljena su slova, brojevi, tačka i donja crta';
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: TextFormField(
                         controller: emailController,
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: const InputDecoration(labelText: 'Email *'),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Unesite email';
-                          if (value.length > 100) return 'Maksimalno 100 znakova';
-                          if (!RegExp(r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}").hasMatch(value.trim())) {
+                          if (value == null || value.isEmpty)
+                            return 'Unesite email';
+                          if (value.length > 100)
+                            return 'Maksimalno 100 znakova';
+                          if (!RegExp(
+                            r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
+                          ).hasMatch(value.trim())) {
                             return 'Unesite ispravan email';
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: TextFormField(
                         controller: fullNameController,
-                        decoration: const InputDecoration(labelText: 'Puno ime'),
+                        decoration: const InputDecoration(
+                          labelText: 'Puno ime *',
+                        ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Unesite puno ime';
-                          if (value.length > 100) return 'Maksimalno 100 znakova';
-                          if (!RegExp(r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$").hasMatch(value.trim())) {
+                          if (value == null || value.isEmpty)
+                            return 'Unesite puno ime';
+                          if (value.length > 100)
+                            return 'Maksimalno 100 znakova';
+                          if (!RegExp(
+                            r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$",
+                          ).hasMatch(value.trim())) {
                             return 'Puno ime sadrži nedozvoljene znakove';
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                   ],
@@ -136,9 +157,9 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Greška: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Greška: $e')));
       }
     }
   }
@@ -190,9 +211,9 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                             labelText: 'Stara lozinka',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                oldPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                oldPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -201,7 +222,10 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                               },
                             ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Unesite staru lozinku' : null,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Unesite staru lozinku'
+                              : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -211,9 +235,9 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                             labelText: 'Nova lozinka',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                newPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                newPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -223,13 +247,17 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Unesite novu lozinku';
+                            if (v == null || v.isEmpty)
+                              return 'Unesite novu lozinku';
                             if (v.length < 8) return 'Najmanje 8 znakova';
-                            if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$').hasMatch(v)) {
+                            if (!RegExp(
+                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$',
+                            ).hasMatch(v)) {
                               return 'Mora imati veliko, malo slovo, broj i spec. znak';
                             }
                             return null;
                           },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -239,19 +267,22 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                             labelText: 'Potvrdi lozinku',
                             suffixIcon: IconButton(
                               icon: Icon(
-                                confirmPasswordVisible 
-                                  ? Icons.visibility_off 
-                                  : Icons.visibility,
+                                confirmPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  confirmPasswordVisible = !confirmPasswordVisible;
+                                  confirmPasswordVisible =
+                                      !confirmPasswordVisible;
                                 });
                               },
                             ),
                           ),
-                          validator: (v) =>
-                              v != newPassController.text ? 'Lozinke se ne poklapaju' : null,
+                          validator: (v) => v != newPassController.text
+                              ? 'Lozinke se ne poklapaju'
+                              : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],
                     ),
@@ -267,7 +298,10 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                   onPressed: () async {
                     if (formKey.currentState!.validate()) {
                       try {
-                        final provider = Provider.of<AdminProvider>(context, listen: false);
+                        final provider = Provider.of<AdminProvider>(
+                          context,
+                          listen: false,
+                        );
                         await provider.changePassword(_admin.id, {
                           'oldPassword': oldPassController.text,
                           'newPassword': newPassController.text,
@@ -276,30 +310,49 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
 
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Lozinka promijenjena. Preusmjeravanje...')),
+                            const SnackBar(
+                              content: Text(
+                                'Lozinka promijenjena. Preusmjeravanje...',
+                              ),
+                            ),
                           );
 
                           await Future.delayed(const Duration(seconds: 2));
 
                           if (!context.mounted) return;
 
-                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                          final authProvider = Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          );
                           await authProvider.logout();
 
-                          Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/', (_) => false);
                         }
                       } catch (e) {
                         if (context.mounted) {
                           setState(() {
                             final message = e.toString();
-                            if (message.contains('Stara lozinka nije ispravna')) {
+                            if (message.contains(
+                              'Stara lozinka nije ispravna',
+                            )) {
                               generalError = 'Stara lozinka nije ispravna.';
-                            } else if (message.contains('Nova lozinka ne smije biti ista kao stara.')) {
-                              generalError = 'Nova lozinka ne smije biti ista kao stara.';
-                            } else if (message.contains('Lozinke se ne poklapaju')) {
+                            } else if (message.contains(
+                              'Nova lozinka ne smije biti ista kao stara.',
+                            )) {
+                              generalError =
+                                  'Nova lozinka ne smije biti ista kao stara.';
+                            } else if (message.contains(
+                              'Lozinke se ne poklapaju',
+                            )) {
                               generalError = 'Lozinke se ne poklapaju.';
                             } else {
-                              generalError = message.replaceFirst('Greška: ', '');
+                              generalError = message.replaceFirst(
+                                'Greška: ',
+                                '',
+                              );
                             }
                           });
 
@@ -342,43 +395,75 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    const Text(
-      'Detalji administratora',
-      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-    ),
-    const SizedBox(height: 12),
-    ElevatedButton.icon(
-      icon: const Icon(Icons.edit),
-      label: const Text('Uredi'),
-      onPressed: _showEditDialog,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      ),
-    ),
-    const SizedBox(height: 12),
-    ElevatedButton.icon(
-      icon: const Icon(Icons.password),
-      label: const Text('Promijeni lozinku'),
-      onPressed: _showChangePasswordDialog,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      ),
-    ),
-  ],
-),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Detalji administratora',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Uredi'),
+                    onPressed: _showEditDialog,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.password),
+                    label: const Text('Promijeni lozinku'),
+                    onPressed: _showChangePasswordDialog,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 24),
-              _buildDetailRow('Korisničko ime', _admin.username),
-              _buildDetailRow('E-mail', _admin.email),
-              _buildDetailRow('Puno ime', _admin.fullName),
-              _buildDetailRow('Aktivan', _admin.isActive ? 'Da' : 'Ne'),
-              _buildDetailRow('Kreiran', formatDateTime(_admin.createdAt)),
-              _buildDetailRow('Zadnja prijava',
-                  _admin.lastLoginAt != null ? formatDateTime(_admin.lastLoginAt!) : '-'),
-              _buildDetailRow('Zadnja izmjena',
-                  _admin.updatedAt != null ? formatDateTime(_admin.updatedAt!) : '-'),
+              _buildDetailRow(
+                'Korisničko ime',
+                _admin.username,
+                icon: Icons.person,
+              ),
+              _buildDetailRow('E-mail', _admin.email, icon: Icons.email),
+              _buildDetailRow(
+                'Puno ime',
+                _admin.fullName,
+                icon: Icons.person_outline,
+              ),
+              _buildDetailRow(
+                'Aktivan',
+                _admin.isActive ? 'Da' : 'Ne',
+                icon: _admin.isActive ? Icons.check_circle : Icons.block,
+              ),
+              _buildDetailRow(
+                'Kreiran',
+                formatDateTime(_admin.createdAt),
+                icon: Icons.date_range,
+              ),
+              _buildDetailRow(
+                'Zadnja izmjena',
+                _admin.updatedAt != null
+                    ? formatDateTime(_admin.updatedAt!)
+                    : '-',
+                icon: Icons.edit,
+              ),
+              _buildDetailRow(
+                'Zadnja prijava',
+                _admin.lastLoginAt != null
+                    ? formatDateTime(_admin.lastLoginAt!)
+                    : '-',
+                icon: Icons.login,
+              ),
             ],
           ),
         ),
@@ -386,12 +471,13 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, {IconData? icon}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
           SizedBox(
             width: 120,
             child: Text(

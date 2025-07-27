@@ -31,8 +31,8 @@ namespace ScoutTrack.Model.Requests
         public Gender Gender { get; set; }
 
         [Required]
-        [Phone]
         [MaxLength(20)]
+        [RegularExpression(@"^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$", ErrorMessage = "PhoneNumber must be a valid phone number for Bosnia and Herzegovina.")]
         public string ContactPhone { get; set; } = string.Empty;
 
         public string ProfilePictureUrl { get; set; } = string.Empty;

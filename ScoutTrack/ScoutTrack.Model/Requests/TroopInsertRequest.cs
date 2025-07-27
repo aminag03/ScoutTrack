@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace ScoutTrack.Model.Requests
@@ -34,9 +35,22 @@ namespace ScoutTrack.Model.Requests
         [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180.")]
         public double Longitude { get; set; }
 
+        [Required]  
+        [MaxLength(100)]
+        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
+        public string ScoutMaster { get; set; } = string.Empty;
+
         [Required]
-        [Phone]
+        [MaxLength(100)]
+        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
+        public string TroopLeader { get; set; } = string.Empty;
+
+        public DateTime FoundingDate { get; set; }
+
+        [Required]
         [MaxLength(20)]
+        [RegularExpression(@"^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$", 
+            ErrorMessage = "PhoneNumber must be a valid phone number for Bosnia and Herzegovina.")]
         public string ContactPhone { get; set; } = string.Empty;
 
         public string LogoUrl { get; set; } = string.Empty;

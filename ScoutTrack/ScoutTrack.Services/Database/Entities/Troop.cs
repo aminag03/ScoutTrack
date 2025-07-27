@@ -28,6 +28,14 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(20)]
         public string ContactPhone { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string ScoutMaster { get; set; } = string.Empty;  // Starješina
+
+        [MaxLength(100)]
+        public string TroopLeader { get; set; } = string.Empty;  // Načelnik
+
+        public DateTime FoundingDate { get; set; } = DateTime.UtcNow;
+
         public string LogoUrl { get; set; } = string.Empty;
         public ICollection<Member> Members { get; set; } = new List<Member>();
         public ICollection<Activity> Activities { get; set; } = new List<Activity>();

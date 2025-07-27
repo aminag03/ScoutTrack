@@ -95,6 +95,15 @@ namespace ScoutTrack.Services
                         "username" => descending
                             ? responseList.OrderByDescending(x => x.Username).ToList()
                             : responseList.OrderBy(x => x.Username).ToList(),
+                        "scoutmaster" => descending
+                            ? responseList.OrderByDescending(x => x.ScoutMaster).ToList()
+                            : responseList.OrderBy(x => x.ScoutMaster).ToList(),
+                        "troopleader" => descending
+                            ? responseList.OrderByDescending(x => x.TroopLeader).ToList()
+                            : responseList.OrderBy(x => x.TroopLeader).ToList(),
+                        "foundingdate" => descending
+                            ? responseList.OrderByDescending(x => x.FoundingDate).ToList()
+                            : responseList.OrderBy(x => x.FoundingDate).ToList(),
 
                         _ => responseList
                     };
@@ -153,6 +162,16 @@ namespace ScoutTrack.Services
                 query = query.Where(t => t.CityId == search.CityId.Value);
             }
 
+            if (search.FoundingDateFrom.HasValue)
+            {
+                query = query.Where(t => t.FoundingDate >= search.FoundingDateFrom.Value);
+            }
+
+            if (search.FoundingDateTo.HasValue)
+            {
+                query = query.Where(t => t.FoundingDate <= search.FoundingDateTo.Value);
+            }
+
             if (!string.IsNullOrEmpty(search.FTS))
             {
                 query = query.Where(t => t.Username.Contains(search.FTS) || 
@@ -181,6 +200,12 @@ namespace ScoutTrack.Services
             if (!await _context.Cities.AnyAsync(c => c.Id == request.CityId))
                 throw new UserException($"City with ID {request.CityId} does not exist.");
 
+            if (request.FoundingDate > DateTime.Now)
+                throw new UserException("Founding date cannot be in the future.");
+
+            if (request.FoundingDate < new DateTime(1907, 1, 1))
+                throw new UserException("Founding date cannot be before 1907.");
+
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
@@ -197,6 +222,15 @@ namespace ScoutTrack.Services
 
             if (!await _context.Cities.AnyAsync(c => c.Id == request.CityId))
                 throw new UserException($"City with ID {request.CityId} does not exist.");
+
+            if (request.FoundingDate.HasValue)
+            {
+                if (request.FoundingDate.Value > DateTime.Now)
+                    throw new UserException("Founding date cannot be in the future");
+
+                if (request.FoundingDate.Value < new DateTime(1900, 1, 1))
+                    throw new UserException("Founding date must be after 1900");
+            }
         }
 
         protected override void MapUpdateToEntity(Troop entity, TroopUpdateRequest request)
@@ -301,6 +335,9 @@ namespace ScoutTrack.Services
                 Longitude = entity.Longitude,
                 ContactPhone = entity.ContactPhone,
                 LogoUrl = entity.LogoUrl,
+                ScoutMaster = entity.ScoutMaster,
+                TroopLeader = entity.TroopLeader,
+                FoundingDate = entity.FoundingDate,
                 IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,

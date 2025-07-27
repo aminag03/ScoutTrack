@@ -26,6 +26,9 @@ Troop _$TroopFromJson(Map<String, dynamic> json) => Troop(
       ? null
       : DateTime.parse(json['lastLoginAt'] as String),
   memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+  scoutMaster: json['scoutMaster'] as String? ?? '',
+  troopLeader: json['troopLeader'] as String? ?? '',
+  foundingDate: DateTime.parse(json['foundingDate'] as String),
 );
 
 Map<String, dynamic> _$TroopToJson(Troop instance) => <String, dynamic>{
@@ -44,4 +47,7 @@ Map<String, dynamic> _$TroopToJson(Troop instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt?.toIso8601String(),
   'lastLoginAt': instance.lastLoginAt?.toIso8601String(),
   'memberCount': instance.memberCount,
+  'scoutMaster': instance.scoutMaster,
+  'troopLeader': instance.troopLeader,
+  'foundingDate': instance.foundingDate.toIso8601String(),
 };

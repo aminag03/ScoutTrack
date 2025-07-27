@@ -18,6 +18,7 @@ import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 
@@ -77,10 +78,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
       _role = role;
     });
     final cityProvider = CityProvider(authProvider);
-    var filter = { "RetrieveAll": true };
+    var filter = {"RetrieveAll": true};
     final cityResult = await cityProvider.get(filter: filter);
     setState(() {
-    _cities = cityResult.items ?? [];
+      _cities = cityResult.items ?? [];
     });
     await _fetchTroops();
   }
@@ -109,7 +110,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
         "IncludeTotalCount": true,
-        };
+      };
       var result = await _troopProvider.get(filter: filter);
 
       setState(() {
@@ -155,7 +156,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -171,7 +175,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                         labelText: 'Grad',
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                       isExpanded: true,
                       onChanged: (value) {
@@ -186,10 +193,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
                           value: null,
                           child: Text("Svi gradovi"),
                         ),
-                        ..._cities.map((city) => DropdownMenuItem(
-                          value: city.id,
-                          child: Text(city.name),
-                        )),
+                        ..._cities.map(
+                          (city) => DropdownMenuItem(
+                            value: city.id,
+                            child: Text(city.name),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -205,7 +214,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                         labelText: 'Sortiraj',
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                       isExpanded: true,
                       onChanged: (value) {
@@ -236,35 +248,46 @@ class _TroopListScreenState extends State<TroopListScreen> {
                           value: '-memberCount',
                           child: Text('Broj članova (opadajuće)'),
                         ),
+                        DropdownMenuItem(
+                          value: 'foundingDate',
+                          child: Text('Datum osnivanja (najstariji)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-foundingDate',
+                          child: Text('Datum osnivanja (najnoviji)'),
+                        ),
                       ],
                     ),
                   ),
                 ),
 
                 if (_role == 'Admin')
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: ElevatedButton.icon(
-                      onPressed: _onAddTroop,
-                      icon: const Icon(Icons.add),
-                      label: Text(
-                        'Dodaj novi odred',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: ElevatedButton.icon(
+                        onPressed: _onAddTroop,
+                        icon: const Icon(Icons.add),
+                        label: Text(
+                          'Dodaj novi odred',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        minimumSize: const Size(0, 48),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 16,
+                          ),
+                          minimumSize: const Size(0, 48),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -303,75 +326,116 @@ class _TroopListScreenState extends State<TroopListScreen> {
         controller: _scrollController,
         thumbVisibility: true,
         child: SingleChildScrollView(
-            controller: _scrollController,
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 1100),
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 1200),
             child: DataTable(
-                headingRowColor: MaterialStateColor.resolveWith(
+              headingRowColor: MaterialStateColor.resolveWith(
                 (states) => Colors.grey.shade100,
-                ),
-                columnSpacing: 32,
-                columns: const [
-                DataColumn(label: Padding(
+              ),
+              columnSpacing: 32,
+              columns: const [
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('NAZIV'),
-                )),
-                DataColumn(label: Padding(
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('KORISNIČKO IME'),
-                )),
-                DataColumn(label: Padding(
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('E-MAIL'),
-                )),
-                DataColumn(label: Padding(
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('GRAD'),
-                )),
-                DataColumn(label: Padding(
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('DATUM OSNIVANJA'),
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('BROJ ČLANOVA'),
-                )),
-                DataColumn(label: Padding(
+                  ),
+                ),
+                DataColumn(
+                  label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('AKTIVAN'),
-                )),
+                  ),
+                ),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
-                ],
-                rows: _troops!.items!.map((troop) {
+              ],
+              rows: _troops!.items!.map((troop) {
                 return DataRow(
-                    cells: [
-                    DataCell(Padding(
+                  cells: [
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.name),
-                    )),
-                    DataCell(Padding(
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.username),
-                    )),
-                    DataCell(Padding(
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.email),
-                    )),
-                    DataCell(Padding(
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.cityName),
-                    )),
-                    DataCell(Padding(
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(formatDate(troop.foundingDate)),
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.memberCount.toString()),
-                    )),
-                    DataCell(Padding(
+                      ),
+                    ),
+                    DataCell(
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: troop.isActive ? const Icon(Icons.check, color: Colors.green) : const Icon(Icons.close, color: Colors.red),
-                    )),
+                        child: troop.isActive
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : const Icon(Icons.close, color: Colors.red),
+                      ),
+                    ),
                     if (_role == 'Admin') ...[
                       DataCell(
                         IconButton(
-                          icon: const Icon(Icons.visibility, color: Colors.grey),
+                          icon: const Icon(
+                            Icons.visibility,
+                            color: Colors.grey,
+                          ),
                           tooltip: 'Detalji',
                           onPressed: () => _navigateToTroopDetails(troop),
                         ),
@@ -393,15 +457,18 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     ] else ...[
                       DataCell(
                         IconButton(
-                          icon: const Icon(Icons.visibility, color: Colors.grey),
+                          icon: const Icon(
+                            Icons.visibility,
+                            color: Colors.grey,
+                          ),
                           tooltip: 'Detalji',
                           onPressed: () => _navigateToTroopDetails(troop),
                         ),
                       ),
                       const DataCell(SizedBox()),
-                      const DataCell(SizedBox()), 
+                      const DataCell(SizedBox()),
                     ],
-                  ]
+                  ],
                 );
               }).toList(),
             ),
@@ -415,7 +482,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
     int maxPageButtons = 5;
     int safeTotalPages = totalPages > 0 ? totalPages : 1;
     int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(1, (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages));
+    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
+      1,
+      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
+    );
     int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
     List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
     bool hasResults = (_troops?.totalCount ?? 0) > 0;
@@ -427,29 +497,43 @@ class _TroopListScreenState extends State<TroopListScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchTroops(page: 1) : null,
+            onPressed: hasResults && safeCurrentPage > 1
+                ? () => _fetchTroops(page: 1)
+                : null,
           ),
           TextButton(
-            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchTroops(page: safeCurrentPage - 1) : null,
+            onPressed: hasResults && safeCurrentPage > 1
+                ? () => _fetchTroops(page: safeCurrentPage - 1)
+                : null,
             child: const Text('Prethodna'),
           ),
-          ...pageNumbers.map((page) => TextButton(
-                onPressed: hasResults && page != safeCurrentPage ? () => _fetchTroops(page: page) : null,
-                child: Text(
-                  '$page',
-                  style: TextStyle(
-                    fontWeight: page == safeCurrentPage ? FontWeight.bold : FontWeight.normal,
-                    color: page == safeCurrentPage ? Colors.blue : Colors.black,
-                  ),
+          ...pageNumbers.map(
+            (page) => TextButton(
+              onPressed: hasResults && page != safeCurrentPage
+                  ? () => _fetchTroops(page: page)
+                  : null,
+              child: Text(
+                '$page',
+                style: TextStyle(
+                  fontWeight: page == safeCurrentPage
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
                 ),
-              )),
+              ),
+            ),
+          ),
           TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchTroops(page: safeCurrentPage + 1) : null,
+            onPressed: hasResults && safeCurrentPage < safeTotalPages
+                ? () => _fetchTroops(page: safeCurrentPage + 1)
+                : null,
             child: const Text('Sljedeća'),
           ),
           IconButton(
             icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchTroops(page: safeTotalPages) : null,
+            onPressed: hasResults && safeCurrentPage < safeTotalPages
+                ? () => _fetchTroops(page: safeTotalPages)
+                : null,
           ),
         ],
       ),
@@ -469,7 +553,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Potvrda brisanja'),
-        content: Text('Jeste li sigurni da želite obrisati odred ${troop.name}?'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati odred ${troop.name}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -500,13 +586,18 @@ class _TroopListScreenState extends State<TroopListScreen> {
     final userInfo = await authProvider.getCurrentUserInfo();
 
     final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TroopDetailsScreen(
-          troop: troop,
-          role: userInfo?['role'] ?? '',
-          loggedInUserId: userInfo?['id'] ?? 0,
-          selectedMenu: 'Odredi',
-        ),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TroopDetailsScreen(
+              troop: troop,
+              role: userInfo?['role'] ?? '',
+              loggedInUserId: userInfo?['id'] ?? 0,
+              selectedMenu: 'Odredi',
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     );
 
@@ -517,22 +608,76 @@ class _TroopListScreenState extends State<TroopListScreen> {
 
   Future<void> _showTroopDialog({Troop? troop}) async {
     final _formKey = GlobalKey<FormState>();
-    final TextEditingController nameController = TextEditingController(text: troop?.name ?? '');
-    final TextEditingController usernameController = TextEditingController(text: troop?.username ?? '');
-    final TextEditingController emailController = TextEditingController(text: troop?.email ?? '');
+    final TextEditingController nameController = TextEditingController(
+      text: troop?.name ?? '',
+    );
+    final TextEditingController usernameController = TextEditingController(
+      text: troop?.username ?? '',
+    );
+    final TextEditingController emailController = TextEditingController(
+      text: troop?.email ?? '',
+    );
     final TextEditingController passwordController = TextEditingController();
-    final TextEditingController contactPhoneController = TextEditingController(text: troop?.contactPhone ?? '');
+    final TextEditingController contactPhoneController = TextEditingController(
+      text: troop?.contactPhone ?? '',
+    );
+    final TextEditingController scoutMasterController = TextEditingController(
+      text: troop?.scoutMaster ?? '',
+    );
+    final TextEditingController troopLeaderController = TextEditingController(
+      text: troop?.troopLeader ?? '',
+    );
+    final TextEditingController foundingDateController = TextEditingController(
+      text: troop?.foundingDate != null ? formatDate(troop!.foundingDate!) : '',
+    );
     XFile? selectedImage;
     Uint8List? imageBytes;
-    
-    LatLng selectedLocation = (troop?.latitude != null && troop?.longitude != null)
+
+    LatLng selectedLocation =
+        (troop?.latitude != null && troop?.longitude != null)
         ? LatLng(troop!.latitude!, troop.longitude!)
         : const LatLng(43.8563, 18.4131);
-    
+
     int? selectedCityId = troop?.cityId;
     String? selectedCityName;
     final isEdit = troop != null;
     final MapController _mapController = MapController();
+
+    Future<void> _selectFoundingDate() async {
+      final DateTime? picked = await showDialog<DateTime>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Odaberite datum osnivanja'),
+          content: SizedBox(
+            width: 300,
+            height: 400,
+            child: SfDateRangePicker(
+              initialSelectedDate: troop?.foundingDate ?? DateTime.now(),
+              minDate: DateTime(1907),
+              maxDate: DateTime.now(),
+              selectionMode: DateRangePickerSelectionMode.single,
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                if (args.value is DateTime) {
+                  Navigator.pop(context, args.value as DateTime);
+                }
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Odustani'),
+            ),
+          ],
+        ),
+      );
+
+      if (picked != null) {
+        setState(() {
+          foundingDateController.text = formatDate(picked);
+        });
+      }
+    }
 
     if (isEdit && troop?.cityId != null) {
       selectedCityName = _cities.firstWhere((c) => c.id == troop?.cityId).name;
@@ -543,7 +688,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            Future<Uint8List> _compressImage(Uint8List bytes, {int quality = 30, int maxWidth = 800}) async {
+            Future<Uint8List> _compressImage(
+              Uint8List bytes, {
+              int quality = 30,
+              int maxWidth = 800,
+            }) async {
               try {
                 final image = img.decodeImage(bytes);
                 if (image == null) return bytes;
@@ -555,8 +704,15 @@ class _TroopListScreenState extends State<TroopListScreen> {
                   width = maxWidth;
                 }
 
-                final resizedImage = img.copyResize(image, width: width, height: height);
-                final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
+                final resizedImage = img.copyResize(
+                  image,
+                  width: width,
+                  height: height,
+                );
+                final compressedBytes = img.encodeJpg(
+                  resizedImage,
+                  quality: quality,
+                );
 
                 return Uint8List.fromList(compressedBytes);
               } catch (e) {
@@ -566,14 +722,16 @@ class _TroopListScreenState extends State<TroopListScreen> {
 
             Future<void> _pickImage() async {
               final picker = ImagePicker();
-              final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+              final pickedFile = await picker.pickImage(
+                source: ImageSource.gallery,
+              );
               if (pickedFile != null) {
                 try {
                   final bytes = await pickedFile.readAsBytes();
                   final compressedBytes = await _compressImage(bytes);
 
                   print('Compressed size: ${compressedBytes.length / 1024} KB');
-                  
+
                   setState(() {
                     selectedImage = pickedFile;
                     imageBytes = compressedBytes;
@@ -592,17 +750,20 @@ class _TroopListScreenState extends State<TroopListScreen> {
             }
 
             Future<void> _openMapPicker() async {
-              final initialLocation = selectedLocation ?? const LatLng(43.8563, 18.4131);
-              
+              final initialLocation =
+                  selectedLocation ?? const LatLng(43.8563, 18.4131);
+
               final result = await showDialog<Map<String, double>>(
                 context: context,
-                builder: (context) => MapPickerDialog(
-                  initialLocation: initialLocation,
-                ),
+                builder: (context) =>
+                    MapPickerDialog(initialLocation: initialLocation),
               );
 
               if (result != null) {
-                final newLocation = LatLng(result['latitude']!, result['longitude']!);
+                final newLocation = LatLng(
+                  result['latitude']!,
+                  result['longitude']!,
+                );
                 setState(() {
                   selectedLocation = newLocation;
                 });
@@ -613,8 +774,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
             void _updateCityLocation(int? cityId) {
               if (cityId != null) {
                 final selectedCity = _cities.firstWhere((c) => c.id == cityId);
-                if (selectedCity.latitude != null && selectedCity.longitude != null) {
-                  final newLocation = LatLng(selectedCity.latitude!, selectedCity.longitude!);
+                if (selectedCity.latitude != null &&
+                    selectedCity.longitude != null) {
+                  final newLocation = LatLng(
+                    selectedCity.latitude!,
+                    selectedCity.longitude!,
+                  );
                   setState(() {
                     selectedLocation = newLocation;
                   });
@@ -624,7 +789,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
             }
 
             return Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: 800,
@@ -638,16 +806,21 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     children: [
                       Text(
                         isEdit ? 'Uredi odred' : 'Dodaj odred',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Form(
                         key: _formKey,
                         child: Column(
                           children: [
                             TextFormField(
                               controller: nameController,
-                              decoration: const InputDecoration(labelText: 'Naziv'),
+                              decoration: const InputDecoration(
+                                labelText: 'Naziv *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Naziv je obavezan.';
@@ -655,17 +828,23 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 if (value.length > 100) {
                                   return 'Naziv ne smije imati više od 100 znakova.';
                                 }
-                                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
+                                final regex = RegExp(
+                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
+                                );
                                 if (!regex.hasMatch(value.trim())) {
                                   return 'Naziv smije sadržavati samo slova, razmake i crtice.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: usernameController,
-                              decoration: const InputDecoration(labelText: 'Korisničko ime'),
+                              decoration: const InputDecoration(
+                                labelText: 'Korisničko ime *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Korisničko ime je obavezno.';
@@ -673,118 +852,183 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 if (value.length > 50) {
                                   return 'Korisničko ime ne smije imati više od 50 znakova.';
                                 }
-                                if (!RegExp(r"^[A-Za-z0-9_.]+$").hasMatch(value.trim())) {
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
                                   return 'Dozvoljena su slova, brojevi, tačka i donja crta';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: emailController,
-                              decoration: const InputDecoration(labelText: 'E-mail'),
+                              decoration: const InputDecoration(
+                                labelText: 'E-mail *',
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'E-mail je obavezan.';
                                 }
-                                if (!RegExp(r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}").hasMatch(value.trim())) {
+                                if (!RegExp(
+                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
+                                ).hasMatch(value.trim())) {
                                   return 'Unesite ispravan e-mail.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             if (!isEdit) ...[
                               TextFormField(
                                 controller: passwordController,
                                 obscureText: true,
-                                decoration: const InputDecoration(labelText: 'Lozinka'),
+                                decoration: const InputDecoration(
+                                  labelText: 'Lozinka *',
+                                ),
                                 validator: (value) {
-                                  if (value == null || value.isEmpty) return 'Lozinka je obavezna.';
-                                  if (value.length < 8) return 'Lozinka mora imati najmanje 8 znakova.';
-                                  if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])').hasMatch(value)) {
+                                  if (value == null || value.isEmpty)
+                                    return 'Lozinka je obavezna.';
+                                  if (value.length < 8)
+                                    return 'Lozinka mora imati najmanje 8 znakova.';
+                                  if (!RegExp(
+                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])',
+                                  ).hasMatch(value)) {
                                     return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
                                   }
                                   return null;
                                 },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
                             TextFormField(
                               controller: contactPhoneController,
-                              decoration: const InputDecoration(labelText: 'Kontakt telefon'),
+                              decoration: const InputDecoration(
+                                labelText: 'Kontakt telefon *',
+                              ),
                               validator: (value) {
-                                if (value == null || value.isEmpty) return 'Telefon je obavezan.';
-                                if (!RegExp(r'^\+?\d{6,20}$').hasMatch(value)) {
-                                  return 'Unesite ispravan broj telefona.';
+                                if (value == null || value.isEmpty)
+                                  return 'Telefon je obavezan.';
+                                if (!RegExp(r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$').hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
                                 }
                                 return null;
                               },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
+                            TextFormField(
+                              controller: scoutMasterController,
+                              decoration: const InputDecoration(
+                                labelText: 'Starješina *',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime starješine su obavezni.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: troopLeaderController,
+                              decoration: const InputDecoration(
+                                labelText: 'Načelnik *',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime načelnika su obavezni.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  GestureDetector(
+                                    onTap: _selectFoundingDate,
+                                    child: AbsorbPointer(
+                                      child: TextFormField(
+                                        controller: foundingDateController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Datum osnivanja *',
+                                          suffixIcon: Icon(
+                                            Icons.calendar_today,
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Datum osnivanja je obavezan.';
+                                          }
+                                          return null;
+                                        },
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             DropdownButtonFormField<int>(
                               value: selectedCityId,
-                              decoration: const InputDecoration(labelText: 'Grad'),
+                              decoration: const InputDecoration(
+                                labelText: 'Grad *',
+                              ),
                               items: _cities
-                                  .map((c) => DropdownMenuItem<int>(
-                                        value: c.id,
-                                        child: Text(c.name),
-                                      ))
+                                  .map(
+                                    (c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.name),
+                                    ),
+                                  )
                                   .toList(),
-                              validator: (value) => value == null ? 'Grad je obavezan.' : null,
+                              validator: (value) =>
+                                  value == null ? 'Grad je obavezan.' : null,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
                                 setState(() {
                                   selectedCityId = val;
-                                  selectedCityName = _cities.firstWhere((c) => c.id == val).name;
+                                  selectedCityName = _cities
+                                      .firstWhere((c) => c.id == val)
+                                      .name;
                                 });
                                 _updateCityLocation(val);
                               },
                             ),
-                             if (!isEdit) ...[
-                              const SizedBox(height: 24),
-                              const Text(
-                                'Logo odreda:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Column(
-                                children: [
-                                  if (imageBytes != null)
-                                    Container(
-                                      height: 150,
-                                      width: 150,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.memory(imageBytes!, fit: BoxFit.cover),
-                                      ),
-                                    ),
-                                  if (imageBytes != null) const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextButton.icon(
-                                        icon: const Icon(Icons.image),
-                                        label: const Text('Odaberi sliku'),
-                                        onPressed: _pickImage,
-                                      ),
-                                      if (imageBytes != null) ...[
-                                        const SizedBox(width: 16),
-                                        TextButton.icon(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          label: const Text('Ukloni', style: TextStyle(color: Colors.red)),
-                                          onPressed: _removeImage,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                            const SizedBox(height: 24),
                             const SizedBox(height: 24),
                             const Text(
                               'Lokacija odreda:',
@@ -810,8 +1054,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 ),
                                 children: [
                                   TileLayer(
-                                    urlTemplate: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.scouttrack_desktop',
+                                    urlTemplate:
+                                        'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.scouttrack_desktop',
                                   ),
                                   MarkerLayer(
                                     markers: [
@@ -830,6 +1076,60 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 ],
                               ),
                             ),
+                            if (!isEdit) ...[
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Logo odreda:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Column(
+                                children: [
+                                  if (imageBytes != null)
+                                    Container(
+                                      height: 150,
+                                      width: 150,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.memory(
+                                          imageBytes!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  if (imageBytes != null)
+                                    const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.image),
+                                        label: const Text('Odaberi sliku'),
+                                        onPressed: _pickImage,
+                                      ),
+                                      if (imageBytes != null) ...[
+                                        const SizedBox(width: 16),
+                                        TextButton.icon(
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          label: const Text(
+                                            'Ukloni',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                          onPressed: _removeImage,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -847,7 +1147,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               if (_formKey.currentState?.validate() ?? false) {
                                 if (selectedLocation == null) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Molimo odaberite lokaciju na mapi')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Molimo odaberite lokaciju na mapi',
+                                      ),
+                                    ),
                                   );
                                   return;
                                 }
@@ -857,30 +1161,53 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     "name": nameController.text.trim(),
                                     "username": usernameController.text.trim(),
                                     "email": emailController.text.trim(),
-                                    if (!isEdit) "password": passwordController.text.trim(),
+                                    if (!isEdit)
+                                      "password": passwordController.text
+                                          .trim(),
                                     "cityId": selectedCityId,
                                     "latitude": selectedLocation.latitude,
                                     "longitude": selectedLocation.longitude,
-                                    "contactPhone": contactPhoneController.text.trim(),
+                                    "contactPhone": contactPhoneController.text
+                                        .trim(),
+                                    "scoutMaster": scoutMasterController.text
+                                        .trim(),
+                                    "troopLeader": troopLeaderController.text
+                                        .trim(),
+                                    "foundingDate": parseDate(
+                                      foundingDateController.text,
+                                    ).toIso8601String(),
                                   };
 
+                                  print(requestBody["foundingDate"]);
+
                                   if (isEdit) {
-                                    await _troopProvider.update(troop!.id, requestBody);
+                                    await _troopProvider.update(
+                                      troop!.id,
+                                      requestBody,
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Odred "${troop.name}" je ažuriran.')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Odred "${troop.name}" je ažuriran.',
+                                        ),
+                                      ),
                                     );
                                   } else {
-                                    final createdTroop = await _troopProvider.insert(requestBody);
+                                    final createdTroop = await _troopProvider
+                                        .insert(requestBody);
 
                                     if (selectedImage != null) {
-                                      final imageUrl = await _troopProvider.updateLogo(
-                                        createdTroop.id,
-                                        File(selectedImage!.path),
-                                      );
+                                      final imageUrl = await _troopProvider
+                                          .updateLogo(
+                                            createdTroop.id,
+                                            File(selectedImage!.path),
+                                          );
                                     }
 
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Odred je dodan.')),
+                                      const SnackBar(
+                                        content: Text('Odred je dodan.'),
+                                      ),
                                     );
                                   }
 

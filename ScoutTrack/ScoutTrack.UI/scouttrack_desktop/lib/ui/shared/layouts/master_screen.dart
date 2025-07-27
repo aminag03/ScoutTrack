@@ -45,6 +45,16 @@ class _MasterScreenState extends State<MasterScreen> {
     onTap?.call();
   }
 
+  PageRouteBuilder _fadeRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 400),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -79,8 +89,8 @@ class _MasterScreenState extends State<MasterScreen> {
                   selected: selectedLabel == 'Početna',
                   onTap: () => _handleTap('Početna', () {
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (_) => widget.role == 'Admin'
+                      _fadeRoute(
+                        widget.role == 'Admin'
                             ? AdminHomePage(username: 'Admin')
                             : TroopHomePage(username: 'Troop'),
                       ),
@@ -94,9 +104,9 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Gradovi',
                     selected: selectedLabel == 'Gradovi',
                     onTap: () => _handleTap('Gradovi', () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const CitiesPage()),
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const CitiesPage()));
                     }),
                   ),
                   _SidebarItem(
@@ -104,18 +114,17 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
                     onTap: () => _handleTap('Odredi', () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const TroopListScreen()),
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const TroopListScreen()));
                     }),
                   ),
                   _SidebarItem(
                     icon: Icons.group,
                     label: 'Članovi',
                     selected: selectedLabel == 'Članovi',
-                    onTap: () => _handleTap('Članovi', () {
-                    }),
-                  )
+                    onTap: () => _handleTap('Članovi', () {}),
+                  ),
                 ],
 
                 if (widget.role == 'Troop') ...[
@@ -123,17 +132,16 @@ class _MasterScreenState extends State<MasterScreen> {
                     icon: Icons.event,
                     label: 'Moje aktivnosti',
                     selected: selectedLabel == 'Moje aktivnosti',
-                    onTap: () => _handleTap('Moje aktivnosti', () {
-                    }),
+                    onTap: () => _handleTap('Moje aktivnosti', () {}),
                   ),
                   _SidebarItem(
                     icon: Icons.badge,
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
                     onTap: () => _handleTap('Odredi', () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const TroopListScreen()),
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const TroopListScreen()));
                     }),
                   ),
                 ],
@@ -146,20 +154,24 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Moj profil',
                     selected: selectedLabel == 'Moj profil',
                     onTap: () async {
-                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final authProvider = Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      );
                       final userInfo = await authProvider.getCurrentUserInfo();
 
                       if (userInfo != null && userInfo['id'] != null) {
                         final adminId = userInfo['id'] as int;
 
-                        final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+                        final adminProvider = Provider.of<AdminProvider>(
+                          context,
+                          listen: false,
+                        );
                         final admin = await adminProvider.getById(adminId);
 
                         _handleTap('Moj profil', () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => AdminDetailsScreen(admin: admin),
-                            ),
+                            _fadeRoute(AdminDetailsScreen(admin: admin)),
                           );
                         });
                       }
@@ -171,19 +183,25 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Moj profil',
                     selected: selectedLabel == 'Moj profil',
                     onTap: () async {
-                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final authProvider = Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      );
                       final userInfo = await authProvider.getCurrentUserInfo();
 
                       if (userInfo != null && userInfo['id'] != null) {
                         final troopId = userInfo['id'] as int;
 
-                        final troopProvider = Provider.of<TroopProvider>(context, listen: false);
+                        final troopProvider = Provider.of<TroopProvider>(
+                          context,
+                          listen: false,
+                        );
                         final troop = await troopProvider.getById(troopId);
 
                         _handleTap('Moj profil', () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => TroopDetailsScreen(
+                            _fadeRoute(
+                              TroopDetailsScreen(
                                 troop: troop,
                                 role: widget.role,
                                 loggedInUserId: troopId,
@@ -203,9 +221,9 @@ class _MasterScreenState extends State<MasterScreen> {
                   onTap: () async {
                     await authProvider.logout();
                     if (context.mounted) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const LoginPage()));
                     }
                   },
                 ),

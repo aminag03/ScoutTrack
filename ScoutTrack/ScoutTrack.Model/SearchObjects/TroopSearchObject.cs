@@ -1,4 +1,5 @@
 using ScoutTrack.Model.SearchObjects;
+using System;
 
 namespace ScoutTrack.Model.SearchObjects
 {
@@ -8,5 +9,7 @@ namespace ScoutTrack.Model.SearchObjects
         public string? Email { get; set; }
         public string? Name { get; set; }
         public int? CityId { get; set; }
+        public DateTime? FoundingDateFrom { get; set; }
+        public DateTime? FoundingDateTo { get; set; }
     }
 } 
