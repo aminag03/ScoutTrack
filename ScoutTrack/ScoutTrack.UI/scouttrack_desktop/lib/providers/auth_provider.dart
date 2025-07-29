@@ -4,6 +4,29 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider with ChangeNotifier {
+  Map<String, dynamic>? _currentUser;
+
+  Future<Map<String, dynamic>?> fetchCurrentUser({bool forceRefresh = false}) async {
+    if (_currentUser != null && !forceRefresh) return _currentUser;
+    if (_accessToken == null) return null;
+
+    final response = await http.get(
+      Uri.parse('http://localhost:5164/Auth/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_accessToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      _currentUser = jsonDecode(response.body);
+      return _currentUser;
+    } else {
+      debugPrint('Failed to fetch current user: ${response.statusCode}');
+      return null;
+    }
+  }
+
   Future<String?> getUserRoleFromToken() async {
     if (_accessToken == null) return null;
     final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
@@ -65,6 +88,7 @@ class AuthProvider with ChangeNotifier {
       _refreshToken = data['refreshToken'];
       _role = data['role'];
       _username = data['username'];
+      await fetchCurrentUser(forceRefresh: true);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('accessToken', _accessToken!);
@@ -105,6 +129,8 @@ class AuthProvider with ChangeNotifier {
       final data = jsonDecode(response.body);
       _accessToken = data['accessToken'];
       _refreshToken = data['refreshToken'];
+      _currentUser = null;
+      await fetchCurrentUser(forceRefresh: true);
       notifyListeners();
       return true;
     } else {

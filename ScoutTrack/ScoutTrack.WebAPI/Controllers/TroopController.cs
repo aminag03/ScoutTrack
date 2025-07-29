@@ -89,7 +89,7 @@ namespace ScoutTrack.WebAPI.Controllers
 
         [HttpPost("{id}/update-logo")]
         [Authorize(Roles = "Admin,Troop")]
-        public async Task<IActionResult> UploadLogo(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)
+        public async Task<IActionResult> UpdateLogo(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)
         {
             if (_authService.IsInRole(User, "Troop") && _authService.GetUserId(User) != id)
                 return Forbid();
@@ -123,6 +123,5 @@ namespace ScoutTrack.WebAPI.Controllers
 
             return Ok(updatedResponse);
         }
-
     }
 } 

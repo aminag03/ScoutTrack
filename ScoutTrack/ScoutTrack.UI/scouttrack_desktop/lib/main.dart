@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/troop_provider.dart';
 import 'providers/admin_provider.dart';
+import 'providers/member_provider.dart';
 
 void main() {
   runApp(
@@ -12,12 +12,19 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProxyProvider<AuthProvider, TroopProvider>(
-          create: (context) => TroopProvider(Provider.of<AuthProvider>(context, listen: false)),
+          create: (context) =>
+              TroopProvider(Provider.of<AuthProvider>(context, listen: false)),
           update: (_, auth, __) => TroopProvider(auth),
         ),
         ChangeNotifierProxyProvider<AuthProvider, AdminProvider>(
-          create: (context) => AdminProvider(Provider.of<AuthProvider>(context, listen: false)),
+          create: (context) =>
+              AdminProvider(Provider.of<AuthProvider>(context, listen: false)),
           update: (_, auth, __) => AdminProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, MemberProvider>(
+          create: (context) =>
+              MemberProvider(Provider.of<AuthProvider>(context, listen: false)),
+          update: (_, auth, __) => MemberProvider(auth),
         ),
       ],
       child: const MyApp(),

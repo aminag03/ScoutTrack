@@ -195,7 +195,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     if (authProvider?.accessToken != null) {
       headers['Authorization'] = 'Bearer ${authProvider!.accessToken}';
     } else {
-      debugPrint('⚠️ AuthProvider ili accessToken je null – ne dodajem Authorization header.');
+      debugPrint('AuthProvider ili accessToken je null – ne dodajem Authorization header.');
     }
 
     return headers;

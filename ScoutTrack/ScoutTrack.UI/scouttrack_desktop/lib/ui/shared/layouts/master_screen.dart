@@ -10,6 +10,7 @@ import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/city_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/admin_details_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -123,7 +124,11 @@ class _MasterScreenState extends State<MasterScreen> {
                     icon: Icons.group,
                     label: 'Članovi',
                     selected: selectedLabel == 'Članovi',
-                    onTap: () => _handleTap('Članovi', () {}),
+                    onTap: () => _handleTap('Članovi', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const MemberListScreen()));
+                    }),
                   ),
                 ],
 
@@ -142,6 +147,16 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const TroopListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.group,
+                    label: 'Članovi',
+                    selected: selectedLabel == 'Članovi',
+                    onTap: () => _handleTap('Članovi', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const MemberListScreen()));
                     }),
                   ),
                 ],

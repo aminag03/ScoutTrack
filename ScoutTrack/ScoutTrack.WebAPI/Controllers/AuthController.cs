@@ -53,5 +53,15 @@ namespace ScoutTrack.WebAPI.Controllers
             await _authService.LogoutAsync(userId);
             return NoContent();
         }
+
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var result = await _authService.GetCurrentUserAsync(User);
+            if (result == null)
+                return Unauthorized();
+
+            return Ok(result);
+        }
     }
 } 

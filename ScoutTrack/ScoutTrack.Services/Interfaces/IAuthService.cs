@@ -1,6 +1,7 @@
-using System.Threading.Tasks;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Interfaces
 {
@@ -9,10 +10,10 @@ namespace ScoutTrack.Services.Interfaces
         Task<LoginResponse> LoginAsync(LoginRequest request);
         Task<LoginResponse> RefreshTokenAsync(string refreshToken);
         Task LogoutAsync(int userId);
-        string GetUserRole(System.Security.Claims.ClaimsPrincipal user);
-        int? GetUserId(System.Security.Claims.ClaimsPrincipal user);
-        bool IsInRole(System.Security.Claims.ClaimsPrincipal user, string role);
-        Task<bool> CanTroopAccessMember(System.Security.Claims.ClaimsPrincipal user, int memberId);
-        Task<bool> CanTroopAccessActivity(int activityId, int troopId);
+        string GetUserRole(ClaimsPrincipal user);
+        int? GetUserId(ClaimsPrincipal user);
+        bool IsInRole(ClaimsPrincipal user, string role);
+        Task<CurrentUserResponse?> GetCurrentUserAsync(ClaimsPrincipal user);
+
     }
 } 

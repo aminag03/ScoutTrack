@@ -191,19 +191,58 @@ namespace ScoutTrack.Services
             return GetUserRole(user) == role;
         }
 
-        public async Task<bool> CanTroopAccessMember(ClaimsPrincipal user, int memberId)
+        public async Task<CurrentUserResponse?> GetCurrentUserAsync(ClaimsPrincipal user)
         {
-            if (!IsInRole(user, "Troop")) return false;
-            var troopId = GetUserId(user);
-            if (troopId == null) return false;
-            var member = await _context.Members.FindAsync(memberId);
-            return member != null && member.TroopId == troopId;
+            var userId = GetUserId(user);
+            var role = GetUserRole(user);
+
+            if (userId == null || string.IsNullOrEmpty(role))
+                return null;
+
+            switch (role)
+            {
+                case "Admin":
+                    var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Id == userId);
+                    return admin == null ? null : new CurrentUserResponse
+                    {
+                        Id = admin.Id,
+                        Role = "Admin",
+                        Username = admin.Username,
+                        Email = admin.Email
+                    };
+
+                case "Troop":
+                    var troop = await _context.Troops.Include(t => t.City).FirstOrDefaultAsync(t => t.Id == userId);
+                    return troop == null ? null : new CurrentUserResponse
+                    {
+                        Id = troop.Id,
+                        Role = "Troop",
+                        Username = troop.Username,
+                        Email = troop.Email,
+                        CityName = troop.City?.Name
+                    };
+
+                case "Member":
+                    var member = await _context.Members
+                        .Include(m => m.City)
+                        .Include(m => m.Troop)
+                        .FirstOrDefaultAsync(m => m.Id == userId);
+
+                    return member == null ? null : new CurrentUserResponse
+                    {
+                        Id = member.Id,
+                        Role = "Member",
+                        Username = member.Username,
+                        Email = member.Email,
+                        CityName = member.City?.Name,
+                        TroopName = member.Troop?.Name
+                    };
+
+                default:
+                    return null;
+            }
         }
 
-        public async Task<bool> CanTroopAccessActivity(int activityId, int troopId)
-        {
-            var activity = await _context.Activities.FindAsync(activityId);
-            return activity != null && activity.TroopId == troopId;
-        }
+
     }
 } 

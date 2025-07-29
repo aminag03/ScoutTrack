@@ -43,7 +43,7 @@ namespace ScoutTrack.WebAPI.Controllers
             if (_authService.IsInRole(User, "Troop"))
             {
                 var member = await _service.GetByIdAsync(id);
-                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.TroopId))
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.Id))
                 {
                     return Forbid();
                 }
@@ -65,7 +65,7 @@ namespace ScoutTrack.WebAPI.Controllers
             if (_authService.IsInRole(User, "Troop"))
             {
                 var member = await _service.GetByIdAsync(id);
-                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.TroopId))
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.Id))
                 {
                     return Forbid();
                 }
@@ -78,6 +78,25 @@ namespace ScoutTrack.WebAPI.Controllers
                 }
             }
             return await base.Delete(id);
+        }
+
+        [HttpPatch("{id}/de-activate")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> DeActivate(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                var member = await _service.GetByIdAsync(id);
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.Id))
+                {
+                    return Forbid();
+                }
+            }
+
+            var result = await _memberService.DeActivateAsync(id);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
         }
 
         [HttpPatch("{id}/change-password")]
@@ -93,6 +112,55 @@ namespace ScoutTrack.WebAPI.Controllers
             if (result == null)
                 return NotFound();
             return Ok(result);
+        }
+
+        [HttpPost("{id}/update-profile-picture")]
+        public async Task<IActionResult> UpdateProfilePicture(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                var member = await _service.GetByIdAsync(id);
+                if (member == null || !await _accessControlService.CanTroopAccessMemberAsync(User, member.Id))
+                {
+                    return Forbid();
+                }
+            }
+            if (_authService.IsInRole(User, "Member"))
+            {
+                if (_authService.GetUserId(User) != id)
+                {
+                    return Forbid();
+                }
+            }
+
+            if (request == null || request.Image == null || request.Image.Length == 0)
+            {
+                var updated = await _memberService.UpdateProfilePictureAsync(id, null);
+                return Ok(updated);
+            }
+
+            var extension = Path.GetExtension(request.Image.FileName);
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+            if (!allowedExtensions.Contains(extension.ToLower()))
+                return BadRequest("Unsupported file type.");
+
+            var folder = Path.Combine(env.WebRootPath, "images", "members");
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(folder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await request.Image.CopyToAsync(stream);
+            }
+
+            var imageUrl = $"{Request.Scheme}://{Request.Host}/images/members/{fileName}";
+
+            var updatedResponse = await _memberService.UpdateProfilePictureAsync(id, imageUrl);
+
+            return Ok(updatedResponse);
         }
     }
 } 

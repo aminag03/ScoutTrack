@@ -15,6 +15,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -404,7 +405,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               validator: (value) {
                                 if (value == null || value.isEmpty)
                                   return 'Telefon je obavezan.';
-                                if (!RegExp(r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$').hasMatch(value)) {
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
                                   return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
                                 }
                                 return null;
@@ -1095,11 +1098,15 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                           ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.of(context).pop(false),
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(false),
                                               child: const Text('Odustani'),
                                             ),
                                             TextButton(
-                                              onPressed: () => Navigator.of(context).pop(true),
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(true),
                                               child: const Text(
                                                 'Obriši',
                                                 style: TextStyle(
@@ -1117,22 +1124,33 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                             _isImageLoading = true;
                                           });
 
-                                          final troopProvider = Provider.of<TroopProvider>(
-                                            context,
-                                            listen: false,
+                                          final troopProvider =
+                                              Provider.of<TroopProvider>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          await troopProvider.updateLogo(
+                                            _troop.id,
+                                            null,
                                           );
-                                          await troopProvider.updateLogo(_troop.id, null);
-                                          
-                                          final refreshedTroop = await troopProvider.getById(_troop.id);
+
+                                          final refreshedTroop =
+                                              await troopProvider.getById(
+                                                _troop.id,
+                                              );
 
                                           setState(() {
                                             _troop = refreshedTroop;
                                           });
 
                                           if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
                                               const SnackBar(
-                                                content: Text('Logo je uspješno obrisan.'),
+                                                content: Text(
+                                                  'Logo je uspješno obrisan.',
+                                                ),
                                               ),
                                             );
                                           }
@@ -1501,7 +1519,18 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     );
   }
 
-  _navigateToActivities() {}
+  _navigateToMembers() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MemberListScreen(initialTroopId: _troop.id),
+      ),
+    );
+  }
 
-  _navigateToMembers() {}
+  _navigateToActivities() {
+    // TODO: Implement navigation to activities
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Aktivnosti - funkcionalnost u razvoju')),
+    );
+  }
 }

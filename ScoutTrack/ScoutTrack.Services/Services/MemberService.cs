@@ -9,6 +9,7 @@ using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Database.Entities;
+using ScoutTrack.Services.Extensions;
 using ScoutTrack.Services.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -32,6 +33,78 @@ namespace ScoutTrack.Services
             _logger = logger;
             _env = env;
         }
+
+        public override async Task<PagedResult<MemberResponse>> GetAsync(MemberSearchObject search)
+        {
+            var query = _context.Set<Member>()
+                .Include(m => m.City)
+                .Include(m => m.Troop)
+                .AsQueryable();
+
+            query = ApplyFilter(query, search);
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                if (search.OrderBy.StartsWith("-"))
+                {
+                    query = query.OrderByDescendingDynamic(search.OrderBy[1..]);
+                }
+                else
+                {
+                    query = query.OrderByDynamic(search.OrderBy);
+                }
+            }
+
+            if (!search.RetrieveAll && search.Page.HasValue && search.PageSize.HasValue)
+            {
+                query = query
+                    .Skip(search.Page.Value * search.PageSize.Value)
+                    .Take(search.PageSize.Value);
+            }
+
+            var entities = await query.ToListAsync();
+            var responseList = entities.Select(MapToResponse).ToList();
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                var orderBy = search.OrderBy;
+                bool descending = orderBy.StartsWith("-");
+                if (descending) orderBy = orderBy[1..];
+
+                responseList = orderBy.ToLower() switch
+                {
+                    "firstname" => descending
+                        ? responseList.OrderByDescending(x => x.FirstName).ToList()
+                        : responseList.OrderBy(x => x.FirstName).ToList(),
+                    "lastname" => descending
+                        ? responseList.OrderByDescending(x => x.LastName).ToList()
+                        : responseList.OrderBy(x => x.LastName).ToList(),
+                    "email" => descending
+                        ? responseList.OrderByDescending(x => x.Email).ToList()
+                        : responseList.OrderBy(x => x.Email).ToList(),
+                    "username" => descending
+                        ? responseList.OrderByDescending(x => x.Username).ToList()
+                        : responseList.OrderBy(x => x.Username).ToList(),
+                    "birthdate" => descending
+                        ? responseList.OrderByDescending(x => x.BirthDate).ToList()
+                        : responseList.OrderBy(x => x.BirthDate).ToList(),
+                    _ => responseList
+                };
+            }
+
+            return new PagedResult<MemberResponse>
+            {
+                Items = responseList,
+                TotalCount = totalCount
+            };
+        }
+
 
         protected override IQueryable<Member> ApplyFilter(IQueryable<Member> query, MemberSearchObject search)
         {
@@ -117,6 +190,21 @@ namespace ScoutTrack.Services
             entity.Gender = request.Gender;
         }
 
+        public async Task<MemberResponse?> DeActivateAsync(int id)
+        {
+            var member = await _context.Set<Member>().FindAsync(id);
+            if (member == null)
+                return null;
+
+            if (!member.IsActive)
+                member.IsActive = true;
+            else
+                member.IsActive = false;
+
+            await _context.SaveChangesAsync();
+            return MapToResponse(member);
+        }
+
         public async Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request)
         {
             var entity = await _context.Members.FindAsync(id);
@@ -146,7 +234,7 @@ namespace ScoutTrack.Services
             return true;
         }
 
-        public async Task<MemberResponse?> UpdateProfilePictureAsync(int id, string profilePictureUrl)
+        public async Task<MemberResponse?> UpdateProfilePictureAsync(int id, string? profilePictureUrl)
         {
             var entity = await _context.Members.FindAsync(id);
             if (entity == null)
@@ -158,24 +246,47 @@ namespace ScoutTrack.Services
                 {
                     var oldUri = new Uri(entity.ProfilePictureUrl);
                     var relativePath = oldUri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-
                     var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+
                     if (File.Exists(fullPath))
-                    {
                         File.Delete(fullPath);
-                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Greška pri brisanju stare slike");
+                    _logger.LogWarning(ex, "Error while deleting old profile picture");
                 }
             }
 
-            entity.ProfilePictureUrl = profilePictureUrl;
+            entity.ProfilePictureUrl = string.IsNullOrWhiteSpace(profilePictureUrl) ? "" : profilePictureUrl;
             entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return _mapper.Map<MemberResponse>(entity);
+        }
+
+        protected override MemberResponse MapToResponse(Member entity)
+        {
+            return new MemberResponse
+            {
+                Id = entity.Id,
+                Username = entity.Username,
+                Email = entity.Email,
+                FirstName = entity.FirstName,
+                LastName = entity.LastName,
+                BirthDate = entity.BirthDate,
+                Gender = entity.Gender,
+                GenderName = entity.Gender == 0 ? Gender.Male.ToString() : Gender.Female.ToString(),
+                ContactPhone = entity.ContactPhone,
+                ProfilePictureUrl = entity.ProfilePictureUrl ?? string.Empty,
+                TroopId = entity.TroopId,
+                TroopName = entity.Troop?.Name ?? string.Empty,
+                CityId = entity.CityId,
+                CityName = entity.City?.Name ?? string.Empty,
+                IsActive = entity.IsActive,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt,
+                LastLoginAt = entity.LastLoginAt,
+            };
         }
     }
 } 
