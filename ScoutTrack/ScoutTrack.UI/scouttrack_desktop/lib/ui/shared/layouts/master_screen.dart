@@ -11,6 +11,8 @@ import 'package:scouttrack_desktop/ui/admin/screens/city_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/admin_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/activity_type_list_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/equipment_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -107,11 +109,11 @@ class _MasterScreenState extends State<MasterScreen> {
                     onTap: () => _handleTap('Gradovi', () {
                       Navigator.of(
                         context,
-                      ).pushReplacement(_fadeRoute(const CitiesPage()));
+                      ).pushReplacement(_fadeRoute(const CityListScreen()));
                     }),
                   ),
                   _SidebarItem(
-                    icon: Icons.group,
+                    icon: Icons.groups,
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
                     onTap: () => _handleTap('Odredi', () {
@@ -128,6 +130,26 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const MemberListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.hiking,
+                    label: 'Tipovi aktivnosti',
+                    selected: selectedLabel == 'Tipovi aktivnosti',
+                    onTap: () => _handleTap('Tipovi aktivnosti', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const ActivityTypeListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.backpack,
+                    label: 'Oprema',
+                    selected: selectedLabel == 'Oprema',
+                    onTap: () => _handleTap('Oprema', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const EquipmentListScreen()));
                     }),
                   ),
                 ],

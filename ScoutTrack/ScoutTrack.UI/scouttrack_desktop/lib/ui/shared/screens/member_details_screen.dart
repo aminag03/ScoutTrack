@@ -233,8 +233,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                 }
                                 return null;
                               },
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(

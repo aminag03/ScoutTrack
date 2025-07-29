@@ -20,6 +20,9 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(500)]
         public string Description { get; set; } = string.Empty;
 
+        public bool IsGlobal { get; set; } = true;
+        public int? CreatedByTroopId { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public ICollection<ActivityEquipment> ActivityEquipments { get; set; } = new List<ActivityEquipment>();

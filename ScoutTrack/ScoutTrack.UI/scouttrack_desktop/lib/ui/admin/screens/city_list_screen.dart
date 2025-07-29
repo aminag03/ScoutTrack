@@ -12,14 +12,14 @@ import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-class CitiesPage extends StatefulWidget {
-  const CitiesPage({super.key});
+class CityListScreen extends StatefulWidget {
+  const CityListScreen({super.key});
 
   @override
-  State<CitiesPage> createState() => _CitiesPageState();
+  State<CityListScreen> createState() => _CityListScreenState();
 }
 
-class _CitiesPageState extends State<CitiesPage> {
+class _CityListScreenState extends State<CityListScreen> {
   SearchResult<City>? _cities;
   bool _loading = false;
   String? _error;
@@ -432,6 +432,7 @@ class _CitiesPageState extends State<CitiesPage> {
                                 }
                                 return null;
                               },
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 24),
                             const Text(

@@ -25,6 +25,7 @@ builder.Services.AddTransient<IActivityTypeService, ActivityTypeService>();
 builder.Services.AddTransient<IActivityService, ActivityService>();
 builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<IAccessControlService, AccessControlService>();
+builder.Services.AddTransient<IEquipmentService, EquipmentService>();
 builder.Services.AddTransient<BaseActivityState>();
 builder.Services.AddTransient<InitialActivityState>();
 builder.Services.AddTransient<DraftActivityState>();

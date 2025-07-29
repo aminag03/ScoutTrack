@@ -5,6 +5,8 @@ import 'providers/auth_provider.dart';
 import 'providers/troop_provider.dart';
 import 'providers/admin_provider.dart';
 import 'providers/member_provider.dart';
+import 'providers/equipment_provider.dart';
+import 'providers/activity_type_provider.dart';
 
 void main() {
   runApp(
@@ -25,6 +27,18 @@ void main() {
           create: (context) =>
               MemberProvider(Provider.of<AuthProvider>(context, listen: false)),
           update: (_, auth, __) => MemberProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, EquipmentProvider>(
+          create: (context) => EquipmentProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (_, auth, __) => EquipmentProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ActivityTypeProvider>(
+          create: (context) => ActivityTypeProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (_, auth, __) => ActivityTypeProvider(auth),
         ),
       ],
       child: const MyApp(),

@@ -19,13 +19,13 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpGet("")]
-        public async Task<PagedResult<T>> Get([FromQuery] TSearch? search = null)
+        public virtual async Task<PagedResult<T>> Get([FromQuery] TSearch? search = null)
         {
             return await _service.GetAsync(search ?? new TSearch());
         }
 
         [HttpGet("{id}")]
-        public async Task<T?> GetById(int id)
+        public virtual async Task<T?> GetById(int id)
         {
             return await _service.GetByIdAsync(id);
         }
