@@ -14,7 +14,12 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
@@ -293,7 +298,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            _buildPaginationControls(),
+            PaginationControls(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              totalCount: _troops?.totalCount ?? 0,
+              onPageChanged: (page) => _fetchTroops(page: page),
+            ),
           ],
         ),
       ),
@@ -478,68 +488,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
     );
   }
 
-  Widget _buildPaginationControls() {
-    int maxPageButtons = 5;
-    int safeTotalPages = totalPages > 0 ? totalPages : 1;
-    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
-      1,
-      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
-    );
-    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
-    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
-    bool hasResults = (_troops?.totalCount ?? 0) > 0;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchTroops(page: 1)
-                : null,
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchTroops(page: safeCurrentPage - 1)
-                : null,
-            child: const Text('Prethodna'),
-          ),
-          ...pageNumbers.map(
-            (page) => TextButton(
-              onPressed: hasResults && page != safeCurrentPage
-                  ? () => _fetchTroops(page: page)
-                  : null,
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontWeight: page == safeCurrentPage
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
-                ),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchTroops(page: safeCurrentPage + 1)
-                : null,
-            child: const Text('Sljedeća'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchTroops(page: safeTotalPages)
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
-
   void _onAddTroop() {
     _showTroopDialog();
   }
@@ -549,26 +497,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Future<void> _onDeleteTroop(Troop troop) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await UIComponents.showDeleteConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text(
-          'Jeste li sigurni da želite obrisati odred ${troop.name}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      itemName: troop.name,
+      itemType: 'odred',
     );
-    if (confirm == true) {
+    if (confirm) {
       try {
         await _troopProvider.delete(troop.id);
         await _fetchTroops();
@@ -644,32 +578,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
     final MapController _mapController = MapController();
 
     Future<void> _selectFoundingDate() async {
-      final DateTime? picked = await showDialog<DateTime>(
+      final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Odaberite datum osnivanja'),
-          content: SizedBox(
-            width: 300,
-            height: 400,
-            child: SfDateRangePicker(
-              initialSelectedDate: troop?.foundingDate ?? DateTime.now(),
-              minDate: DateTime(1907),
-              maxDate: DateTime.now(),
-              selectionMode: DateRangePickerSelectionMode.single,
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                if (args.value is DateTime) {
-                  Navigator.pop(context, args.value as DateTime);
-                }
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani'),
-            ),
-          ],
-        ),
+        initialDate: troop?.foundingDate ?? DateTime.now(),
+        minDate: DateTime(1907),
+        maxDate: DateTime.now(),
+        title: 'Odaberite datum osnivanja',
       );
 
       if (picked != null) {
@@ -688,38 +602,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            Future<Uint8List> _compressImage(
-              Uint8List bytes, {
-              int quality = 30,
-              int maxWidth = 800,
-            }) async {
-              try {
-                final image = img.decodeImage(bytes);
-                if (image == null) return bytes;
-
-                int width = image.width;
-                int height = image.height;
-                if (width > maxWidth) {
-                  height = (height * maxWidth / width).round();
-                  width = maxWidth;
-                }
-
-                final resizedImage = img.copyResize(
-                  image,
-                  width: width,
-                  height: height,
-                );
-                final compressedBytes = img.encodeJpg(
-                  resizedImage,
-                  quality: quality,
-                );
-
-                return Uint8List.fromList(compressedBytes);
-              } catch (e) {
-                return bytes;
-              }
-            }
-
             Future<void> _pickImage() async {
               final picker = ImagePicker();
               final pickedFile = await picker.pickImage(
@@ -728,7 +610,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
               if (pickedFile != null) {
                 try {
                   final bytes = await pickedFile.readAsBytes();
-                  final compressedBytes = await _compressImage(bytes);
+                  final compressedBytes = await ImageUtils.compressImage(bytes);
 
                   print('Compressed size: ${compressedBytes.length / 1024} KB');
 
@@ -753,21 +635,16 @@ class _TroopListScreenState extends State<TroopListScreen> {
               final initialLocation =
                   selectedLocation ?? const LatLng(43.8563, 18.4131);
 
-              final result = await showDialog<Map<String, double>>(
+              final result = await MapUtils.showMapPickerDialog(
                 context: context,
-                builder: (context) =>
-                    MapPickerDialog(initialLocation: initialLocation),
+                initialLocation: initialLocation,
               );
 
               if (result != null) {
-                final newLocation = LatLng(
-                  result['latitude']!,
-                  result['longitude']!,
-                );
                 setState(() {
-                  selectedLocation = newLocation;
+                  selectedLocation = result;
                 });
-                _mapController.move(newLocation, _mapController.zoom);
+                _mapController.move(result, _mapController.zoom);
               }
             }
 
@@ -821,21 +698,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Naziv *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Naziv je obavezan.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Naziv ne smije imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Naziv smije sadržavati samo slova, razmake i crtice.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateName(
+                                    value,
+                                    'Naziv',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -845,20 +712,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Korisničko ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
-                                }
-                                if (!RegExp(
-                                  r"^[A-Za-z0-9_.]+$",
-                                ).hasMatch(value.trim())) {
-                                  return 'Dozvoljena su slova, brojevi, tačka i donja crta';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateUsername(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -868,17 +723,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'E-mail je obavezan.';
-                                }
-                                if (!RegExp(
-                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
-                                ).hasMatch(value.trim())) {
-                                  return 'Unesite ispravan e-mail.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateEmail(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -890,18 +736,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Lozinka *',
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty)
-                                    return 'Lozinka je obavezna.';
-                                  if (value.length < 8)
-                                    return 'Lozinka mora imati najmanje 8 znakova.';
-                                  if (!RegExp(
-                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])',
-                                  ).hasMatch(value)) {
-                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
-                                  }
-                                  return null;
-                                },
+                                validator: (value) =>
+                                    FormValidationUtils.validatePassword(value),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
                               ),
@@ -912,14 +748,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Kontakt telefon *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty)
-                                  return 'Telefon je obavezan.';
-                                if (!RegExp(r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$').hasMatch(value)) {
-                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validatePhone(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -929,21 +759,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Starješina *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime i prezime starješine su obavezni.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateSimpleName(
+                                    value,
+                                    'Ime i prezime starješine',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -953,21 +773,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Načelnik *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime i prezime načelnika su obavezni.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateSimpleName(
+                                    value,
+                                    'Ime i prezime načelnika',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -988,12 +798,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                             Icons.calendar_today,
                                           ),
                                         ),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Datum osnivanja je obavezan.';
-                                          }
-                                          return null;
-                                        },
+                                        validator: (value) =>
+                                            DatePickerUtils.validateRequiredDate(
+                                              value,
+                                            ),
                                         autovalidateMode:
                                             AutovalidateMode.onUserInteraction,
                                       ),
@@ -1016,7 +824,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                   )
                                   .toList(),
                               validator: (value) =>
-                                  value == null ? 'Grad je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Grad',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -1218,7 +1029,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 }
                               }
                             },
-
                             child: Text(isEdit ? 'Sačuvaj' : 'Dodaj'),
                           ),
                         ],

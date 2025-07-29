@@ -5,6 +5,8 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/providers/admin_provider.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 
 class AdminDetailsScreen extends StatefulWidget {
   final Admin admin;
@@ -55,17 +57,8 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Korisničko ime *',
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty)
-                            return 'Unesite korisničko ime';
-                          if (value.length > 50) return 'Maksimalno 50 znakova';
-                          if (!RegExp(
-                            r"^[A-Za-z0-9_.]+$",
-                          ).hasMatch(value.trim())) {
-                            return 'Dozvoljena su slova, brojevi, tačka i donja crta';
-                          }
-                          return null;
-                        },
+                        validator: (value) =>
+                            FormValidationUtils.validateUsername(value),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -74,18 +67,8 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                       child: TextFormField(
                         controller: emailController,
                         decoration: const InputDecoration(labelText: 'Email *'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty)
-                            return 'Unesite email';
-                          if (value.length > 100)
-                            return 'Maksimalno 100 znakova';
-                          if (!RegExp(
-                            r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
-                          ).hasMatch(value.trim())) {
-                            return 'Unesite ispravan email';
-                          }
-                          return null;
-                        },
+                        validator: (value) =>
+                            FormValidationUtils.validateEmail(value),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -96,18 +79,8 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Puno ime *',
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty)
-                            return 'Unesite puno ime';
-                          if (value.length > 100)
-                            return 'Maksimalno 100 znakova';
-                          if (!RegExp(
-                            r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$",
-                          ).hasMatch(value.trim())) {
-                            return 'Puno ime sadrži nedozvoljene znakove';
-                          }
-                          return null;
-                        },
+                        validator: (value) =>
+                            FormValidationUtils.validateName(value, 'Puno ime'),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -246,17 +219,8 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                               },
                             ),
                           ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty)
-                              return 'Unesite novu lozinku';
-                            if (v.length < 8) return 'Najmanje 8 znakova';
-                            if (!RegExp(
-                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$',
-                            ).hasMatch(v)) {
-                              return 'Mora imati veliko, malo slovo, broj i spec. znak';
-                            }
-                            return null;
-                          },
+                          validator: (v) =>
+                              FormValidationUtils.validatePassword(v),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),
@@ -429,65 +393,44 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
               ),
 
               const SizedBox(height: 24),
-              _buildDetailRow(
+              UIComponents.buildDetailRow(
                 'Korisničko ime',
                 _admin.username,
-                icon: Icons.person,
+                Icons.person,
               ),
-              _buildDetailRow('E-mail', _admin.email, icon: Icons.email),
-              _buildDetailRow(
+              UIComponents.buildDetailRow('E-mail', _admin.email, Icons.email),
+              UIComponents.buildDetailRow(
                 'Puno ime',
                 _admin.fullName,
-                icon: Icons.person_outline,
+                Icons.person_outline,
               ),
-              _buildDetailRow(
+              UIComponents.buildDetailRow(
                 'Aktivan',
                 _admin.isActive ? 'Da' : 'Ne',
-                icon: _admin.isActive ? Icons.check_circle : Icons.block,
+                _admin.isActive ? Icons.check_circle : Icons.block,
               ),
-              _buildDetailRow(
+              UIComponents.buildDetailRow(
                 'Kreiran',
                 formatDateTime(_admin.createdAt),
-                icon: Icons.date_range,
+                Icons.date_range,
               ),
-              _buildDetailRow(
+              UIComponents.buildDetailRow(
                 'Zadnja izmjena',
                 _admin.updatedAt != null
                     ? formatDateTime(_admin.updatedAt!)
                     : '-',
-                icon: Icons.edit,
+                Icons.edit,
               ),
-              _buildDetailRow(
+              UIComponents.buildDetailRow(
                 'Zadnja prijava',
                 _admin.lastLoginAt != null
                     ? formatDateTime(_admin.lastLoginAt!)
                     : '-',
-                icon: Icons.login,
+                Icons.login,
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, {IconData? icon}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value)),
-        ],
       ),
     );
   }

@@ -10,6 +10,11 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
@@ -80,9 +85,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         _cities = cityResult.items ?? [];
       });
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     }
   }
 
@@ -135,9 +138,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     } finally {
       setState(() {
         _isLoading = false;
@@ -184,32 +185,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       BuildContext context,
       StateSetter setState,
     ) async {
-      final DateTime? picked = await showDialog<DateTime>(
+      final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Odaberite datum osnivanja'),
-          content: SizedBox(
-            width: 300,
-            height: 400,
-            child: SfDateRangePicker(
-              initialSelectedDate: _troop.foundingDate ?? DateTime.now(),
-              minDate: DateTime(1907),
-              maxDate: DateTime.now(),
-              selectionMode: DateRangePickerSelectionMode.single,
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                if (args.value is DateTime) {
-                  Navigator.pop(context, args.value as DateTime);
-                }
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani'),
-            ),
-          ],
-        ),
+        initialDate: _troop.foundingDate ?? DateTime.now(),
+        minDate: DateTime(1907),
+        maxDate: DateTime.now(),
+        title: 'Odaberite datum osnivanja',
       );
 
       if (picked != null) {
@@ -225,67 +206,15 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             Future<void> _openMapPicker() async {
-              final initialLocation = selectedLocation;
-
-              final result = await showDialog<Map<String, double>>(
+              final result = await MapUtils.showMapPickerDialog(
                 context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Odaberite lokaciju'),
-                  content: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    height: MediaQuery.of(context).size.height * 0.6,
-                    child: FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        center: initialLocation,
-                        zoom: 10,
-                        onTap: (tapPosition, point) {
-                          Navigator.of(context).pop({
-                            'latitude': point.latitude,
-                            'longitude': point.longitude,
-                          });
-                        },
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName:
-                              'com.example.scouttrack_desktop',
-                        ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: selectedLocation,
-                              width: 40,
-                              height: 40,
-                              child: const Icon(
-                                Icons.location_pin,
-                                color: Colors.red,
-                                size: 40,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Otkaži'),
-                    ),
-                  ],
-                ),
+                initialLocation: selectedLocation,
+                title: 'Odaberite lokaciju',
               );
 
               if (result != null) {
-                final newLocation = LatLng(
-                  result['latitude']!,
-                  result['longitude']!,
-                );
                 setState(() {
-                  selectedLocation = newLocation;
+                  selectedLocation = result;
                 });
               }
             }
@@ -340,21 +269,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Naziv *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Naziv je obavezan.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Naziv ne smije imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-z0-9čćžšđČĆŽŠĐ\s-']+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Naziv smije sadržavati samo slova, brojeve razmake, crtice i apostrofe.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateName(
+                                    value,
+                                    'Naziv',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -364,15 +283,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Korisničko ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateUsername(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -382,17 +294,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'E-mail je obavezan.';
-                                }
-                                if (!RegExp(
-                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
-                                ).hasMatch(value.trim())) {
-                                  return 'Unesite ispravan e-mail.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateEmail(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -402,16 +305,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Kontakt telefon *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty)
-                                  return 'Telefon je obavezan.';
-                                if (!RegExp(
-                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
-                                ).hasMatch(value)) {
-                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validatePhone(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -421,21 +316,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Starješina *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime i prezime starješine su obavezni.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice .';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateSimpleName(
+                                    value,
+                                    'Ime i prezime starješine',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -445,21 +330,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Načelnik *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime i prezime načelnika su obavezni.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Ime i prezime ne smiju imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(
-                                  r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Ime i prezime smiju sadržavati samo slova, razmake i crtice.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateSimpleName(
+                                    value,
+                                    'Ime i prezime načelnika',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -473,12 +348,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               readOnly: true,
                               onTap: () =>
                                   _selectFoundingDate(context, setState),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Molimo odaberite datum osnivanja';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  DatePickerUtils.validateRequiredDate(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -497,7 +368,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   )
                                   .toList(),
                               validator: (value) =>
-                                  value == null ? 'Grad je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Grad',
+                                  ),
                               onChanged: (val) {
                                 setState(() {
                                   selectedCityId = val;
@@ -619,9 +493,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
                                   Navigator.of(context).pop();
                                 } catch (e) {
-                                  if (context.mounted) {
+                                  if (context.mounted)
                                     showErrorSnackbar(context, e);
-                                  }
                                 }
                               }
                             },
@@ -859,31 +732,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     confirmPassController.dispose();
   }
 
-  Future<Uint8List> _compressImage(
-    Uint8List bytes, {
-    int quality = 30,
-    int maxWidth = 800,
-  }) async {
-    try {
-      final image = img.decodeImage(bytes);
-      if (image == null) return bytes;
-
-      int width = image.width;
-      int height = image.height;
-      if (width > maxWidth) {
-        height = (height * maxWidth / width).round();
-        width = maxWidth;
-      }
-
-      final resizedImage = img.copyResize(image, width: width, height: height);
-      final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-
-      return Uint8List.fromList(compressedBytes);
-    } catch (e) {
-      return bytes;
-    }
-  }
-
   Future<void> _showImagePickerDialog() async {
     final shouldSave = await showDialog<bool>(
       context: context,
@@ -958,7 +806,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                       );
                       if (pickedFile != null) {
                         final bytes = await pickedFile.readAsBytes();
-                        final compressedBytes = await _compressImage(bytes);
+                        final compressedBytes = await ImageUtils.compressImage(
+                          bytes,
+                        );
                         setState(() {
                           _selectedImageBytes = compressedBytes;
                           _selectedImageFile = File(pickedFile.path);
@@ -1020,9 +870,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     } finally {
       setState(() {
         _isImageLoading = false;
@@ -1155,9 +1003,8 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                             );
                                           }
                                         } catch (e) {
-                                          if (context.mounted) {
+                                          if (context.mounted)
                                             showErrorSnackbar(context, e);
-                                          }
                                         } finally {
                                           setState(() {
                                             _isImageLoading = false;
@@ -1217,12 +1064,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                           const SizedBox(height: 20),
                           Row(
                             children: [
-                              _buildInfoChip(
+                              UIComponents.buildInfoChip(
                                 'Članovi: ${_troop.memberCount}',
                                 Icons.people,
                               ),
                               const SizedBox(width: 16),
-                              _buildInfoChip(
+                              UIComponents.buildInfoChip(
                                 _troop.isActive ? 'Aktivan' : 'Neaktivan',
                                 _troop.isActive
                                     ? Icons.check_circle
@@ -1298,29 +1145,33 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDetailSection('Kontakt informacije', [
-                        _buildDetailRow('E-mail', _troop.email, Icons.email),
-                        _buildDetailRow(
+                      UIComponents.buildDetailSection('Kontakt informacije', [
+                        UIComponents.buildDetailRow(
+                          'E-mail',
+                          _troop.email,
+                          Icons.email,
+                        ),
+                        UIComponents.buildDetailRow(
                           'Telefon',
                           _troop.contactPhone,
                           Icons.phone,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Korisničko ime',
                           _troop.username,
                           Icons.person,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Starješina',
                           _troop.scoutMaster,
                           Icons.person,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Načelnik',
                           _troop.troopLeader,
                           Icons.person,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Datum osnivanja',
                           formatDate(_troop.foundingDate),
                           Icons.calendar_today,
@@ -1329,18 +1180,18 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
                       const SizedBox(height: 30),
                       if (isAdmin || isViewingOwnProfile)
-                        _buildDetailSection('Sistem informacije', [
-                          _buildDetailRow(
+                        UIComponents.buildDetailSection('Sistem informacije', [
+                          UIComponents.buildDetailRow(
                             'Kreiran',
                             formatDateTime(_troop.createdAt),
                           ),
                           if (_troop.updatedAt != null)
-                            _buildDetailRow(
+                            UIComponents.buildDetailRow(
                               'Izmijenjen',
                               formatDateTime(_troop.updatedAt!),
                             ),
                           if (_troop.lastLoginAt != null)
-                            _buildDetailRow(
+                            UIComponents.buildDetailRow(
                               'Zadnja prijava',
                               formatDateTime(_troop.lastLoginAt!),
                             ),
@@ -1409,14 +1260,14 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.people,
                             label: 'Članovi',
                             color: Colors.blue,
                             onPressed: _navigateToMembers,
                           ),
                           const SizedBox(width: 24),
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.event,
                             label: 'Aktivnosti',
                             color: Colors.green,
@@ -1428,90 +1279,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(String text, IconData icon, {Color? color}) {
-    return Chip(
-      avatar: Icon(icon, size: 18, color: color),
-      label: Text(text),
-      backgroundColor: Colors.grey[100],
-      side: BorderSide.none,
-    );
-  }
-
-  Widget _buildDetailSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, [IconData? icon]) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20, color: Colors.grey[600]),
-            const SizedBox(width: 12),
-          ],
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBigActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: 200,
-      height: 80,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 4,
-        ),
-        onPressed: onPressed,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),

@@ -49,16 +49,32 @@ namespace ScoutTrack.Services
                 totalCount = await query.CountAsync();
             }
 
+            // Replace dynamic sorting with explicit sorting
             if (!string.IsNullOrWhiteSpace(search.OrderBy))
             {
-                if (search.OrderBy.StartsWith("-"))
+                var orderBy = search.OrderBy;
+                bool descending = orderBy.StartsWith("-");
+                if (descending) orderBy = orderBy[1..];
+
+                query = orderBy.ToLower() switch
                 {
-                    query = query.OrderByDescendingDynamic(search.OrderBy[1..]);
-                }
-                else
-                {
-                    query = query.OrderByDynamic(search.OrderBy);
-                }
+                    "firstname" => descending
+                        ? query.OrderByDescending(m => m.FirstName)
+                        : query.OrderBy(m => m.FirstName),
+                    "lastname" => descending
+                        ? query.OrderByDescending(m => m.LastName)
+                        : query.OrderBy(m => m.LastName),
+                    "email" => descending
+                        ? query.OrderByDescending(m => m.Email)
+                        : query.OrderBy(m => m.Email),
+                    "username" => descending
+                        ? query.OrderByDescending(m => m.Username)
+                        : query.OrderBy(m => m.Username),
+                    "birthdate" => descending
+                        ? query.OrderByDescending(m => m.BirthDate)
+                        : query.OrderBy(m => m.BirthDate),
+                    _ => query // Default case - no sorting
+                };
             }
 
             if (!search.RetrieveAll && search.Page.HasValue && search.PageSize.HasValue)
@@ -69,34 +85,7 @@ namespace ScoutTrack.Services
             }
 
             var entities = await query.ToListAsync();
-            var responseList = entities.Select(MapToResponse).ToList();
-
-            if (!string.IsNullOrWhiteSpace(search.OrderBy))
-            {
-                var orderBy = search.OrderBy;
-                bool descending = orderBy.StartsWith("-");
-                if (descending) orderBy = orderBy[1..];
-
-                responseList = orderBy.ToLower() switch
-                {
-                    "firstname" => descending
-                        ? responseList.OrderByDescending(x => x.FirstName).ToList()
-                        : responseList.OrderBy(x => x.FirstName).ToList(),
-                    "lastname" => descending
-                        ? responseList.OrderByDescending(x => x.LastName).ToList()
-                        : responseList.OrderBy(x => x.LastName).ToList(),
-                    "email" => descending
-                        ? responseList.OrderByDescending(x => x.Email).ToList()
-                        : responseList.OrderBy(x => x.Email).ToList(),
-                    "username" => descending
-                        ? responseList.OrderByDescending(x => x.Username).ToList()
-                        : responseList.OrderBy(x => x.Username).ToList(),
-                    "birthdate" => descending
-                        ? responseList.OrderByDescending(x => x.BirthDate).ToList()
-                        : responseList.OrderBy(x => x.BirthDate).ToList(),
-                    _ => responseList
-                };
-            }
+            var responseList = _mapper.Map<List<MemberResponse>>(entities);
 
             return new PagedResult<MemberResponse>
             {
@@ -104,7 +93,6 @@ namespace ScoutTrack.Services
                 TotalCount = totalCount
             };
         }
-
 
         protected override IQueryable<Member> ApplyFilter(IQueryable<Member> query, MemberSearchObject search)
         {
@@ -151,6 +139,18 @@ namespace ScoutTrack.Services
                                         m.LastName.Contains(search.FTS));
             }
             return query;
+        }
+
+        public override async Task<MemberResponse?> GetByIdAsync(int id)
+        {
+            var entity = await _context.Members
+                .Include(t => t.City)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (entity == null)
+                return null;
+
+            return MapToResponse(entity);
         }
 
         protected override async Task BeforeInsert(Member entity, MemberInsertRequest request)

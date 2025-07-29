@@ -10,6 +10,10 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
@@ -73,9 +77,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         _troops = troopResult.items ?? [];
       });
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     }
   }
 
@@ -113,7 +115,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         context,
         listen: false,
       );
-      final requestBody = {"isActive": !_member.isActive};
       final updatedMember = await memberProvider.activate(_member.id);
 
       setState(() {
@@ -132,9 +133,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     } finally {
       setState(() {
         _isLoading = false;
@@ -172,7 +171,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
       BuildContext context,
       StateSetter setState,
     ) async {
-      final DateTime? picked = await showDatePicker(
+      final DateTime? picked = await DatePickerUtils.showFlutterDatePicker(
         context: context,
         initialDate: _member.birthDate ?? DateTime.now(),
         firstDate: DateTime(1900),
@@ -225,15 +224,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                 labelText: 'Ime *',
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Ime ne smije imati više od 50 znakova.';
-                                }
-                                return null;
-                              },
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                                final nameError = FormValidationUtils.validateSimpleName(value, 'Ime');
+                                if (nameError != null) return nameError;
+
+                                final lengthError = FormValidationUtils.validateLength(value, 'Ime', 50);
+                                return lengthError;
+                              }, 
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -242,14 +240,12 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                 labelText: 'Prezime *',
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Prezime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Prezime ne smije imati više od 50 znakova.';
-                                }
-                                return null;
-                              },
+                                final nameError = FormValidationUtils.validateSimpleName(value, 'Prezime');
+                                if (nameError != null) return nameError;
+
+                                final lengthError = FormValidationUtils.validateLength(value, 'Prezime', 50);
+                                return lengthError;
+                              }, 
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -259,20 +255,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Korisničko ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
-                                }
-                                if (!RegExp(
-                                  r"^[A-Za-z0-9_.]+$",
-                                ).hasMatch(value.trim())) {
-                                  return 'Dozvoljena su slova, brojevi, tačka i donja crta';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateUsername(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -282,17 +266,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'E-mail je obavezan.';
-                                }
-                                if (!RegExp(
-                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
-                                ).hasMatch(value.trim())) {
-                                  return 'Unesite ispravan e-mail.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateEmail(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -302,16 +277,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Telefon *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty)
-                                  return 'Telefon je obavezan.';
-                                if (!RegExp(
-                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
-                                ).hasMatch(value)) {
-                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validatePhone(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -325,12 +292,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                     labelText: 'Datum rođenja *',
                                     suffixIcon: Icon(Icons.calendar_today),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Datum rođenja je obavezan.';
-                                    }
-                                    return null;
-                                  },
+                                  validator: (value) =>
+                                      DatePickerUtils.validateRequiredDate(
+                                        value,
+                                      ),
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
                                 ),
@@ -353,7 +318,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                 ),
                               ],
                               validator: (value) =>
-                                  value == null ? 'Spol je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Spol',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -377,7 +345,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   )
                                   .toList(),
                               validator: (value) =>
-                                  value == null ? 'Grad je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Grad',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -402,7 +373,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                     )
                                     .toList(),
                                 validator: (value) =>
-                                    value == null ? 'Odred je obavezan.' : null,
+                                    FormValidationUtils.validateDropdown(
+                                      value,
+                                      'Odred',
+                                    ),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
                                 onChanged: (val) {
@@ -441,7 +415,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                     ).toIso8601String(),
                                     "gender": selectedGender,
                                     "cityId": selectedCityId,
-                                    "troopId": isAdmin ? selectedTroopId : _member.troopId,
+                                    "troopId": isAdmin
+                                        ? selectedTroopId
+                                        : _member.troopId,
                                   };
 
                                   final memberProvider =
@@ -455,7 +431,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   setState(() {
                                     _member = updatedMember;
                                   });
-
                                   isUpdated = true;
 
                                   if (context.mounted) {
@@ -470,9 +445,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                                   Navigator.of(context).pop();
                                 } catch (e) {
-                                  if (context.mounted) {
+                                  if (context.mounted)
                                     showErrorSnackbar(context, e);
-                                  }
                                 }
                               }
                             },
@@ -491,31 +465,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
     );
 
     return isUpdated;
-  }
-
-  Future<Uint8List> _compressImage(
-    Uint8List bytes, {
-    int quality = 30,
-    int maxWidth = 800,
-  }) async {
-    try {
-      final image = img.decodeImage(bytes);
-      if (image == null) return bytes;
-
-      int width = image.width;
-      int height = image.height;
-      if (width > maxWidth) {
-        height = (height * maxWidth / width).round();
-        width = maxWidth;
-      }
-
-      final resizedImage = img.copyResize(image, width: width, height: height);
-      final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-
-      return Uint8List.fromList(compressedBytes);
-    } catch (e) {
-      return bytes;
-    }
   }
 
   Future<void> _showImagePickerDialog() async {
@@ -593,7 +542,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                       );
                       if (pickedFile != null) {
                         final bytes = await pickedFile.readAsBytes();
-                        final compressedBytes = await _compressImage(bytes);
+                        final compressedBytes = await ImageUtils.compressImage(
+                          bytes,
+                        );
                         setState(() {
                           _selectedImageBytes = compressedBytes;
                           _selectedImageFile = File(pickedFile.path);
@@ -646,8 +597,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         imageFile,
       );
 
+      final refreshedMember = await memberProvider.getById(_member.id);
+
       setState(() {
-        _member = updatedMember;
+        _member = refreshedMember;
       });
 
       if (context.mounted) {
@@ -658,9 +611,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackbar(context, e);
-      }
+      if (context.mounted) showErrorSnackbar(context, e);
     } finally {
       setState(() {
         _isImageLoading = false;
@@ -816,9 +767,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                             );
                                           }
                                         } catch (e) {
-                                          if (context.mounted) {
+                                          if (context.mounted)
                                             showErrorSnackbar(context, e);
-                                          }
                                         } finally {
                                           setState(() {
                                             _isImageLoading = false;
@@ -878,7 +828,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                           const SizedBox(height: 20),
                           Row(
                             children: [
-                              _buildInfoChip(
+                              UIComponents.buildInfoChip(
                                 _member.gender == 0 ? 'Muški' : 'Ženski',
                                 _member.gender == 0 ? Icons.male : Icons.female,
                                 color: _member.gender == 0
@@ -886,7 +836,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                     : Colors.pink,
                               ),
                               const SizedBox(width: 16),
-                              _buildInfoChip(
+                              UIComponents.buildInfoChip(
                                 _member.isActive ? 'Aktivan' : 'Neaktivan',
                                 _member.isActive
                                     ? Icons.check_circle
@@ -952,24 +902,28 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDetailSection('Lični podaci', [
-                        _buildDetailRow('Ime', _member.firstName, Icons.person),
-                        _buildDetailRow(
+                      UIComponents.buildDetailSection('Lični podaci', [
+                        UIComponents.buildDetailRow(
+                          'Ime',
+                          _member.firstName,
+                          Icons.person,
+                        ),
+                        UIComponents.buildDetailRow(
                           'Prezime',
                           _member.lastName,
                           Icons.person,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Korisničko ime',
                           _member.username,
                           Icons.account_circle,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Datum rođenja',
                           formatDate(_member.birthDate),
                           Icons.calendar_today,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Spol',
                           _member.gender == 0 ? 'Muški' : 'Ženski',
                           Icons.person_outline,
@@ -978,9 +932,13 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                       const SizedBox(height: 30),
 
-                      _buildDetailSection('Kontakt informacije', [
-                        _buildDetailRow('E-mail', _member.email, Icons.email),
-                        _buildDetailRow(
+                      UIComponents.buildDetailSection('Kontakt informacije', [
+                        UIComponents.buildDetailRow(
+                          'E-mail',
+                          _member.email,
+                          Icons.email,
+                        ),
+                        UIComponents.buildDetailRow(
                           'Telefon',
                           _member.contactPhone,
                           Icons.phone,
@@ -989,13 +947,13 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                       const SizedBox(height: 30),
 
-                      _buildDetailSection('Pripadnost', [
-                        _buildDetailRow(
+                      UIComponents.buildDetailSection('Pripadnost', [
+                        UIComponents.buildDetailRow(
                           'Grad',
                           _member.cityName,
                           Icons.location_city,
                         ),
-                        _buildDetailRow(
+                        UIComponents.buildDetailRow(
                           'Odred',
                           _getTroopName(_member.troopId),
                           Icons.group,
@@ -1004,18 +962,18 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                       const SizedBox(height: 30),
                       if (canEdit)
-                        _buildDetailSection('Sistem informacije', [
-                          _buildDetailRow(
+                        UIComponents.buildDetailSection('Sistem informacije', [
+                          UIComponents.buildDetailRow(
                             'Kreiran',
                             formatDateTime(_member.createdAt),
                           ),
                           if (_member.updatedAt != null)
-                            _buildDetailRow(
+                            UIComponents.buildDetailRow(
                               'Izmijenjen',
                               formatDateTime(_member.updatedAt!),
                             ),
                           if (_member.lastLoginAt != null)
-                            _buildDetailRow(
+                            UIComponents.buildDetailRow(
                               'Zadnja prijava',
                               formatDateTime(_member.lastLoginAt!),
                             ),
@@ -1033,14 +991,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.event,
                             label: 'Aktivnosti',
                             color: Colors.blue,
                             onPressed: _navigateToActivities,
                           ),
                           const SizedBox(width: 24),
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.app_registration,
                             label: 'Registracije',
                             color: Colors.green,
@@ -1052,14 +1010,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.emoji_events,
-                            label: 'Badges',
+                            label: 'Vještarstva',
                             color: Colors.orange,
                             onPressed: _navigateToBadges,
                           ),
                           const SizedBox(width: 24),
-                          _buildBigActionButton(
+                          UIComponents.buildBigActionButton(
                             icon: Icons.people,
                             label: 'Prijatelji',
                             color: Colors.purple,
@@ -1071,90 +1029,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(String text, IconData icon, {Color? color}) {
-    return Chip(
-      avatar: Icon(icon, size: 18, color: color),
-      label: Text(text),
-      backgroundColor: Colors.grey[100],
-      side: BorderSide.none,
-    );
-  }
-
-  Widget _buildDetailSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, [IconData? icon]) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20, color: Colors.grey[600]),
-            const SizedBox(width: 12),
-          ],
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBigActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: 200,
-      height: 80,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 4,
-        ),
-        onPressed: onPressed,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),

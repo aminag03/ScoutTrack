@@ -13,6 +13,11 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
@@ -415,7 +420,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            _buildPaginationControls(),
+            PaginationControls(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              totalCount: _members?.totalCount ?? 0,
+              onPageChanged: (page) => _fetchMembers(page: page),
+            ),
             if (_shouldShowNotificationButton()) ...[
               const SizedBox(height: 16),
               Center(
@@ -453,26 +463,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 
   Future<void> _onDeleteMember(Member member) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await UIComponents.showDeleteConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text(
-          'Jeste li sigurni da želite obrisati člana ${member.firstName} ${member.lastName}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      itemName: '${member.firstName} ${member.lastName}',
+      itemType: 'člana',
     );
-    if (confirm == true) {
+    if (confirm) {
       try {
         await _memberProvider.delete(member.id);
         await _fetchMembers();
@@ -534,32 +530,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
     String? _profilePictureUrl = member?.profilePictureUrl;
 
     Future<void> _selectBirthDate(StateSetter setState) async {
-      final DateTime? picked = await showDialog<DateTime>(
+      final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Odaberite datum rođenja'),
-          content: SizedBox(
-            width: 300,
-            height: 400,
-            child: SfDateRangePicker(
-              initialSelectedDate: member?.birthDate ?? DateTime.now(),
-              minDate: DateTime(1900),
-              maxDate: DateTime.now(),
-              selectionMode: DateRangePickerSelectionMode.single,
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                if (args.value is DateTime) {
-                  Navigator.pop(context, args.value as DateTime);
-                }
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani'),
-            ),
-          ],
-        ),
+        initialDate: member?.birthDate ?? DateTime.now(),
+        minDate: DateTime(1900),
+        maxDate: DateTime.now(),
+        title: 'Odaberite datum rođenja',
       );
       if (picked != null) {
         setState(() {
@@ -568,38 +544,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
       }
     }
 
-    Future<Uint8List> _compressImage(
-      Uint8List bytes, {
-      int quality = 30,
-      int maxWidth = 800,
-    }) async {
-      try {
-        final image = img.decodeImage(bytes);
-        if (image == null) return bytes;
-        int width = image.width;
-        int height = image.height;
-        if (width > maxWidth) {
-          height = (height * maxWidth / width).round();
-          width = maxWidth;
-        }
-        final resizedImage = img.copyResize(
-          image,
-          width: width,
-          height: height,
-        );
-        final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-        return Uint8List.fromList(compressedBytes);
-      } catch (e) {
-        return bytes;
-      }
-    }
-
     Future<void> _pickImage(StateSetter setState) async {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
-        final compressedBytes = await _compressImage(bytes);
+        final compressedBytes = await ImageUtils.compressImage(bytes);
         setState(() {
           _selectedImageBytes = compressedBytes;
           _selectedImageFile = File(pickedFile.path);
@@ -629,9 +579,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
           );
         }
       } catch (e) {
-        if (context.mounted) {
-          showErrorSnackbar(context, e);
-        }
+        if (context.mounted) showErrorSnackbar(context, e);
       } finally {
         setState(() {
           _isImageLoading = false;
@@ -767,13 +715,11 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 labelText: 'Ime *',
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Ime ne smije imati više od 50 znakova.';
-                                }
-                                return null;
+                                final nameError = FormValidationUtils.validateSimpleName(value, 'Ime');
+                                if (nameError != null) return nameError;
+
+                                final lengthError = FormValidationUtils.validateLength(value, 'Ime', 50);
+                                return lengthError;
                               },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
@@ -785,14 +731,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 labelText: 'Prezime *',
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Prezime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Prezime ne smije imati više od 50 znakova.';
-                                }
-                                return null;
-                              },
+                                final nameError = FormValidationUtils.validateSimpleName(value, 'Prezime');
+                                if (nameError != null) return nameError;
+
+                                final lengthError = FormValidationUtils.validateLength(value, 'Prezime', 50);
+                                return lengthError;
+                              },  
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -802,20 +746,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Korisničko ime je obavezno.';
-                                }
-                                if (value.length > 50) {
-                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
-                                }
-                                if (!RegExp(
-                                  r"^[A-Za-z0-9_.]+$",
-                                ).hasMatch(value.trim())) {
-                                  return 'Dozvoljena su slova, brojevi, tačka i donja crta';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateUsername(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -825,17 +757,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'E-mail je obavezan.';
-                                }
-                                if (!RegExp(
-                                  r"^[\w-.]+@[\w-]+\.[a-zA-Z]{2,}",
-                                ).hasMatch(value.trim())) {
-                                  return 'Unesite ispravan e-mail.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateEmail(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -847,18 +770,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Lozinka *',
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty)
-                                    return 'Lozinka je obavezna.';
-                                  if (value.length < 8)
-                                    return 'Lozinka mora imati najmanje 8 znakova.';
-                                  if (!RegExp(
-                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])',
-                                  ).hasMatch(value)) {
-                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
-                                  }
-                                  return null;
-                                },
+                                validator: (value) =>
+                                    FormValidationUtils.validatePassword(value),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
                               ),
@@ -869,16 +782,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Telefon *',
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty)
-                                  return 'Telefon je obavezan.';
-                                if (!RegExp(
-                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
-                                ).hasMatch(value)) {
-                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validatePhone(value),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -892,12 +797,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     labelText: 'Datum rođenja *',
                                     suffixIcon: Icon(Icons.calendar_today),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Datum rođenja je obavezan.';
-                                    }
-                                    return null;
-                                  },
+                                  validator: (value) =>
+                                      DatePickerUtils.validateRequiredDate(
+                                        value,
+                                      ),
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
                                 ),
@@ -920,7 +823,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 ),
                               ],
                               validator: (value) =>
-                                  value == null ? 'Spol je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Spol',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -944,7 +850,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                   )
                                   .toList(),
                               validator: (value) =>
-                                  value == null ? 'Grad je obavezan.' : null,
+                                  FormValidationUtils.validateDropdown(
+                                    value,
+                                    'Grad',
+                                  ),
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -969,7 +878,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     )
                                     .toList(),
                                 validator: (value) =>
-                                    value == null ? 'Odred je obavezan.' : null,
+                                    FormValidationUtils.validateDropdown(
+                                      value,
+                                      'Odred',
+                                    ),
                                 onChanged: (val) {
                                   setState(() {
                                     selectedTroopId = val;
@@ -1369,68 +1281,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls() {
-    int maxPageButtons = 5;
-    int safeTotalPages = totalPages > 0 ? totalPages : 1;
-    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
-      1,
-      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
-    );
-    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
-    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
-    bool hasResults = (_members?.totalCount ?? 0) > 0;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchMembers(page: 1)
-                : null,
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchMembers(page: safeCurrentPage - 1)
-                : null,
-            child: const Text('Prethodna'),
-          ),
-          ...pageNumbers.map(
-            (page) => TextButton(
-              onPressed: hasResults && page != safeCurrentPage
-                  ? () => _fetchMembers(page: page)
-                  : null,
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontWeight: page == safeCurrentPage
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
-                ),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchMembers(page: safeCurrentPage + 1)
-                : null,
-            child: const Text('Sljedeća'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchMembers(page: safeTotalPages)
-                : null,
-          ),
-        ],
       ),
     );
   }
