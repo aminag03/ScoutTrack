@@ -206,6 +206,9 @@ namespace ScoutTrack.Services
             if (request.FoundingDate < new DateTime(1907, 1, 1))
                 throw new UserException("Founding date cannot be before 1907.");
 
+            if (request.Password != request.PasswordConfirm)
+                throw new UserException("Password and confirmation do not match.");
+
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
@@ -273,6 +276,23 @@ namespace ScoutTrack.Services
             var hasMembers = await _context.Members.AnyAsync(m => m.TroopId == entity.Id);
             if (hasMembers)
                 throw new UserException("Cannot delete troop: it is referenced by one or more entities.");
+
+            if (!string.IsNullOrWhiteSpace(entity.LogoUrl))
+            {
+                try
+                {
+                    var uri = new Uri(entity.LogoUrl);
+                    var relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+
+                    if (File.Exists(fullPath))
+                        File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error while deleting troop logo image from file system.");
+                }
+            }
         }
 
         public async Task<TroopResponse?> DeActivateAsync(int id)

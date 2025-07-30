@@ -47,5 +47,8 @@ namespace ScoutTrack.Model.Requests
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$",
         ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
         public string? Password { get; set; }
+
+        public string PasswordConfirm { get; set; } = string.Empty;
+
     }
 }

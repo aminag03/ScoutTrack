@@ -20,6 +20,8 @@ namespace ScoutTrack.Model.Requests
         ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
         public string Password { get; set; } = string.Empty;
 
+        public string PasswordConfirm { get; set; } = string.Empty;
+
         [Required]
         [MaxLength(100, ErrorMessage = "FullName must not exceed 100 characters.")]
         [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Full name contains invalid characters.")]

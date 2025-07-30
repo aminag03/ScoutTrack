@@ -552,6 +552,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
       text: troop?.email ?? '',
     );
     final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
     final TextEditingController contactPhoneController = TextEditingController(
       text: troop?.contactPhone ?? '',
     );
@@ -564,6 +565,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
     final TextEditingController foundingDateController = TextEditingController(
       text: troop?.foundingDate != null ? formatDate(troop!.foundingDate!) : '',
     );
+
+    bool passwordVisible = false;
+    bool confirmPasswordVisible = false;
+
     XFile? selectedImage;
     Uint8List? imageBytes;
 
@@ -732,14 +737,54 @@ class _TroopListScreenState extends State<TroopListScreen> {
                             if (!isEdit) ...[
                               TextFormField(
                                 controller: passwordController,
-                                obscureText: true,
-                                decoration: const InputDecoration(
+                                obscureText: !passwordVisible,
+                                decoration: InputDecoration(
                                   labelText: 'Lozinka *',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      passwordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        passwordVisible =
+                                            !passwordVisible;
+                                      });
+                                    },
+                                  ),
                                 ),
                                 validator: (value) =>
                                     FormValidationUtils.validatePassword(value),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (!isEdit) ...[
+                              TextFormField(
+                                controller: confirmPasswordController,
+                                obscureText: !confirmPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Potvrdi lozinku *',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      confirmPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        confirmPasswordVisible =
+                                            !confirmPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (v) => v != passwordController.text
+                                    ? 'Lozinke se ne poklapaju'
+                                    : null,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
@@ -974,6 +1019,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     "email": emailController.text.trim(),
                                     if (!isEdit)
                                       "password": passwordController.text
+                                          .trim(),
+                                    if (!isEdit)
+                                      "confirmPassword": confirmPasswordController.text
                                           .trim(),
                                     "cityId": selectedCityId,
                                     "latitude": selectedLocation.latitude,

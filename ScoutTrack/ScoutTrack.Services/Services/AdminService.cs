@@ -57,13 +57,13 @@ namespace ScoutTrack.Services
             entity.Role = Role.Admin;
             
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username))
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
 
             if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email))
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
 
-            if (string.IsNullOrEmpty(request.Password))
-                throw new InvalidOperationException("Password is required for new admin creation.");
+            if (request.Password != request.PasswordConfirm)
+                throw new UserException("Password and confirmation do not match.");
 
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
@@ -71,10 +71,10 @@ namespace ScoutTrack.Services
         protected override async Task BeforeUpdate(Admin entity, AdminUpdateRequest request)
         {
             if (await _context.UserAccounts.AnyAsync(ua => ua.Username == request.Username && ua.Id != entity.Id))
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
 
             if (await _context.UserAccounts.AnyAsync(ua => ua.Email == request.Email && ua.Id != entity.Id))
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
         }
 
         protected override void MapUpdateToEntity(Admin entity, AdminUpdateRequest request)

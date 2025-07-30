@@ -49,7 +49,6 @@ namespace ScoutTrack.Services
                 totalCount = await query.CountAsync();
             }
 
-            // Replace dynamic sorting with explicit sorting
             if (!string.IsNullOrWhiteSpace(search.OrderBy))
             {
                 var orderBy = search.OrderBy;
@@ -73,7 +72,7 @@ namespace ScoutTrack.Services
                     "birthdate" => descending
                         ? query.OrderByDescending(m => m.BirthDate)
                         : query.OrderBy(m => m.BirthDate),
-                    _ => query // Default case - no sorting
+                    _ => query
                 };
             }
 
@@ -169,6 +168,9 @@ namespace ScoutTrack.Services
             if (!await _context.Cities.AnyAsync(c => c.Id == request.CityId))
                 throw new UserException($"City with ID {request.CityId} does not exist.");
 
+            if (request.Password != request.PasswordConfirm)
+                throw new UserException("Password and confirmation do not match.");
+
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             entity.Gender = request.Gender;
         }
@@ -188,6 +190,26 @@ namespace ScoutTrack.Services
                 throw new UserException($"City with ID {request.CityId} does not exist.");
 
             entity.Gender = request.Gender;
+        }
+
+        protected override async Task BeforeDelete(Member entity)
+        {
+            if (!string.IsNullOrWhiteSpace(entity.ProfilePictureUrl))
+            {
+                try
+                {
+                    var uri = new Uri(entity.ProfilePictureUrl);
+                    var relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+
+                    if (File.Exists(fullPath))
+                        File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error while deleting troop profile picture from file system.");
+                }
+            }
         }
 
         public async Task<MemberResponse?> DeActivateAsync(int id)

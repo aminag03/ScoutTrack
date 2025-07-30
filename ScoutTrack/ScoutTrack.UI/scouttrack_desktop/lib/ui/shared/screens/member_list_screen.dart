@@ -514,12 +514,17 @@ class _MemberListScreenState extends State<MemberListScreen> {
       text: member?.email ?? '',
     );
     final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
     final TextEditingController contactPhoneController = TextEditingController(
       text: member?.contactPhone ?? '',
     );
     final TextEditingController birthDateController = TextEditingController(
       text: member?.birthDate != null ? formatDate(member!.birthDate) : '',
     );
+
+    bool passwordVisible = false;
+    bool confirmPasswordVisible = false;
+
     int? selectedCityId = member?.cityId;
     int? selectedTroopId =
         member?.troopId ?? (_role == 'Troop' ? _loggedInUserId : null);
@@ -721,8 +726,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 final lengthError = FormValidationUtils.validateLength(value, 'Ime', 50);
                                 return lengthError;
                               },
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -737,8 +741,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 final lengthError = FormValidationUtils.validateLength(value, 'Prezime', 50);
                                 return lengthError;
                               },  
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -748,8 +751,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               ),
                               validator: (value) =>
                                   FormValidationUtils.validateUsername(value),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -759,21 +761,59 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               ),
                               validator: (value) =>
                                   FormValidationUtils.validateEmail(value),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             if (!isEdit) ...[
                               TextFormField(
                                 controller: passwordController,
-                                obscureText: true,
-                                decoration: const InputDecoration(
+                                obscureText: !passwordVisible,
+                                decoration: InputDecoration(
                                   labelText: 'Lozinka *',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      passwordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        passwordVisible =
+                                            !passwordVisible;
+                                      });
+                                    },
+                                  ),
                                 ),
                                 validator: (value) =>
                                     FormValidationUtils.validatePassword(value),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (!isEdit) ...[
+                              TextFormField(
+                                controller: confirmPasswordController,
+                                obscureText: !confirmPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Potvrdi lozinku *',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      confirmPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        confirmPasswordVisible =
+                                            !confirmPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (v) => v != passwordController.text
+                                    ? 'Lozinke se ne poklapaju'
+                                    : null,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
@@ -944,6 +984,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     "email": emailController.text.trim(),
                                     if (!isEdit)
                                       "password": passwordController.text
+                                          .trim(),
+                                    if (!isEdit)
+                                      "confirmPassword": confirmPasswordController.text
                                           .trim(),
                                     "contactPhone": contactPhoneController.text
                                         .trim(),
