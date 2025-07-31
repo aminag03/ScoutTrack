@@ -21,6 +21,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -1295,9 +1296,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   _navigateToActivities() {
-    // TODO: Implement navigation to activities
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Aktivnosti - funkcionalnost u razvoju')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityListScreen(initialTroopId: _troop.id),
+      ),
     );
   }
 }

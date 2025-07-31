@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScoutTrack.Services.Database;
 
@@ -11,9 +12,11 @@ using ScoutTrack.Services.Database;
 namespace ScoutTrack.Services.Migrations
 {
     [DbContext(typeof(ScoutTrackDbContext))]
-    partial class ScoutTrackDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250730143008_activityUpdate")]
+    partial class activityUpdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,7 +37,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("ParticipantsId");
 
-                    b.ToTable("ActivityMember", (string)null);
+                    b.ToTable("ActivityMember");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Activity", b =>
@@ -70,10 +73,6 @@ namespace ScoutTrack.Services.Migrations
                     b.Property<decimal?>("Fee")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(18, 2)");
-
-                    b.Property<string>("ImagePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
@@ -112,7 +111,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("TroopId");
 
-                    b.ToTable("Activities", (string)null);
+                    b.ToTable("Activities");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityEquipment", b =>
@@ -141,7 +140,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("EquipmentId");
 
-                    b.ToTable("ActivityEquipments", (string)null);
+                    b.ToTable("ActivityEquipments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityRegistration", b =>
@@ -175,7 +174,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("ActivityId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("ActivityRegistrations", (string)null);
+                    b.ToTable("ActivityRegistrations");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityType", b =>
@@ -207,7 +206,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("ActivityTypes", (string)null);
+                    b.ToTable("ActivityTypes");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Badge", b =>
@@ -243,13 +242,13 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Badges", (string)null);
+                    b.ToTable("Badges");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 397, DateTimeKind.Utc).AddTicks(6650),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 373, DateTimeKind.Utc).AddTicks(5613),
                             Description = "Basic first aid skills",
                             ImageUrl = "",
                             Name = "First Aid"
@@ -257,7 +256,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 397, DateTimeKind.Utc).AddTicks(6662),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 373, DateTimeKind.Utc).AddTicks(5783),
                             Description = "Learn how to safely handle fire",
                             ImageUrl = "",
                             Name = "Fire Safety"
@@ -265,7 +264,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 397, DateTimeKind.Utc).AddTicks(6663),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 373, DateTimeKind.Utc).AddTicks(5788),
                             Description = "Orientation and map skills",
                             ImageUrl = "",
                             Name = "Map Reading"
@@ -299,7 +298,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("BadgeId", "Description")
                         .IsUnique();
 
-                    b.ToTable("BadgeRequirements", (string)null);
+                    b.ToTable("BadgeRequirements");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.City", b =>
@@ -332,13 +331,13 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Cities", (string)null);
+                    b.ToTable("Cities");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(212),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1916),
                             Latitude = 43.856299999999997,
                             Longitude = 18.4131,
                             Name = "Sarajevo"
@@ -346,7 +345,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(236),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1934),
                             Latitude = 44.772199999999998,
                             Longitude = 17.190999999999999,
                             Name = "Banja Luka"
@@ -354,7 +353,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(239),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1936),
                             Latitude = 44.539999999999999,
                             Longitude = 18.678999999999998,
                             Name = "Tuzla"
@@ -362,7 +361,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(242),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1938),
                             Latitude = 44.203600000000002,
                             Longitude = 17.9084,
                             Name = "Zenica"
@@ -370,7 +369,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(244),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1940),
                             Latitude = 43.3431,
                             Longitude = 17.8078,
                             Name = "Mostar"
@@ -378,7 +377,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(249),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1955),
                             Latitude = 44.816699999999997,
                             Longitude = 15.8667,
                             Name = "Bihać"
@@ -386,7 +385,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(252),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1957),
                             Latitude = 44.755800000000001,
                             Longitude = 19.214400000000001,
                             Name = "Bijeljina"
@@ -394,7 +393,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 8,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(255),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1959),
                             Latitude = 44.981900000000003,
                             Longitude = 16.7133,
                             Name = "Prijedor"
@@ -402,7 +401,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 9,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(257),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1960),
                             Latitude = 44.875599999999999,
                             Longitude = 18.802,
                             Name = "Brčko"
@@ -410,7 +409,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 10,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(261),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1963),
                             Latitude = 44.737200000000001,
                             Longitude = 18.083300000000001,
                             Name = "Doboj"
@@ -418,7 +417,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 11,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(263),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1964),
                             Latitude = 44.994399999999999,
                             Longitude = 15.8225,
                             Name = "Cazin"
@@ -426,7 +425,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 12,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(265),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1966),
                             Latitude = 42.711399999999998,
                             Longitude = 18.3444,
                             Name = "Trebinje"
@@ -434,7 +433,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 13,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(267),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1968),
                             Latitude = 44.369199999999999,
                             Longitude = 19.106400000000001,
                             Name = "Zvornik"
@@ -442,7 +441,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 14,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(270),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1969),
                             Latitude = 45.212200000000003,
                             Longitude = 15.827500000000001,
                             Name = "Velika Kladuša"
@@ -450,7 +449,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 15,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(285),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1983),
                             Latitude = 44.884999999999998,
                             Longitude = 18.453299999999999,
                             Name = "Gradačac"
@@ -458,7 +457,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 16,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(287),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1985),
                             Latitude = 44.4178,
                             Longitude = 18.671700000000001,
                             Name = "Gračanica"
@@ -466,7 +465,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 17,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(289),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1986),
                             Latitude = 44.229399999999998,
                             Longitude = 17.660299999999999,
                             Name = "Travnik"
@@ -474,7 +473,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 18,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(292),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1990),
                             Latitude = 44.767200000000003,
                             Longitude = 16.686699999999998,
                             Name = "Sanski Most"
@@ -482,7 +481,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 19,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(295),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1991),
                             Latitude = 44.032499999999999,
                             Longitude = 17.4556,
                             Name = "Bugojno"
@@ -490,7 +489,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 20,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(298),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1993),
                             Latitude = 43.983899999999998,
                             Longitude = 18.185300000000002,
                             Name = "Visoko"
@@ -498,7 +497,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 21,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(300),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1995),
                             Latitude = 44.147500000000001,
                             Longitude = 18.177199999999999,
                             Name = "Kakanj"
@@ -506,7 +505,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 22,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(302),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1996),
                             Latitude = 44.543900000000001,
                             Longitude = 18.648599999999998,
                             Name = "Lukavac"
@@ -514,7 +513,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 23,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(304),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1998),
                             Latitude = 44.555,
                             Longitude = 18.487200000000001,
                             Name = "Srebrenik"
@@ -522,7 +521,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 24,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(305),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(1999),
                             Latitude = 44.444200000000002,
                             Longitude = 18.223600000000001,
                             Name = "Zavidovići"
@@ -530,7 +529,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 25,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(307),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2001),
                             Latitude = 43.671700000000001,
                             Longitude = 18.947199999999999,
                             Name = "Goražde"
@@ -538,7 +537,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 26,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(309),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2003),
                             Latitude = 43.648600000000002,
                             Longitude = 17.861899999999999,
                             Name = "Konjic"
@@ -546,7 +545,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 27,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(311),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2004),
                             Latitude = 43.353099999999998,
                             Longitude = 17.431699999999999,
                             Name = "Široki Brijeg"
@@ -554,7 +553,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 28,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(313),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2006),
                             Latitude = 43.109400000000001,
                             Longitude = 17.6953,
                             Name = "Čapljina"
@@ -562,7 +561,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 29,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(314),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2007),
                             Latitude = 43.467500000000001,
                             Longitude = 17.375299999999999,
                             Name = "Grude"
@@ -570,7 +569,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 30,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(316),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2009),
                             Latitude = 44.342799999999997,
                             Longitude = 17.2714,
                             Name = "Jajce"
@@ -578,7 +577,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 31,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(329),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2011),
                             Latitude = 44.578099999999999,
                             Longitude = 17.1539,
                             Name = "Mrkonjić-Grad"
@@ -586,7 +585,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 32,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(330),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2012),
                             Latitude = 44.968600000000002,
                             Longitude = 18.051100000000002,
                             Name = "Modriča"
@@ -594,7 +593,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 33,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(332),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2014),
                             Latitude = 44.883299999999998,
                             Longitude = 16.149999999999999,
                             Name = "Bosanska Krupa"
@@ -602,7 +601,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 34,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(334),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2016),
                             Latitude = 44.272199999999998,
                             Longitude = 18.1053,
                             Name = "Kiseljak"
@@ -610,7 +609,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 35,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(336),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2018),
                             Latitude = 43.202500000000001,
                             Longitude = 17.684699999999999,
                             Name = "Čitluk"
@@ -618,7 +617,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 36,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(337),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2019),
                             Latitude = 42.925800000000002,
                             Longitude = 17.607800000000001,
                             Name = "Neum"
@@ -626,7 +625,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 37,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(339),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2021),
                             Latitude = 43.825299999999999,
                             Longitude = 17.015599999999999,
                             Name = "Livno"
@@ -634,7 +633,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 38,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(340),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2023),
                             Latitude = 43.649999999999999,
                             Longitude = 17.216699999999999,
                             Name = "Tomislav-Grad"
@@ -642,7 +641,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 39,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(342),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2024),
                             Latitude = 44.227499999999999,
                             Longitude = 17.659199999999998,
                             Name = "Novi Travnik"
@@ -650,7 +649,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 40,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(344),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2026),
                             Latitude = 43.4925,
                             Longitude = 18.805599999999998,
                             Name = "Foča"
@@ -658,7 +657,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 41,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(345),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2028),
                             Latitude = 44.559699999999999,
                             Longitude = 16.049700000000001,
                             Name = "Bosanski Petrovac"
@@ -666,7 +665,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 42,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(347),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2030),
                             Latitude = 44.4056,
                             Longitude = 18.531400000000001,
                             Name = "Banovići"
@@ -674,7 +673,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 43,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(348),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2032),
                             Latitude = 44.445300000000003,
                             Longitude = 18.585599999999999,
                             Name = "Olovo"
@@ -682,7 +681,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 44,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(350),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2034),
                             Latitude = 43.957500000000003,
                             Longitude = 18.344999999999999,
                             Name = "Ilijaš"
@@ -690,7 +689,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 45,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(352),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2035),
                             Latitude = 44.6111,
                             Longitude = 18.4178,
                             Name = "Tešanj"
@@ -698,7 +697,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 46,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(354),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2037),
                             Latitude = 44.536900000000003,
                             Longitude = 18.704999999999998,
                             Name = "Kalesija"
@@ -706,7 +705,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 47,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(357),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2038),
                             Latitude = 43.835000000000001,
                             Longitude = 17.5733,
                             Name = "Prozor"
@@ -714,7 +713,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 49,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(358),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2040),
                             Latitude = 45.145299999999999,
                             Longitude = 17.2592,
                             Name = "Bosanska Gradiška"
@@ -722,7 +721,7 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 50,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 719, DateTimeKind.Utc).AddTicks(360),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 463, DateTimeKind.Utc).AddTicks(2042),
                             Latitude = 43.059699999999999,
                             Longitude = 17.944400000000002,
                             Name = "Stolac"
@@ -760,7 +759,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("PostId", "MemberId", "CreatedAt");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Document", b =>
@@ -795,7 +794,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("Title");
 
-                    b.ToTable("Documents", (string)null);
+                    b.ToTable("Documents");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Equipment", b =>
@@ -833,7 +832,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Equipments", (string)null);
+                    b.ToTable("Equipments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Friendship", b =>
@@ -866,7 +865,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("RequesterId", "ResponderId")
                         .IsUnique();
 
-                    b.ToTable("Friendships", (string)null);
+                    b.ToTable("Friendships");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Like", b =>
@@ -893,7 +892,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("PostId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("Likes", (string)null);
+                    b.ToTable("Likes");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.MemberBadge", b =>
@@ -923,7 +922,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("MemberId", "BadgeId")
                         .IsUnique();
 
-                    b.ToTable("MemberBadges", (string)null);
+                    b.ToTable("MemberBadges");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.MemberBadgeProgress", b =>
@@ -953,7 +952,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("MemberBadgeId", "RequirementId")
                         .IsUnique();
 
-                    b.ToTable("MemberBadgeProgresses", (string)null);
+                    b.ToTable("MemberBadgeProgresses");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Notification", b =>
@@ -984,7 +983,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Post", b =>
@@ -1019,7 +1018,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.PostImage", b =>
@@ -1048,7 +1047,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("PostId", "ImageUrl")
                         .IsUnique();
 
-                    b.ToTable("PostImages", (string)null);
+                    b.ToTable("PostImages");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.RefreshToken", b =>
@@ -1082,7 +1081,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Review", b =>
@@ -1119,7 +1118,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("ActivityId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.UserAccount", b =>
@@ -1187,10 +1186,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 891, DateTimeKind.Utc).AddTicks(5748),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 659, DateTimeKind.Utc).AddTicks(3193),
                             Email = "admin@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$X3IL7Axq4CInM7W7YuXqYO9J5lChn/5VIvEG74QBdhmtLHyZUSHLK",
+                            PasswordHash = "$2a$11$1zNTpqiybCZwG9x5LVT/5uxQEVWO8X9yHQybsZkL6JCjIuoaBtIEu",
                             Role = 0,
                             Username = "admin",
                             FullName = ""
@@ -1248,10 +1247,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 397, DateTimeKind.Utc).AddTicks(6726),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 373, DateTimeKind.Utc).AddTicks(6162),
                             Email = "scout1@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$R.YgJ5WmG7JKxUNOIM/8xuhyV28FA.A6E44wnt3Vc.sqbwUJhF0Gq",
+                            PasswordHash = "$2a$11$JS11E1d57P19YdmHTNmgJOzSIpeyt42aU0gb06pL2kNLXRXuGwJ.S",
                             Role = 2,
                             Username = "scout1",
                             BirthDate = new DateTime(2005, 5, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1266,10 +1265,10 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 560, DateTimeKind.Utc).AddTicks(2237),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 779, DateTimeKind.Utc).AddTicks(5501),
                             Email = "scout2@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$z6i8hhjU18XoogQgONMLseQatvYb81D8iJxnWrVopWegiiAyeO5Wu",
+                            PasswordHash = "$2a$11$aw//ojlcBmTQjp5RJEuCaO6XdI5vcpc6o0XuhR3zTW7SfJOX6TrF.",
                             Role = 2,
                             Username = "scout2",
                             BirthDate = new DateTime(2003, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1341,15 +1340,15 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 4, 891, DateTimeKind.Utc).AddTicks(6585),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 659, DateTimeKind.Utc).AddTicks(4436),
                             Email = "troopbl@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$5.NmhTf2zTDAwwKHmKyH9.ltTJTRWvNqm9CDVz22A8yKc/lHIhU5.",
+                            PasswordHash = "$2a$11$gA1Fmp7hYj9DjfRzWc9GxO8sdVinv.bKMisKM44fnZ9CpBH5SIaG2",
                             Role = 1,
                             Username = "troopbl",
                             CityId = 2,
                             ContactPhone = "",
-                            FoundingDate = new DateTime(2025, 7, 30, 14, 54, 4, 891, DateTimeKind.Utc).AddTicks(6575),
+                            FoundingDate = new DateTime(2025, 7, 30, 14, 30, 4, 659, DateTimeKind.Utc).AddTicks(4425),
                             Latitude = 0.0,
                             LogoUrl = "",
                             Longitude = 0.0,
@@ -1360,15 +1359,15 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 63, DateTimeKind.Utc).AddTicks(2356),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 4, 858, DateTimeKind.Utc).AddTicks(5698),
                             Email = "troopsarajevo@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$nPctoUDH8gT.RR4i6brmC.Umx1KFx3DWVGgIxYissL0TZ8dO9xhAS",
+                            PasswordHash = "$2a$11$GeVhGekvjLl3TSWWpHIfruyQ6xXY8N6vUGuqIBHjSI4a1aABJ32Eq",
                             Role = 1,
                             Username = "troopsarajevo",
                             CityId = 1,
                             ContactPhone = "",
-                            FoundingDate = new DateTime(2025, 7, 30, 14, 54, 5, 63, DateTimeKind.Utc).AddTicks(2343),
+                            FoundingDate = new DateTime(2025, 7, 30, 14, 30, 4, 858, DateTimeKind.Utc).AddTicks(5687),
                             Latitude = 0.0,
                             LogoUrl = "",
                             Longitude = 0.0,
@@ -1379,15 +1378,15 @@ namespace ScoutTrack.Services.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 7, 30, 14, 54, 5, 236, DateTimeKind.Utc).AddTicks(8965),
+                            CreatedAt = new DateTime(2025, 7, 30, 14, 30, 5, 56, DateTimeKind.Utc).AddTicks(6842),
                             Email = "troopmostar@scouttrack.ba",
                             IsActive = true,
-                            PasswordHash = "$2a$11$K9ccmgmhRg/KUejioPICV.MxeoC52iV/MXebkbR/35ahLoLEH5i0O",
+                            PasswordHash = "$2a$11$AGPhGvpZ3AagLDp0oUHPk.n7UYEQHdQZ.W27Vac4bZXlpyoWbs0Pu",
                             Role = 1,
                             Username = "troopmostar",
                             CityId = 5,
                             ContactPhone = "",
-                            FoundingDate = new DateTime(2025, 7, 30, 14, 54, 5, 236, DateTimeKind.Utc).AddTicks(8954),
+                            FoundingDate = new DateTime(2025, 7, 30, 14, 30, 5, 56, DateTimeKind.Utc).AddTicks(6818),
                             Latitude = 0.0,
                             LogoUrl = "",
                             Longitude = 0.0,

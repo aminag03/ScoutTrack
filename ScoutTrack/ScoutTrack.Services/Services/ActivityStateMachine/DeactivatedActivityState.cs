@@ -19,7 +19,9 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpsertRequest request)
         {
             var entity = await _context.Activities.FindAsync(id);
+            _mapper.Map(request, entity);
             entity.ActivityState = nameof(DraftActivityState);
+            entity.ImagePath = string.IsNullOrWhiteSpace(request.ImagePath) ? "" : request.ImagePath;
 
             await _context.SaveChangesAsync();
             return _mapper.Map<ActivityResponse>(entity);

@@ -99,7 +99,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       _cities = cityResult.items ?? [];
       _troops = troopResult.items ?? [];
 
-      // Set initial troop filter if provided and troop exists in the list
       if (widget.initialTroopId != null) {
         final troopExists = _troops.any(
           (troop) => troop.id == widget.initialTroopId,

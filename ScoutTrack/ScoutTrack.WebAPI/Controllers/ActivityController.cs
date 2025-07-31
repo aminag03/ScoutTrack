@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
+using ScoutTrack.Services;
 using ScoutTrack.Services.Interfaces;
 using ScoutTrack.Services.Services;
 
@@ -43,7 +45,7 @@ namespace ScoutTrack.WebAPI.Controllers
         {
             if (_authService.IsInRole(User, "Troop"))
             {
-                if (!await _accessControlService.CanTroopAccessActivityAsync(User, request.TroopId))
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
                 {
                     return Forbid();
                 }
@@ -58,7 +60,7 @@ namespace ScoutTrack.WebAPI.Controllers
             if (_authService.IsInRole(User, "Troop"))
             {
                 var activity = await _service.GetByIdAsync(id);
-                if (activity == null || !await _accessControlService.CanTroopAccessActivityAsync(User, activity.TroopId))
+                if (activity == null || !await _accessControlService.CanTroopAccessActivityAsync(User, id))
                 {
                     return Forbid();
                 }
@@ -76,6 +78,50 @@ namespace ScoutTrack.WebAPI.Controllers
         public virtual async Task<ActivityResponse?> DeactivateAsync(int id)
         {
             return await _activityService.DeactivateAsync(id);
+        }
+
+        [HttpPost("{id}/update-image")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> UpdateImage(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                var activity = await _service.GetByIdAsync(id);
+                if (activity == null || !await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    Console.WriteLine("I FORBID YOU TO UPLOAD!!!");
+                    return Forbid();
+                }
+            }
+
+            if (request == null || request.Image == null || request.Image.Length == 0)
+            {
+                var updated = await _activityService.UpdateImageAsync(id, null);
+                return Ok(updated);
+            }
+
+            var extension = Path.GetExtension(request.Image.FileName);
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+            if (!allowedExtensions.Contains(extension.ToLower()))
+                return BadRequest("Unsupported file type.");
+
+            var folder = Path.Combine(env.WebRootPath, "images", "activities");
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(folder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await request.Image.CopyToAsync(stream);
+            }
+
+            var imageUrl = $"{Request.Scheme}://{Request.Host}/images/activities/{fileName}";
+
+            var updatedResponse = await _activityService.UpdateImageAsync(id, imageUrl);
+
+            return Ok(updatedResponse);
         }
     }
 } 

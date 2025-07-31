@@ -21,6 +21,7 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         {
             var entity = await _context.Activities.FindAsync(id);
             _mapper.Map(request, entity);
+            entity.ImagePath = string.IsNullOrWhiteSpace(request.ImagePath) ? "" : request.ImagePath;
 
             await _context.SaveChangesAsync();
             return _mapper.Map<ActivityResponse>(entity);

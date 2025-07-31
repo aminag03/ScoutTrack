@@ -340,7 +340,6 @@ namespace ScoutTrack.Services
             return _mapper.Map<TroopResponse>(entity);
         }
 
-
         protected override TroopResponse MapToResponse(Troop entity)
         {
             return new TroopResponse

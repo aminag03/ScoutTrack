@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScoutTrack.Services.Database;
 
@@ -11,9 +12,11 @@ using ScoutTrack.Services.Database;
 namespace ScoutTrack.Services.Migrations
 {
     [DbContext(typeof(ScoutTrackDbContext))]
-    partial class ScoutTrackDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250730145406_activityImage")]
+    partial class activityImage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,7 +37,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("ParticipantsId");
 
-                    b.ToTable("ActivityMember", (string)null);
+                    b.ToTable("ActivityMember");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Activity", b =>
@@ -112,7 +115,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("TroopId");
 
-                    b.ToTable("Activities", (string)null);
+                    b.ToTable("Activities");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityEquipment", b =>
@@ -141,7 +144,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("EquipmentId");
 
-                    b.ToTable("ActivityEquipments", (string)null);
+                    b.ToTable("ActivityEquipments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityRegistration", b =>
@@ -175,7 +178,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("ActivityId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("ActivityRegistrations", (string)null);
+                    b.ToTable("ActivityRegistrations");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.ActivityType", b =>
@@ -207,7 +210,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("ActivityTypes", (string)null);
+                    b.ToTable("ActivityTypes");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Badge", b =>
@@ -243,7 +246,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Badges", (string)null);
+                    b.ToTable("Badges");
 
                     b.HasData(
                         new
@@ -299,7 +302,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("BadgeId", "Description")
                         .IsUnique();
 
-                    b.ToTable("BadgeRequirements", (string)null);
+                    b.ToTable("BadgeRequirements");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.City", b =>
@@ -332,7 +335,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Cities", (string)null);
+                    b.ToTable("Cities");
 
                     b.HasData(
                         new
@@ -760,7 +763,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("PostId", "MemberId", "CreatedAt");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Document", b =>
@@ -795,7 +798,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("Title");
 
-                    b.ToTable("Documents", (string)null);
+                    b.ToTable("Documents");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Equipment", b =>
@@ -833,7 +836,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Equipments", (string)null);
+                    b.ToTable("Equipments");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Friendship", b =>
@@ -866,7 +869,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("RequesterId", "ResponderId")
                         .IsUnique();
 
-                    b.ToTable("Friendships", (string)null);
+                    b.ToTable("Friendships");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Like", b =>
@@ -893,7 +896,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("PostId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("Likes", (string)null);
+                    b.ToTable("Likes");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.MemberBadge", b =>
@@ -923,7 +926,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("MemberId", "BadgeId")
                         .IsUnique();
 
-                    b.ToTable("MemberBadges", (string)null);
+                    b.ToTable("MemberBadges");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.MemberBadgeProgress", b =>
@@ -953,7 +956,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("MemberBadgeId", "RequirementId")
                         .IsUnique();
 
-                    b.ToTable("MemberBadgeProgresses", (string)null);
+                    b.ToTable("MemberBadgeProgresses");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Notification", b =>
@@ -984,7 +987,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Post", b =>
@@ -1019,7 +1022,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.PostImage", b =>
@@ -1048,7 +1051,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("PostId", "ImageUrl")
                         .IsUnique();
 
-                    b.ToTable("PostImages", (string)null);
+                    b.ToTable("PostImages");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.RefreshToken", b =>
@@ -1082,7 +1085,7 @@ namespace ScoutTrack.Services.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.Review", b =>
@@ -1119,7 +1122,7 @@ namespace ScoutTrack.Services.Migrations
                     b.HasIndex("ActivityId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("ScoutTrack.Services.Database.Entities.UserAccount", b =>

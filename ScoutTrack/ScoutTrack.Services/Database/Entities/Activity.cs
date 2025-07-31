@@ -20,6 +20,8 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(500)]
         public string Description { get; set; } = string.Empty;
 
+        public bool isPrivate { get; set; }
+
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
 
@@ -28,6 +30,12 @@ namespace ScoutTrack.Services.Database.Entities
 
         [Required]
         public double Longitude { get; set; }
+
+        public string LocationName { get; set; } = string.Empty;
+
+        [ForeignKey(nameof(City))]
+        public int? CityId { get; set; }
+        public City? City { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? Fee { get; set; }
@@ -42,6 +50,8 @@ namespace ScoutTrack.Services.Database.Entities
         [ForeignKey(nameof(ActivityType))]
         public int ActivityTypeId { get; set; }
         public ActivityType ActivityType { get; set; } = null!;
+
+        public string ImagePath { get; set; } = string.Empty;
 
         public ICollection<Member> Participants { get; set; } = new List<Member>();
         public ICollection<ActivityRegistration> Registrations { get; set; } = new List<ActivityRegistration>();

@@ -23,6 +23,7 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
             _mapper.Map(request, entity);
 
             entity.ActivityState = nameof(DraftActivityState);
+            entity.ImagePath = request.ImagePath ?? string.Empty;
 
             _context.Activities.Add(entity);
             await _context.SaveChangesAsync();

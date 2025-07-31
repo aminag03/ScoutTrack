@@ -13,6 +13,7 @@ import 'package:scouttrack_desktop/ui/admin/screens/admin_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/activity_type_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/equipment_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -133,6 +134,16 @@ class _MasterScreenState extends State<MasterScreen> {
                     }),
                   ),
                   _SidebarItem(
+                    icon: Icons.event,
+                    label: 'Aktivnosti',
+                    selected: selectedLabel == 'Aktivnosti',
+                    onTap: () => _handleTap('Aktivnosti', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const ActivityListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
                     icon: Icons.hiking,
                     label: 'Tipovi aktivnosti',
                     selected: selectedLabel == 'Tipovi aktivnosti',
@@ -179,6 +190,16 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const MemberListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.event,
+                    label: 'Aktivnosti',
+                    selected: selectedLabel == 'Aktivnosti',
+                    onTap: () => _handleTap('Aktivnosti', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const ActivityListScreen()));
                     }),
                   ),
                 ],

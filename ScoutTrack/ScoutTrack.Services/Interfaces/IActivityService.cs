@@ -9,5 +9,6 @@ namespace ScoutTrack.Services.Interfaces
     {
         Task<ActivityResponse> ActivateAsync(int id);
         Task<ActivityResponse> DeactivateAsync(int id);
+        Task<ActivityResponse?> UpdateImageAsync(int id, string imagePath);
     }
 } 
