@@ -18,9 +18,23 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         public override async Task<ActivityResponse> DeactivateAsync(int id)
         {
             var entity = await _context.Activities.FindAsync(id);
-            entity.ActivityState = nameof(DeactivatedActivityState);
+            entity.ActivityState = nameof(CancelledActivityState);
 
             await _context.SaveChangesAsync();
+            return _mapper.Map<ActivityResponse>(entity);
+        }
+
+        public async Task<ActivityResponse> CloseRegistrationsAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            Console.WriteLine($"ActiveActivityState: Closing registrations for activity {id}. Current state: {entity.ActivityState}");
+            
+            entity.ActivityState = nameof(RegistrationsClosedActivityState);
+            Console.WriteLine($"ActiveActivityState: Setting new state to: {entity.ActivityState}");
+
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"ActiveActivityState: Saved changes. Final state: {entity.ActivityState}");
+            
             return _mapper.Map<ActivityResponse>(entity);
         }
     }

@@ -39,8 +39,8 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         public override async Task<ActivityResponse> DeactivateAsync(int id)
         {
             var entity = await _context.Activities.FindAsync(id);
-            entity.ActivityState = nameof(DeactivatedActivityState);
-            entity.Title = entity.Title + " - Deactivated from draft";
+            entity.ActivityState = nameof(CancelledActivityState);
+            entity.Title = entity.Title + " - Cancelled from draft";
 
             await _context.SaveChangesAsync();
             return _mapper.Map<ActivityResponse>(entity);

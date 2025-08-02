@@ -34,6 +34,7 @@ Activity _$ActivityFromJson(Map<String, dynamic> json) => Activity(
       : DateTime.parse(json['updatedAt'] as String),
   memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
   imagePath: json['imagePath'] as String? ?? '',
+  summary: json['summary'] as String? ?? '',
 );
 
 Map<String, dynamic> _$ActivityToJson(Activity instance) => <String, dynamic>{
@@ -58,4 +59,5 @@ Map<String, dynamic> _$ActivityToJson(Activity instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt?.toIso8601String(),
   'memberCount': instance.memberCount,
   'imagePath': instance.imagePath,
+  'summary': instance.summary,
 };

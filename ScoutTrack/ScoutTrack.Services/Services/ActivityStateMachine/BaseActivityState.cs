@@ -50,13 +50,34 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
             switch (stateName)
             {
                 case nameof(InitialActivityState):
-                    return _serviceProvider.GetService<InitialActivityState>();
+                    var initialState = _serviceProvider.GetService<InitialActivityState>();
+                    if (initialState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return initialState;
+                    
                 case nameof(DraftActivityState):
-                    return _serviceProvider.GetService<DraftActivityState>();
+                    var draftState = _serviceProvider.GetService<DraftActivityState>();
+                    if (draftState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return draftState;
+                    
                 case nameof(ActiveActivityState):
-                    return _serviceProvider.GetService<ActiveActivityState>();
-                case nameof(DeactivatedActivityState):
-                    return _serviceProvider.GetService<DeactivatedActivityState>();
+                    var activeState = _serviceProvider.GetService<ActiveActivityState>();
+                    if (activeState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return activeState;
+                    
+                case nameof(RegistrationsClosedActivityState):
+                    var registrationsClosedState = _serviceProvider.GetService<RegistrationsClosedActivityState>();
+                    if (registrationsClosedState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return registrationsClosedState;
+                    
+                case nameof(FinishedActivityState):
+                    var finishedState = _serviceProvider.GetService<FinishedActivityState>();
+                    if (finishedState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return finishedState;
+                    
+                case nameof(CancelledActivityState):
+                    var cancelledState = _serviceProvider.GetService<CancelledActivityState>();
+                    if (cancelledState == null) throw new Exception($"State {stateName} is not registered in DI container.");
+                    return cancelledState;
 
                 default:
                     throw new Exception($"State {stateName} not defined.");

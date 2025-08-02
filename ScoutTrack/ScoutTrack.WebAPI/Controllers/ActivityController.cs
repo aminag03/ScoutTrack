@@ -74,10 +74,38 @@ namespace ScoutTrack.WebAPI.Controllers
             return await _activityService.ActivateAsync(id);
         }
 
-        [HttpPut("{id}deactivate")]
+        [HttpPut("{id}/deactivate")]
         public virtual async Task<ActivityResponse?> DeactivateAsync(int id)
         {
             return await _activityService.DeactivateAsync(id);
+        }
+
+        [HttpPut("{id}/close-registrations")]
+        [Authorize(Roles = "Admin,Troop")]
+        public virtual async Task<ActivityResponse?> CloseRegistrationsAsync(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
+            return await _activityService.CloseRegistrationsAsync(id);
+        }
+
+        [HttpPut("{id}/finish")]
+        [Authorize(Roles = "Admin,Troop")]
+        public virtual async Task<ActivityResponse?> FinishAsync(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
+            return await _activityService.FinishAsync(id);
         }
 
         [HttpPost("{id}/update-image")]
@@ -122,6 +150,20 @@ namespace ScoutTrack.WebAPI.Controllers
             var updatedResponse = await _activityService.UpdateImageAsync(id, imageUrl);
 
             return Ok(updatedResponse);
+        }
+
+        [HttpPut("{id}/update-summary")]
+        [Authorize(Roles = "Admin,Troop")]
+        public virtual async Task<ActivityResponse?> UpdateSummaryAsync(int id, [FromBody] UpdateSummaryRequest request)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
+            return await _activityService.UpdateSummaryAsync(id, request.Summary);
         }
     }
 } 

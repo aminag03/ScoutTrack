@@ -15,54 +15,65 @@ class ActivityFormWidgets {
     required Function(StateSetter, int, String) onUpdate,
     required Function(StateSetter, int) onRemove,
     required StateSetter setState,
+    bool isNewlyAdded = false, // Add parameter for highlighting
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    hintText: 'Unesite naziv opreme',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
-                    prefixIcon: Icon(
-                      equipment != null ? Icons.inventory_2 : Icons.add,
-                      color: equipment != null ? Colors.blue : Colors.green,
-                      size: 16,
-                    ),
-                  ),
-                  onChanged: (value) => onUpdate(setState, index, value),
-                ),
-                if (equipment?.description.isNotEmpty == true)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 8),
-                    child: Text(
-                      equipment!.description,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+      child: Container(
+        decoration: isNewlyAdded
+            ? BoxDecoration(
+                color: Colors.green.shade50,
+                border: Border.all(color: Colors.green.shade300),
+                borderRadius: BorderRadius.circular(8),
+              )
+            : null,
+        padding: isNewlyAdded ? const EdgeInsets.all(8) : EdgeInsets.zero,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: 'Unesite naziv opreme',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      prefixIcon: Icon(
+                        equipment != null ? Icons.inventory_2 : Icons.add,
+                        color: equipment != null ? Colors.blue : Colors.green,
+                        size: 16,
                       ),
                     ),
+                    onChanged: (value) => onUpdate(setState, index, value),
                   ),
-              ],
+                  if (equipment?.description.isNotEmpty == true)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, left: 8),
+                      child: Text(
+                        equipment!.description,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => onRemove(setState, index),
-            icon: const Icon(Icons.close, color: Colors.red),
-            iconSize: 20,
-          ),
-        ],
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => onRemove(setState, index),
+              icon: const Icon(Icons.close, color: Colors.red),
+              iconSize: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

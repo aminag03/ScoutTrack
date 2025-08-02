@@ -9,6 +9,7 @@ import 'package:scouttrack_desktop/providers/equipment_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 
 class EquipmentListScreen extends StatefulWidget {
   const EquipmentListScreen({super.key});
@@ -635,21 +636,8 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                         TextFormField(
                           controller: nameController,
                           decoration: const InputDecoration(labelText: 'Naziv'),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Naziv je obavezan.';
-                            }
-                            if (value.length > 100) {
-                              return 'Naziv ne smije imati više od 100 znakova.';
-                            }
-                            final regex = RegExp(
-                              r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
-                            );
-                            if (!regex.hasMatch(value.trim())) {
-                              return 'Naziv smije sadržavati samo slova, brojeve, razmake, crtice i apostrofe.';
-                            }
-                            return null;
-                          },
+                          validator: (value) =>
+                              FormValidationUtils.validateName(value, 'Naziv'),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 16),
@@ -657,12 +645,8 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                           controller: descriptionController,
                           decoration: const InputDecoration(labelText: 'Opis'),
                           maxLines: 3,
-                          validator: (value) {
-                            if (value != null && value.length > 500) {
-                              return 'Opis ne smije imati više od 500 znakova.';
-                            }
-                            return null;
-                          },
+                          validator: (value) =>
+                              FormValidationUtils.validateEquipmentDescription(value, 'Opis'),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],

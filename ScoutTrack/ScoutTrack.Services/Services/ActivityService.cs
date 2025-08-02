@@ -243,6 +243,57 @@ namespace ScoutTrack.Services
             return await baseState.DeactivateAsync(id);
         }
 
+        public async Task<ActivityResponse> CloseRegistrationsAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found.");
+
+            _logger.LogInformation($"Attempting to close registrations for activity {id} with state: '{entity.ActivityState}'");
+
+            var state = _baseActivityState.GetActivityState(entity.ActivityState);
+            _logger.LogInformation($"Retrieved state object of type: {state.GetType().Name}");
+
+            if (state is not ActiveActivityState activeState)
+            {
+                _logger.LogWarning($"Activity {id} has state '{entity.ActivityState}' but expected 'ActiveActivityState'. Actual state type: {state.GetType().Name}");
+                throw new UserException($"Registrations can only be closed while active. Current state: {entity.ActivityState}");
+            }
+
+            _logger.LogInformation($"Calling CloseRegistrationsAsync on ActiveActivityState for activity {id}");
+            var result = await activeState.CloseRegistrationsAsync(id);
+            _logger.LogInformation($"Successfully closed registrations for activity {id}. New state: {result.ActivityState}");
+            
+            return result;
+        }
+
+        public async Task<ActivityResponse> FinishAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found.");
+
+            _logger.LogInformation($"Attempting to finish activity {id} with state: '{entity.ActivityState}'");
+
+            var state = _baseActivityState.GetActivityState(entity.ActivityState);
+            _logger.LogInformation($"Retrieved state object of type: {state.GetType().Name}");
+
+            if (state is not RegistrationsClosedActivityState registrationsClosedState)
+            {
+                _logger.LogWarning($"Activity {id} has state '{entity.ActivityState}' but expected 'RegistrationsClosedActivityState'. Actual state type: {state.GetType().Name}");
+                throw new UserException($"You can only finish an activity after closing registrations. Current state: {entity.ActivityState}");
+            }
+
+            if (entity.EndTime.HasValue && entity.EndTime > DateTime.Now)
+                //throw new UserException("You can't finish the activity before it's scheduled to end.");
+
+            _logger.LogInformation($"Calling FinishAsync on RegistrationsClosedActivityState for activity {id}");
+            var result = await registrationsClosedState.FinishAsync(id);
+            _logger.LogInformation($"Successfully finished activity {id}. New state: {result.ActivityState}");
+
+            return result;
+        }
+
         public async Task<ActivityResponse?> UpdateImageAsync(int id, string? imagePath)
         {
             var entity = await _context.Activities.FindAsync(id);
@@ -275,6 +326,19 @@ namespace ScoutTrack.Services
             return _mapper.Map<ActivityResponse>(entity);
         }
 
+        public async Task<ActivityResponse?> UpdateSummaryAsync(int id, string summary)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                return null;
+
+            entity.Summary = summary;
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<ActivityResponse>(entity);
+        }
+
         protected override ActivityResponse MapToResponse(Activity entity)
         {
             return new ActivityResponse
@@ -282,6 +346,7 @@ namespace ScoutTrack.Services
                 Id = entity.Id,
                 Title = entity.Title,
                 Description = entity.Description,
+                Summary = entity.Summary,
                 isPrivate = entity.isPrivate,
                 StartTime = entity.StartTime,
                 EndTime = entity.EndTime,
@@ -299,7 +364,7 @@ namespace ScoutTrack.Services
                 UpdatedAt = entity.UpdatedAt,
                 ActivityState = entity.ActivityState,
                 MemberCount = _context.ActivityRegistrations.Count(ar => ar.ActivityId == entity.Id),
-                ImagePath = entity.ImagePath
+                ImagePath = entity.ImagePath,
             };
         }
     }

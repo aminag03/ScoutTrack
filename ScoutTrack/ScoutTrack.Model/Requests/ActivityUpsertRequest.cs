@@ -39,5 +39,8 @@ namespace ScoutTrack.Model.Requests
         public int ActivityTypeId { get; set; }
 
         public string? ImagePath { get; set; }
+
+        [MaxLength(2000, ErrorMessage = "Summary must not exceed 2000 characters.")]
+        public string Summary { get; set; } = string.Empty;
     }
 } 

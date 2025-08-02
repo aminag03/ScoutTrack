@@ -26,6 +26,7 @@ import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_form_widgets.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_dialog_widgets.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_form_fields.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
@@ -455,28 +456,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   void _onViewActivity(Activity activity) {
-    _showActivityEquipmentDialog(activity);
-  }
-
-  Future<void> _showActivityEquipmentDialog(Activity activity) async {
-    try {
-      final activityEquipmentProvider = ActivityEquipmentProvider(
-        Provider.of<AuthProvider>(context, listen: false),
-      );
-      final equipment = await activityEquipmentProvider.getByActivityId(
-        activity.id,
-      );
-
-      if (!mounted) return;
-
-      await ActivityDialogWidgets.showActivityEquipmentDialog(
-        context: context,
-        activityName: activity.title,
-        equipment: equipment,
-      );
-    } catch (e) {
-      showErrorSnackbar(context, e);
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityDetailsScreen(activity: activity),
+      ),
+    );
   }
 
   Future<void> _showActivityDialog({Activity? activity}) async {
@@ -528,6 +512,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     List<String> equipmentList = [];
     List<TextEditingController> equipmentControllers = [];
     List<Equipment?> selectedEquipment = [];
+    Set<int> newlyAddedEquipmentIds =
+        {}; // Track newly added equipment for highlighting
 
     // Load existing equipment if editing
     if (isEdit && activity != null) {
@@ -582,7 +568,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         context: context,
         initialTime: activity?.startTime != null
             ? TimeOfDay.fromDateTime(activity!.startTime!)
-            : const TimeOfDay(hour: 9, minute: 0),
+            : TimeOfDay.fromDateTime(DateTime.now()),
       );
       if (picked != null) {
         setState(() {
@@ -662,8 +648,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
           setState(() {
             _equipment.add(newEquipment);
+            newlyAddedEquipmentIds.add(newEquipment.id);
           });
-
           return newEquipment;
         },
       );
@@ -673,18 +659,58 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       return await ActivityDialogWidgets.showEquipmentSelectionDialog(
         context: context,
         equipment: _equipment,
-        onAddNewEquipment: () async => await _showAddNewEquipmentDialog(),
+        onAddNewEquipment: () async {
+          final newEquipment = await _showAddNewEquipmentDialog();
+          if (newEquipment != null) {
+            return newEquipment;
+          }
+          return null;
+        },
       );
     }
 
     Future<void> _addEquipmentItem(StateSetter setState) async {
       final result = await _showEquipmentSelectionDialog();
+      print(
+        '_addEquipmentItem received result: ${result?.runtimeType} - ${result?.toString()}',
+      );
       if (result is Equipment) {
-        setState(() {
-          equipmentList.add(result.name);
-          selectedEquipment.add(result);
-          equipmentControllers.add(TextEditingController(text: result.name));
-        });
+        // Check if this equipment is already in the selectedEquipment list
+        final alreadySelected = selectedEquipment.any(
+          (eq) => eq?.id == result.id,
+        );
+        if (!alreadySelected) {
+          print('Adding equipment to selectedEquipment list: ${result.name}');
+          setState(() {
+            equipmentList.add(result.name);
+            selectedEquipment.add(result);
+            equipmentControllers.add(TextEditingController(text: result.name));
+            newlyAddedEquipmentIds.add(result.id);
+          });
+
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() {
+                newlyAddedEquipmentIds.remove(result.id);
+              });
+            }
+          });
+        } else {
+          print('Equipment already selected: ${result.name}');
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Oprema već dodana'),
+              content: Text('Oprema "${result.name}" je već dodana u listu.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('U redu'),
+                ),
+              ],
+            ),
+          );
+        }
       }
     }
 
@@ -727,6 +753,16 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '* Obavezna polja',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -956,6 +992,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     onUpdate: _updateEquipmentItem,
                                     onRemove: _removeEquipmentItem,
                                     setState: setState,
+                                    isNewlyAdded:
+                                        equipment != null &&
+                                        newlyAddedEquipmentIds.contains(
+                                          equipment.id,
+                                        ),
                                   );
                                 }).toList(),
                               ],
@@ -972,18 +1013,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                   TextFormField(
                                     controller: titleController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Upišite naziv aktivnosti',
+                                      labelText: 'Upišite naziv aktivnosti *',
                                       border: OutlineInputBorder(),
                                     ),
                                     validator: (value) =>
-                                        FormValidationUtils.validateName(
+                                        FormValidationUtils.validateActivityTitle(
                                           value,
                                           'Naziv',
-                                        ) ??
-                                        FormValidationUtils.validateLength(
-                                          value,
-                                          'Naziv',
-                                          100,
                                         ),
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
@@ -992,18 +1028,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                   TextFormField(
                                     controller: locationNameController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Upišite naziv lokacije',
+                                      labelText: 'Upišite naziv lokacije *',
                                       border: OutlineInputBorder(),
                                     ),
                                     validator: (value) =>
-                                        FormValidationUtils.validateName(
+                                        FormValidationUtils.validateActivityLocationName(
                                           value,
                                           'Naziv lokacije',
-                                        ) ??
-                                        FormValidationUtils.validateLength(
-                                          value,
-                                          'Naziv lokacije',
-                                          100,
                                         ),
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
@@ -1068,12 +1099,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             child: TextFormField(
                                               controller: startDateController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Datum početka',
+                                                labelText: 'Datum početka *',
                                                 suffixIcon: Icon(
                                                   Icons.calendar_today,
                                                 ),
                                                 border: OutlineInputBorder(),
                                               ),
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Datum početka je obavezan';
+                                                }
+                                                return null;
+                                              },
                                             ),
                                           ),
                                         ),
@@ -1087,12 +1125,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             child: TextFormField(
                                               controller: startTimeController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Vrijeme početka',
+                                                labelText: 'Vrijeme početka *',
                                                 suffixIcon: Icon(
                                                   Icons.access_time,
                                                 ),
                                                 border: OutlineInputBorder(),
                                               ),
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Vrijeme početka je obavezno';
+                                                }
+                                                return null;
+                                              },
                                             ),
                                           ),
                                         ),
@@ -1110,12 +1155,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             child: TextFormField(
                                               controller: endDateController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Datum završetka',
+                                                labelText: 'Datum završetka *',
                                                 suffixIcon: Icon(
                                                   Icons.calendar_today,
                                                 ),
                                                 border: OutlineInputBorder(),
                                               ),
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Datum završetka je obavezan';
+                                                }
+                                                return null;
+                                              },
                                             ),
                                           ),
                                         ),
@@ -1128,12 +1180,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             child: TextFormField(
                                               controller: endTimeController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Vrijeme završetka',
+                                                labelText:
+                                                    'Vrijeme završetka *',
                                                 suffixIcon: Icon(
                                                   Icons.access_time,
                                                 ),
                                                 border: OutlineInputBorder(),
                                               ),
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Vrijeme završetka je obavezno';
+                                                }
+                                                return null;
+                                              },
                                             ),
                                           ),
                                         ),
@@ -1150,15 +1210,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       border: OutlineInputBorder(),
                                     ),
                                     maxLines: 3,
-                                    validator: (value) {
-                                      final lengthError =
-                                          FormValidationUtils.validateLength(
-                                            value,
-                                            'Opis',
-                                            500,
-                                          );
-                                      return lengthError;
-                                    },
+                                    validator: (value) =>
+                                        FormValidationUtils.validateActivityDescription(
+                                          value,
+                                          'Opis',
+                                        ),
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                   ),
@@ -1214,7 +1270,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     value: selectedActivityTypeId,
                                     decoration: const InputDecoration(
                                       labelText:
-                                          'Odaberite osnovni tip aktivnosti',
+                                          'Odaberite osnovni tip aktivnosti *',
                                       border: OutlineInputBorder(),
                                     ),
                                     items: _activityTypes
@@ -1477,6 +1533,170 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     }
   }
 
+  bool _canEditActivity(Activity activity) {
+    // Check if user has permission to edit
+    final canEditOrDelete =
+        _role == 'Admin' ||
+        (_role == 'Troop' && _loggedInUserId == activity.troopId);
+
+    if (!canEditOrDelete) return false;
+
+    // Check if activity state allows editing
+    // Only DraftActivityState allows editing
+    return activity.activityState == 'DraftActivityState';
+  }
+
+  String _getEditDisabledReason(Activity activity) {
+    // Check if user has permission to edit
+    final canEditOrDelete =
+        _role == 'Admin' ||
+        (_role == 'Troop' && _loggedInUserId == activity.troopId);
+
+    if (!canEditOrDelete) {
+      return 'Nemate dozvolu za uređivanje ove aktivnosti';
+    }
+
+    // Check activity state
+    switch (activity.activityState) {
+      case 'ActiveActivityState':
+        return 'Aktivnost je aktivna i ne može se uređivati';
+      case 'RegistrationsClosedActivityState':
+        return 'Prijave su zatvorene, aktivnost se ne može uređivati';
+      case 'FinishedActivityState':
+        return 'Aktivnost je završena, ne može se uređivati';
+      case 'CancelledActivityState':
+        return 'Aktivnost je otkazana, ne može se uređivati';
+      case 'DraftActivityState':
+        return 'Aktivnost se može uređivati';
+      default:
+        return 'Aktivnost se ne može uređivati';
+    }
+  }
+
+  bool _canDeleteActivity(Activity activity) {
+    // Check if user has permission to delete
+    final canEditOrDelete =
+        _role == 'Admin' ||
+        (_role == 'Troop' && _loggedInUserId == activity.troopId);
+
+    if (!canEditOrDelete) return false;
+
+    // For now, allow deletion in all states since the base CRUD service handles it
+    // But we could restrict it based on business rules if needed
+    return true;
+  }
+
+  String _getDeleteDisabledReason(Activity activity) {
+    // Check if user has permission to delete
+    final canEditOrDelete =
+        _role == 'Admin' ||
+        (_role == 'Troop' && _loggedInUserId == activity.troopId);
+
+    if (!canEditOrDelete) {
+      return 'Nemate dozvolu za brisanje ove aktivnosti';
+    }
+
+    // For now, deletion is allowed in all states
+    return 'Aktivnost se može brisati';
+  }
+
+  Widget _buildActivityStateChip(String activityState) {
+    switch (activityState) {
+      case 'DraftActivityState':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Nacrt',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        );
+      case 'ActiveActivityState':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.green.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Aktivna',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.green,
+            ),
+          ),
+        );
+      case 'RegistrationsClosedActivityState':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Prijave zatvorene',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.orange,
+            ),
+          ),
+        );
+      case 'FinishedActivityState':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Završena',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.blue,
+            ),
+          ),
+        );
+      case 'CancelledActivityState':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.red.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Otkazana',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.red,
+            ),
+          ),
+        );
+      default:
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            activityState,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        );
+    }
+  }
+
   Future<void> _saveActivityEquipment(
     int activityId,
     List<Equipment?> selectedEquipment,
@@ -1547,6 +1767,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
+        trackVisibility: true,
+        thickness: 12,
+        radius: const Radius.circular(6),
         child: SingleChildScrollView(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
@@ -1568,12 +1791,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   label: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('LOKACIJA'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('BROJ PRISUTNIH'),
                   ),
                 ),
                 DataColumn(
@@ -1606,6 +1823,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                     child: Text('PRIVATNOST'),
                   ),
                 ),
+                DataColumn(
+                  label: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('STATUS'),
+                  ),
+                ),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
@@ -1626,12 +1849,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(activity.locationName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(activity.memberCount.toString()),
                       ),
                     ),
                     DataCell(
@@ -1683,29 +1900,46 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                       ),
                     ),
                     DataCell(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _buildActivityStateChip(activity.activityState),
+                      ),
+                    ),
+                    DataCell(
                       IconButton(
                         icon: const Icon(Icons.visibility, color: Colors.grey),
-                        tooltip: 'Prikaži opremu',
+                        tooltip: 'Prikaži detalje',
                         onPressed: () => _onViewActivity(activity),
                       ),
                     ),
                     DataCell(
-                      canEditOrDelete
+                      _canEditActivity(activity)
                           ? IconButton(
                               icon: const Icon(Icons.edit, color: Colors.blue),
                               tooltip: 'Uredi',
                               onPressed: () => _onEditActivity(activity),
                             )
-                          : const SizedBox(),
+                          : IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.grey),
+                              tooltip: _getEditDisabledReason(activity),
+                              onPressed: null,
+                            ),
                     ),
                     DataCell(
-                      canEditOrDelete
+                      _canDeleteActivity(activity)
                           ? IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               tooltip: 'Obriši',
                               onPressed: () => _onDeleteActivity(activity),
                             )
-                          : const SizedBox(),
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.grey,
+                              ),
+                              tooltip: _getDeleteDisabledReason(activity),
+                              onPressed: null,
+                            ),
                     ),
                   ],
                 );

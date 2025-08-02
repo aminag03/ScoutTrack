@@ -718,13 +718,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Ime *',
                               ),
-                              validator: (value) {
-                                final nameError = FormValidationUtils.validateSimpleName(value, 'Ime');
-                                if (nameError != null) return nameError;
-
-                                final lengthError = FormValidationUtils.validateLength(value, 'Ime', 50);
-                                return lengthError;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateMemberName(value, 'Ime'),
                               autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
@@ -733,13 +728,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Prezime *',
                               ),
-                              validator: (value) {
-                                final nameError = FormValidationUtils.validateSimpleName(value, 'Prezime');
-                                if (nameError != null) return nameError;
-
-                                final lengthError = FormValidationUtils.validateLength(value, 'Prezime', 50);
-                                return lengthError;
-                              },  
+                              validator: (value) =>
+                                  FormValidationUtils.validateMemberName(value, 'Prezime'),  
                               autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),

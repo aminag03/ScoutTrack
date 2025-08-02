@@ -9,6 +9,7 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -419,19 +420,8 @@ class _CityListScreenState extends State<CityListScreen> {
                             TextFormField(
                               controller: nameController,
                               decoration: const InputDecoration(labelText: 'Naziv'),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Naziv je obavezan.';
-                                }
-                                if (value.length > 100) {
-                                  return 'Naziv ne smije imati više od 100 znakova.';
-                                }
-                                final regex = RegExp(r"^[A-Za-zčćžšđČĆŽŠĐ\s-]+$");
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Naziv grada smije sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  FormValidationUtils.validateCityName(value, 'Naziv'),
                               autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 24),

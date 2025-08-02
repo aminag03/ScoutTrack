@@ -31,7 +31,9 @@ builder.Services.AddTransient<BaseActivityState>();
 builder.Services.AddTransient<InitialActivityState>();
 builder.Services.AddTransient<DraftActivityState>();
 builder.Services.AddTransient<ActiveActivityState>();
-builder.Services.AddTransient<DeactivatedActivityState>();
+builder.Services.AddTransient<RegistrationsClosedActivityState>();
+builder.Services.AddTransient<CancelledActivityState>();
+builder.Services.AddTransient<FinishedActivityState>();
 
 
 builder.Services.AddMapster();

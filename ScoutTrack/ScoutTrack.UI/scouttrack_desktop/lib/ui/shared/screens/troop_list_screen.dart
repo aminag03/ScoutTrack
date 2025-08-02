@@ -704,7 +704,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 labelText: 'Naziv *',
                               ),
                               validator: (value) =>
-                                  FormValidationUtils.validateName(
+                                  FormValidationUtils.validateTroopName(
                                     value,
                                     'Naziv',
                                   ),
@@ -805,7 +805,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 labelText: 'Starješina *',
                               ),
                               validator: (value) =>
-                                  FormValidationUtils.validateSimpleName(
+                                  FormValidationUtils.validateTroopPersonName(
                                     value,
                                     'Ime i prezime starješine',
                                   ),
@@ -819,7 +819,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 labelText: 'Načelnik *',
                               ),
                               validator: (value) =>
-                                  FormValidationUtils.validateSimpleName(
+                                  FormValidationUtils.validateTroopPersonName(
                                     value,
                                     'Ime i prezime načelnika',
                                   ),

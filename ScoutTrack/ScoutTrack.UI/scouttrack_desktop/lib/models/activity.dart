@@ -25,6 +25,7 @@ class Activity {
   final DateTime? updatedAt;
   final int memberCount;
   final String imagePath;
+  final String summary;
 
   Activity({
     this.id = 0,
@@ -48,6 +49,7 @@ class Activity {
     this.updatedAt,
     this.memberCount = 0,
     this.imagePath = '',
+    this.summary = ''
   });
 
   factory Activity.fromJson(Map<String, dynamic> json) =>

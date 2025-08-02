@@ -39,7 +39,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           items: List<T>.from(data['items'].map((e) => fromJson(e))),
         );
       } else {
-        throw Exception("Unknown error");
+        throw Exception("Nepoznata greška.");
       }
     });
   }
@@ -74,7 +74,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
         final data = jsonDecode(response.body);
         return fromJson(data);
       } else {
-        throw Exception("Unknown error");
+        throw Exception("Nepoznata greška.");
       }
     });
   }

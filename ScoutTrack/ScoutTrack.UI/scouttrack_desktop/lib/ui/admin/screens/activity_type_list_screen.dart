@@ -8,6 +8,7 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 
 class ActivityTypeListScreen extends StatefulWidget {
   const ActivityTypeListScreen({super.key});
@@ -452,21 +453,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                         TextFormField(
                           controller: nameController,
                           decoration: const InputDecoration(labelText: 'Naziv'),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Naziv je obavezan.';
-                            }
-                            if (value.length > 100) {
-                              return 'Naziv ne smije imati više od 100 znakova.';
-                            }
-                            final regex = RegExp(
-                              r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
-                            );
-                            if (!regex.hasMatch(value.trim())) {
-                              return 'Naziv smije sadržavati samo slova, brojeve, razmake, crtice i apostrofe.';
-                            }
-                            return null;
-                          },
+                          validator: (value) =>
+                              FormValidationUtils.validateActivityTypeName(value, 'Naziv'),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 16),
@@ -474,12 +462,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                           controller: descriptionController,
                           decoration: const InputDecoration(labelText: 'Opis'),
                           maxLines: 3,
-                          validator: (value) {
-                            if (value != null && value.length > 500) {
-                              return 'Opis ne smije imati više od 500 znakova.';
-                            }
-                            return null;
-                          },
+                          validator: (value) =>
+                              FormValidationUtils.validateActivityTypeDescription(value, 'Opis'),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],

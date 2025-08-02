@@ -35,7 +35,6 @@ class ActivityDialogWidgets {
                           title: const Text('Dodaj novu opremu'),
                           subtitle: const Text('Kreirajte novu stavku opreme'),
                           onTap: () async {
-                            Navigator.of(context).pop();
                             final newEquipment = await onAddNewEquipment();
                             if (newEquipment != null) {
                               Navigator.of(context).pop(newEquipment);
@@ -104,7 +103,7 @@ class ActivityDialogWidgets {
                 const SizedBox(height: 16),
                 UIComponents.buildFormField(
                   controller: descriptionController,
-                  labelText: 'Opis (opciono)',
+                  labelText: 'Opis (opcionalno)',
                 ),
               ],
             ),
@@ -127,61 +126,45 @@ class ActivityDialogWidgets {
                         createdAt: DateTime.now(),
                       ),
                     );
-                    Navigator.of(context).pop(newEquipment);
+
+                    if (newEquipment != null) {
+                      Navigator.of(context).pop(newEquipment);
+                    } else {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Greška'),
+                          content: const Text(
+                            'Greška pri kreiranju opreme. Možda već postoji oprema s tim nazivom.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('U redu'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                   } catch (e) {
-                    Navigator.of(context).pop();
+                    final msg = e.toString().replaceFirst('Exception: ', '');
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Greška'),
+                        content: Text(msg),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('U redu'),
+                          ),
+                        ],
+                      ),
+                    );
                   }
                 }
               },
               child: const Text('Dodaj'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  static Future<void> showActivityEquipmentDialog({
-    required BuildContext context,
-    required String activityName,
-    required List<ActivityEquipment> equipment,
-  }) async {
-    return await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Oprema za aktivnost: $activityName'),
-          content: SizedBox(
-            width: 400,
-            height: 300,
-            child: equipment.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Nema dodane opreme za ovu aktivnost.',
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: equipment.length,
-                    itemBuilder: (context, index) {
-                      final item = equipment[index];
-                      return ListTile(
-                        leading: const Icon(
-                          Icons.inventory_2,
-                          color: Colors.blue,
-                        ),
-                        title: Text(item.equipmentName),
-                        subtitle: item.equipmentDescription.isNotEmpty
-                            ? Text(item.equipmentDescription)
-                            : null,
-                      );
-                    },
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Zatvori'),
             ),
           ],
         );

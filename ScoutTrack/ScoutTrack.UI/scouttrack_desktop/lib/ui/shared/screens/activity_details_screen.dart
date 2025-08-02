@@ -1,0 +1,1064 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
+import 'package:scouttrack_desktop/models/activity.dart';
+import 'package:scouttrack_desktop/providers/auth_provider.dart';
+import 'package:scouttrack_desktop/providers/activity_provider.dart';
+import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
+import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
+import 'package:scouttrack_desktop/models/activity_equipment.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_map/flutter_map.dart';
+
+class ActivityDetailsScreen extends StatefulWidget {
+  final Activity activity;
+
+  const ActivityDetailsScreen({super.key, required this.activity});
+
+  @override
+  State<ActivityDetailsScreen> createState() => _ActivityDetailsScreenState();
+}
+
+class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
+    with SingleTickerProviderStateMixin {
+  Activity? _activity;
+  String? _role;
+  int? _loggedInUserId;
+  late TabController _tabController;
+  List<ActivityEquipment> _equipment = [];
+  bool _canStartOrFinish = false;
+  late MapController _mapController;
+  late ActivityProvider _activityProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _mapController = MapController();
+    _activity = widget.activity;
+    _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  String _formatActivityState(String state) {
+    switch (state) {
+      case 'DraftActivityState':
+        return 'Draft';
+      case 'ActiveActivityState':
+        return 'Aktivna';
+      case 'RegistrationsClosedActivityState':
+        return 'Registracije zatvorene';
+      case 'FinishedActivityState':
+        return 'Završena';
+      case 'CancelledActivityState':
+        return 'Otkazana';
+      default:
+        return state;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _activityProvider = ActivityProvider(authProvider);
+  }
+
+  Future<void> _loadInitialData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final role = await authProvider.getUserRole();
+    final userId = await authProvider.getUserIdFromToken();
+
+    setState(() {
+      _role = role;
+      _loggedInUserId = userId;
+      _canStartOrFinish =
+          role == 'Admin' || (role == 'Troop' && userId == _activity?.troopId);
+    });
+
+    await _loadEquipment();
+  }
+
+  Future<void> _loadEquipment() async {
+    try {
+      final activityEquipmentProvider = ActivityEquipmentProvider(
+        Provider.of<AuthProvider>(context, listen: false),
+      );
+      final equipment = await activityEquipmentProvider.getByActivityId(
+        _activity!.id,
+      );
+      setState(() {
+        _equipment = equipment;
+      });
+    } catch (e) {
+      print('Error loading equipment: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MasterScreen(
+      role: _role ?? '',
+      selectedMenu: 'Aktivnosti',
+      child: Container(
+        color: Theme.of(context).colorScheme.surface,
+        child: Column(
+          children: [
+            // Header bar
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _activity?.title ?? 'Aktivnost',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Main content
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(flex: 1, child: _buildActivityDetailsPanel()),
+                  Expanded(flex: 1, child: _buildRightPanel()),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityDetailsPanel() {
+    if (_activity == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Activity image if exists
+            if (_activity!.imagePath.isNotEmpty) ...[
+              Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    _activity!.imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Key information with icons
+            UIComponents.buildDetailRow(
+              'Odred',
+              _activity!.troopName,
+              Icons.group,
+            ),
+            UIComponents.buildDetailRow(
+              'Lokacija',
+              _activity!.locationName,
+              Icons.location_on,
+            ),
+            UIComponents.buildDetailRow(
+              'Datum',
+              _activity!.startTime != null && _activity!.endTime != null
+                  ? '${DateFormat('dd. MM. yyyy.').format(_activity!.startTime!)} - ${DateFormat('dd. MM. yyyy.').format(_activity!.endTime!)}'
+                  : 'Datum nije određen',
+              Icons.calendar_today,
+            ),
+            const SizedBox(height: 24),
+
+            // Location map
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: MapUtils.createMapWidget(
+                  location: LatLng(_activity!.latitude, _activity!.longitude),
+                  mapController: _mapController,
+                  height: 200,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Description
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info, color: Colors.blue, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _activity!.description.isNotEmpty
+                        ? _activity!.description
+                        : 'Nema opisa aktivnosti.',
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Summary section (only show for finished activities)
+            if (_activity!.activityState == 'FinishedActivityState') ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.summarize, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Sažetak aktivnosti',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        if (_canStartOrFinish) ...[
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _onWriteSummary,
+                            icon: const Icon(Icons.edit, color: Colors.green),
+                            tooltip: 'Uredi sažetak',
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _activity!.summary.isNotEmpty
+                          ? _activity!.summary
+                          : 'Sažetak aktivnosti još nije napisan.',
+                      style: const TextStyle(fontSize: 16, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+
+            // Additional details with icons
+            UIComponents.buildDetailSection('Detalji aktivnosti', [
+              UIComponents.buildDetailRow(
+                'Tip aktivnosti',
+                _activity!.activityTypeName,
+                Icons.category,
+              ),
+              UIComponents.buildDetailRow(
+                'Kotizacija',
+                '${_activity!.fee.toStringAsFixed(2)} KM',
+                Icons.payment,
+              ),
+              UIComponents.buildDetailRow(
+                'Broj učesnika',
+                _activity!.memberCount.toString(),
+                Icons.people,
+              ),
+              UIComponents.buildDetailRow(
+                'Status',
+                _formatActivityState(_activity!.activityState),
+                Icons.info_outline,
+              ),
+              UIComponents.buildDetailRow(
+                'Privatnost',
+                _activity!.isPrivate ? 'Privatan' : 'Javan',
+                Icons.visibility,
+              ),
+              if (_activity!.startTime != null)
+                UIComponents.buildDetailRow(
+                  'Vrijeme početka',
+                  formatDateTime(_activity!.startTime!),
+                  Icons.access_time,
+                ),
+              if (_activity!.endTime != null)
+                UIComponents.buildDetailRow(
+                  'Vrijeme završetka',
+                  formatDateTime(_activity!.endTime!),
+                  Icons.access_time_filled,
+                ),
+            ]),
+
+            const SizedBox(height: 32),
+
+            // Equipment section
+            if (_equipment.isNotEmpty) ...[
+              UIComponents.buildDetailSection('Preporučena oprema', [
+                ..._equipment.map(
+                  (eq) => UIComponents.buildDetailRow(
+                    eq.equipmentName,
+                    '',
+                    Icons.backpack,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 32),
+            ],
+
+            // Action buttons (only for activity owners)
+            _buildActionButtons(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRightPanel() {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF4F8055),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: const Color(0xFF4F8055),
+              tabs: const [
+                Tab(text: 'Galerija'),
+                Tab(text: 'Recenzije'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildGalleryTab(), _buildReviewsTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGalleryTab() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.photo_library, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'Galerija',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Not implemented yet',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewsTab() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Pretraži...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            DropdownButton<String>(
+              value: null,
+              hint: const Text('Sortiraj'),
+              items: const [
+                DropdownMenuItem(value: 'newest', child: Text('Najnovije')),
+                DropdownMenuItem(value: 'oldest', child: Text('Najstarije')),
+                DropdownMenuItem(value: 'rating', child: Text('Po ocjeni')),
+              ],
+              onChanged: (value) {
+                // TODO: Implement sorting
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'UČESNIK',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          'OCJENA',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          'RECENZIJA',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SizedBox(width: 40),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.rate_review, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'Recenzije',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Not implemented yet',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Prethodna'),
+            ),
+            Row(
+              children: [
+                _buildPageButton(1, true),
+                _buildPageButton(2, false),
+                _buildPageButton(3, false),
+                const Text('...'),
+                _buildPageButton(6, false),
+                _buildPageButton(7, false),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: () {},
+              label: const Text('Sljedeća'),
+              icon: const Icon(Icons.arrow_forward),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text('Prikazano 10 od 64', style: TextStyle(color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildPageButton(int page, bool isActive) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: CircleAvatar(
+        radius: 16,
+        backgroundColor: isActive
+            ? const Color(0xFF4F8055)
+            : Colors.grey.shade300,
+        child: Text(
+          page.toString(),
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    // Only show action buttons if user owns the activity or is admin
+    if (!_canStartOrFinish) {
+      return const SizedBox.shrink();
+    }
+
+    // Determine which buttons to show based on activity state
+    final activityState = _activity?.activityState ?? '';
+
+    switch (activityState) {
+      case 'DraftActivityState':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _onActivateActivity,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Otvori registracije'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              onPressed: _onCancelActivity,
+              icon: const Icon(Icons.cancel),
+              label: const Text('Otkaži aktivnost'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 'ActiveActivityState':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _onCloseRegistrations,
+              icon: const Icon(Icons.lock),
+              label: const Text('Zatvori registracije'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              onPressed: _onCancelActivity,
+              icon: const Icon(Icons.cancel),
+              label: const Text('Otkaži aktivnost'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 'RegistrationsClosedActivityState':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _onFinishActivity,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Završi aktivnost'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              onPressed: _onCancelActivity,
+              icon: const Icon(Icons.cancel),
+              label: const Text('Otkaži aktivnost'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 'FinishedActivityState':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _onWriteSummary,
+              icon: const Icon(Icons.edit_note),
+              label: Text(_activity?.summary.isNotEmpty == true 
+                  ? 'Uredi sažetak' 
+                  : 'Napiši sažetak'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Future<void> _onCloseRegistrations() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Zatvori registracije'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jeste li sigurni da želite zatvoriti registracije za ovu aktivnost?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Novi učesnici se neće moći prijaviti'),
+            Text('• Aktivnost se ne može više uređivati'),
+            Text('• Možete završiti aktivnost kada se održi'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Zatvori registracije'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.closeRegistrations(
+          _activity!.id,
+        );
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Registracije su zatvorene. Aktivnost je sada u fazi zatvorenih registracija.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onActivateActivity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Otvori registracije'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jeste li sigurni da želite otvoriti registracije za ovu aktivnost?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Učesnici se mogu prijaviti na aktivnost'),
+            Text('• Aktivnost se može uređivati'),
+            Text('• Možete zatvoriti registracije kada želite'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Otvori registracije'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.activate(_activity!.id);
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Aktivnost je aktivirana. Registracije su sada otvorene.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onFinishActivity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Završi aktivnost'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jeste li sigurni da želite završiti ovu aktivnost?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Aktivnost se ne može više uređivati'),
+            Text('• Učesnici mogu dodavati recenzije i fotografije'),
+            Text('• Možete napisati sažetak aktivnosti'),
+            Text('• Ova akcija je nepovratna'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Završi aktivnost'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.finish(_activity!.id);
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Aktivnost je završena. Sada možete dodavati recenzije i fotografije.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onCancelActivity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Otkaži aktivnost'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jeste li sigurni da želite otkazati aktivnost "${_activity?.title}"?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Posljedice:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('• Aktivnost se ne može više uređivati'),
+            const Text('• Učesnici neće moći se prijaviti'),
+            const Text('• Aktivnost će biti označena kao otkazana'),
+            const Text('• Ova akcija je nepovratna'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Otkaži aktivnost'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.deactivate(
+          _activity!.id,
+        );
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Aktivnost je otkazana.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  void _onWriteSummary() {
+    _showSummaryDialog();
+  }
+
+  Future<void> _showSummaryDialog() async {
+    final summaryController = TextEditingController(text: _activity?.summary ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Napiši sažetak aktivnosti'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Podijeli svoje iskustvo i utiske sa aktivnosti. Ovo će biti vidljivo svim učesnicima.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: summaryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Sažetak aktivnosti',
+                    hintText: 'Napišite kako je prošla aktivnost...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 5,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Sažetak je obavezan';
+                    }
+                    if (value.trim().length > 2000) {
+                      return 'Sažetak može imati najviše 2000 karaktera';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  try {
+                    final updatedActivity = await _activityProvider.updateSummary(
+                      _activity!.id,
+                      summaryController.text.trim(),
+                    );
+                    setState(() {
+                      _activity = updatedActivity;
+                    });
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sažetak je sačuvan.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    showErrorSnackbar(context, e);
+                  }
+                }
+              },
+              child: const Text('Sačuvaj'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}

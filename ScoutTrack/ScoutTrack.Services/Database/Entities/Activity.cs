@@ -52,6 +52,7 @@ namespace ScoutTrack.Services.Database.Entities
         public ActivityType ActivityType { get; set; } = null!;
 
         public string ImagePath { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
 
         public ICollection<Member> Participants { get; set; } = new List<Member>();
         public ICollection<ActivityRegistration> Registrations { get; set; } = new List<ActivityRegistration>();
