@@ -18,14 +18,13 @@ import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_form_widgets.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_dialog_widgets.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/activity_form_fields.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -201,188 +200,18 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Pretraži aktivnosti...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedTroopId,
-                      decoration: const InputDecoration(
-                        labelText: 'Odred',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTroopId = value;
-                          if (value != null) {
-                            _showOnlyMyActivities = false;
-                          }
-                          currentPage = 1;
-                        });
-                        _fetchActivities();
-                      },
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Svi odredi"),
-                        ),
-                        ..._troops.map(
-                          (troop) => DropdownMenuItem(
-                            value: troop.id,
-                            child: Text(troop.name),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedActivityTypeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Tip aktivnosti',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedActivityTypeId = value;
-                          currentPage = 1;
-                        });
-                        _fetchActivities();
-                      },
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Svi tipovi"),
-                        ),
-                        ..._activityTypes.map(
-                          (type) => DropdownMenuItem(
-                            value: type.id,
-                            child: Text(type.name),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedSort,
-                      decoration: const InputDecoration(
-                        labelText: 'Sortiraj',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSort = value;
-                          currentPage = 1;
-                        });
-                        _fetchActivities();
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text('Bez sortiranja'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'title',
-                          child: Text('Naziv (A-Ž)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-title',
-                          child: Text('Naziv (Ž-A)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'startTime',
-                          child: Text('Vrijeme početka (najranije)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-startTime',
-                          child: Text('Vrijeme početka (najkasnije)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'endTime',
-                          child: Text('Vrijeme završetka (najranije)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-endTime',
-                          child: Text('Vrijeme završetka (najkasnije)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'memberCount',
-                          child: Text('Broj učesnika (najmanji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-memberCount',
-                          child: Text('Broj učesnika (najveći)'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                Expanded(flex: 3, child: _buildSearchField()),
+                Expanded(flex: 2, child: _buildTroopDropdown()),
+                Expanded(flex: 2, child: _buildActivityTypeDropdown()),
+                Expanded(flex: 2, child: _buildSortDropdown()),
                 if (_role == 'Admin' || _role == 'Troop')
                   Padding(
                     padding: const EdgeInsets.only(left: 12),
                     child: ElevatedButton.icon(
                       onPressed: _onAddActivity,
                       icon: const Icon(Icons.add),
-                      label: const Text(
-                        'Kreiraj aktivnost',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
-                        ),
-                        minimumSize: const Size(0, 48),
-                      ),
+                      label: const Text('Kreiraj aktivnost', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), minimumSize: const Size(0, 48)),
                     ),
                   ),
               ],
@@ -445,7 +274,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     if (confirm) {
       try {
         await _activityProvider.delete(activity.id);
-        await _fetchActivities();
+
+        // Check if we're on the last page and it's the last item
+        final currentItemsOnPage = _activities?.items?.length ?? 0;
+        final newTotalCount = (_activities?.totalCount ?? 0) - 1;
+        final newTotalPages = (newTotalCount / pageSize).ceil();
+
+        // If we're on the last page and deleting the last item, go to previous page
+        if (currentItemsOnPage == 1 && currentPage > 1) {
+          await _fetchActivities(page: currentPage - 1);
+        } else {
+          await _fetchActivities();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Aktivnost "${activity.title}" je obrisana.')),
         );
@@ -486,7 +327,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     final TextEditingController startTimeController = TextEditingController(
       text: activity?.startTime != null
           ? DateFormat('HH:mm').format(activity!.startTime!)
-          : null,
+          : '09:00',
     );
     final TextEditingController endDateController = TextEditingController(
       text: activity?.endTime != null
@@ -496,7 +337,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     final TextEditingController endTimeController = TextEditingController(
       text: activity?.endTime != null
           ? DateFormat('HH:mm').format(activity!.endTime!)
-          : null,
+          : '09:00',
     );
 
     int? selectedActivityTypeId = activity?.activityTypeId;
@@ -508,14 +349,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       activity?.longitude ?? 18.4131,
     );
 
-    // Equipment list
     List<String> equipmentList = [];
     List<TextEditingController> equipmentControllers = [];
     List<Equipment?> selectedEquipment = [];
     Set<int> newlyAddedEquipmentIds =
         {}; // Track newly added equipment for highlighting
 
-    // Load existing equipment if editing
     if (isEdit && activity != null) {
       try {
         final activityEquipmentProvider = ActivityEquipmentProvider(
@@ -545,7 +384,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       }
     }
 
-    // Image handling
     Uint8List? _selectedImageBytes;
     File? _selectedImageFile;
     String? _imagePath = activity?.imagePath;
@@ -554,7 +392,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
         initialDate: activity?.startTime ?? DateTime.now(),
+        minDate: DateTime.now(),
+        maxDate: DateTime.now().add(const Duration(days: 365)),
         title: 'Odaberite datum početka',
+        controller: startDateController,
       );
       if (picked != null) {
         setState(() {
@@ -568,7 +409,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         context: context,
         initialTime: activity?.startTime != null
             ? TimeOfDay.fromDateTime(activity!.startTime!)
-            : TimeOfDay.fromDateTime(DateTime.now()),
+            : const TimeOfDay(hour: 9, minute: 0),
       );
       if (picked != null) {
         setState(() {
@@ -582,7 +423,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
         initialDate: activity?.endTime ?? DateTime.now(),
+        minDate: DateTime.now(),
+        maxDate: DateTime.now().add(const Duration(days: 365)),
         title: 'Odaberite datum završetka',
+        controller: endDateController,
       );
       if (picked != null) {
         setState(() {
@@ -675,7 +519,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         '_addEquipmentItem received result: ${result?.runtimeType} - ${result?.toString()}',
       );
       if (result is Equipment) {
-        // Check if this equipment is already in the selectedEquipment list
         final alreadySelected = selectedEquipment.any(
           (eq) => eq?.id == result.id,
         );
@@ -1015,12 +858,24 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     decoration: const InputDecoration(
                                       labelText: 'Upišite naziv aktivnosti *',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
-                                    validator: (value) =>
-                                        FormValidationUtils.validateActivityTitle(
-                                          value,
-                                          'Naziv',
-                                        ),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Naziv je obavezan.';
+                                      }
+                                      if (value.length > 100) {
+                                        return 'Naziv ne smije imati više od 100 znakova.';
+                                      }
+                                      final regex = RegExp(
+                                        r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                      );
+                                      if (!regex.hasMatch(value.trim())) {
+                                        return 'Naziv može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                      }
+                                      return null;
+                                    },
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                   ),
@@ -1030,12 +885,24 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     decoration: const InputDecoration(
                                       labelText: 'Upišite naziv lokacije *',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
-                                    validator: (value) =>
-                                        FormValidationUtils.validateActivityLocationName(
-                                          value,
-                                          'Naziv lokacije',
-                                        ),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Naziv lokacije je obavezan.';
+                                      }
+                                      if (value.length > 200) {
+                                        return 'Naziv lokacije ne smije imati više od 200 znakova.';
+                                      }
+                                      final regex = RegExp(
+                                        r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                      );
+                                      if (!regex.hasMatch(value.trim())) {
+                                        return 'Naziv lokacije može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                      }
+                                      return null;
+                                    },
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                   ),
@@ -1104,6 +971,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                   Icons.calendar_today,
                                                 ),
                                                 border: OutlineInputBorder(),
+                                                errorMaxLines: 3,
                                               ),
                                               validator: (value) {
                                                 if (value == null ||
@@ -1130,6 +998,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                   Icons.access_time,
                                                 ),
                                                 border: OutlineInputBorder(),
+                                                errorMaxLines: 3,
                                               ),
                                               validator: (value) {
                                                 if (value == null ||
@@ -1160,6 +1029,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                   Icons.calendar_today,
                                                 ),
                                                 border: OutlineInputBorder(),
+                                                errorMaxLines: 3,
                                               ),
                                               validator: (value) {
                                                 if (value == null ||
@@ -1186,6 +1056,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                   Icons.access_time,
                                                 ),
                                                 border: OutlineInputBorder(),
+                                                errorMaxLines: 3,
                                               ),
                                               validator: (value) {
                                                 if (value == null ||
@@ -1208,13 +1079,15 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       labelText: 'Kratak opis aktivnosti',
                                       hintText: 'Napišite nešto...',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
                                     maxLines: 3,
-                                    validator: (value) =>
-                                        FormValidationUtils.validateActivityDescription(
-                                          value,
-                                          'Opis',
-                                        ),
+                                    validator: (value) {
+                                      if (value != null && value.length > 500) {
+                                        return 'Opis ne smije imati više od 500 znakova.';
+                                      }
+                                      return null;
+                                    },
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                   ),
@@ -1226,6 +1099,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       labelText: 'Kotizacija',
                                       suffixText: 'KM',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
                                     keyboardType: TextInputType.number,
                                     validator: (value) {
@@ -1247,6 +1121,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     decoration: const InputDecoration(
                                       labelText: 'Vidljivost događaja',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
                                     items: const [
                                       DropdownMenuItem(
@@ -1272,6 +1147,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       labelText:
                                           'Odaberite osnovni tip aktivnosti *',
                                       border: OutlineInputBorder(),
+                                      errorMaxLines: 3,
                                     ),
                                     items: _activityTypes
                                         .map(
@@ -1281,11 +1157,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                           ),
                                         )
                                         .toList(),
-                                    validator: (value) =>
-                                        FormValidationUtils.validateDropdown(
-                                          value,
-                                          'Tip aktivnosti',
-                                        ),
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Tip aktivnosti je obavezan.';
+                                      }
+                                      return null;
+                                    },
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                     onChanged: (val) {
@@ -1302,6 +1179,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Odred *',
                                         border: OutlineInputBorder(),
+                                        errorMaxLines: 3,
                                       ),
                                       items: _troops
                                           .map(
@@ -1311,11 +1189,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             ),
                                           )
                                           .toList(),
-                                      validator: (value) =>
-                                          FormValidationUtils.validateDropdown(
-                                            value,
-                                            'Odred',
-                                          ),
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return 'Odred je obavezan.';
+                                        }
+                                        return null;
+                                      },
                                       onChanged: (val) {
                                         setState(() {
                                           selectedTroopId = val;
@@ -1380,6 +1259,38 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     endDateController.text,
                                     endTimeController.text,
                                   );
+
+                                  final now = DateTime.now();
+                                  final nowRounded = DateTime(
+                                    now.year,
+                                    now.month,
+                                    now.day,
+                                    now.hour,
+                                    now.minute,
+                                  );
+                                  if (startDateTime.isBefore(nowRounded)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Vrijeme početka ne može biti u prošlosti.',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  if (endDateTime.isBefore(startDateTime)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Vrijeme završetka mora biti nakon vremena početka.',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
 
                                   final requestBody = {
                                     "title": titleController.text.trim(),
@@ -1463,7 +1374,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       ),
                                     );
                                   }
-                                  await _fetchActivities();
+                                  final newTotalCount =
+                                      (_activities?.totalCount ?? 0) + 1;
+                                  final newTotalPages =
+                                      (newTotalCount / pageSize).ceil();
+                                  await _fetchActivities(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);
@@ -1494,8 +1409,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         throw FormatException('Invalid date format: $dateStr');
       }
 
-      final month = int.parse(dateParts[0]);
-      final day = int.parse(dateParts[1]);
+      final day = int.parse(dateParts[0]);
+      final month = int.parse(dateParts[1]);
       final year = int.parse(dateParts[2]);
 
       final timeParts = timeStr.split(':');
@@ -1518,36 +1433,113 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String _getTroopName(int? troopId) {
     if (troopId == null) return 'Nepoznat odred';
     try {
-      return _troops
-          .firstWhere(
-            (t) => t.id == troopId,
-            orElse: () => Troop(
-              name: 'Nepoznat odred',
-              createdAt: DateTime.now(),
-              foundingDate: DateTime.now(),
-            ),
-          )
-          .name;
+      return _troops.firstWhere((t) => t.id == troopId, orElse: () => Troop(name: 'Nepoznat odred', createdAt: DateTime.now(), foundingDate: DateTime.now())).name;
     } catch (e) {
       return 'Nepoznat odred';
     }
   }
 
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: TextField(
+        controller: searchController,
+        decoration: const InputDecoration(
+          hintText: 'Pretraži aktivnosti...',
+          prefixIcon: Icon(Icons.search),
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTroopDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: DropdownButtonFormField<int?>(
+        value: _selectedTroopId,
+        decoration: const InputDecoration(labelText: 'Odred', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedTroopId = value;
+            if (value != null) _showOnlyMyActivities = false;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: [
+          const DropdownMenuItem(value: null, child: Text("Svi odredi")),
+          ..._troops.map((troop) => DropdownMenuItem(value: troop.id, child: Text(troop.name))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityTypeDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: DropdownButtonFormField<int?>(
+        value: _selectedActivityTypeId,
+        decoration: const InputDecoration(labelText: 'Tip aktivnosti', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedActivityTypeId = value;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: [
+          const DropdownMenuItem(value: null, child: Text("Svi tipovi")),
+          ..._activityTypes.map((type) => DropdownMenuItem(value: type.id, child: Text(type.name))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: DropdownButtonFormField<String?>(
+        value: _selectedSort,
+        decoration: const InputDecoration(labelText: 'Sortiraj', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedSort = value;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: const [
+          DropdownMenuItem(value: null, child: Text('Bez sortiranja')),
+          DropdownMenuItem(value: 'title', child: Text('Naziv (A-Ž)')),
+          DropdownMenuItem(value: '-title', child: Text('Naziv (Ž-A)')),
+          DropdownMenuItem(value: 'startTime', child: Text('Vrijeme početka (najranije)')),
+          DropdownMenuItem(value: '-startTime', child: Text('Vrijeme početka (najkasnije)')),
+          DropdownMenuItem(value: 'endTime', child: Text('Vrijeme završetka (najranije)')),
+          DropdownMenuItem(value: '-endTime', child: Text('Vrijeme završetka (najkasnije)')),
+          DropdownMenuItem(value: 'memberCount', child: Text('Broj učesnika (najmanji)')),
+          DropdownMenuItem(value: '-memberCount', child: Text('Broj učesnika (najveći)')),
+        ],
+      ),
+    );
+  }
+
   bool _canEditActivity(Activity activity) {
-    // Check if user has permission to edit
     final canEditOrDelete =
         _role == 'Admin' ||
         (_role == 'Troop' && _loggedInUserId == activity.troopId);
 
     if (!canEditOrDelete) return false;
 
-    // Check if activity state allows editing
-    // Only DraftActivityState allows editing
     return activity.activityState == 'DraftActivityState';
   }
 
   String _getEditDisabledReason(Activity activity) {
-    // Check if user has permission to edit
     final canEditOrDelete =
         _role == 'Admin' ||
         (_role == 'Troop' && _loggedInUserId == activity.troopId);
@@ -1556,7 +1548,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       return 'Nemate dozvolu za uređivanje ove aktivnosti';
     }
 
-    // Check activity state
     switch (activity.activityState) {
       case 'ActiveActivityState':
         return 'Aktivnost je aktivna i ne može se uređivati';
@@ -1574,20 +1565,16 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   bool _canDeleteActivity(Activity activity) {
-    // Check if user has permission to delete
     final canEditOrDelete =
         _role == 'Admin' ||
         (_role == 'Troop' && _loggedInUserId == activity.troopId);
 
     if (!canEditOrDelete) return false;
 
-    // For now, allow deletion in all states since the base CRUD service handles it
-    // But we could restrict it based on business rules if needed
     return true;
   }
 
   String _getDeleteDisabledReason(Activity activity) {
-    // Check if user has permission to delete
     final canEditOrDelete =
         _role == 'Admin' ||
         (_role == 'Troop' && _loggedInUserId == activity.troopId);
@@ -1596,105 +1583,28 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       return 'Nemate dozvolu za brisanje ove aktivnosti';
     }
 
-    // For now, deletion is allowed in all states
     return 'Aktivnost se može brisati';
   }
 
   Widget _buildActivityStateChip(String activityState) {
-    switch (activityState) {
-      case 'DraftActivityState':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Nacrt',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        );
-      case 'ActiveActivityState':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.green.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Aktivna',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.green,
-            ),
-          ),
-        );
-      case 'RegistrationsClosedActivityState':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Prijave zatvorene',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.orange,
-            ),
-          ),
-        );
-      case 'FinishedActivityState':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Završena',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.blue,
-            ),
-          ),
-        );
-      case 'CancelledActivityState':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.red.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Otkazana',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.red,
-            ),
-          ),
-        );
-      default:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            activityState,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        );
-    }
+    final stateConfig = {
+      'DraftActivityState': {'text': 'Nacrt', 'color': Colors.grey.shade300, 'textColor': Colors.black},
+      'ActiveActivityState': {'text': 'Aktivna', 'color': Colors.green.shade100, 'textColor': Colors.green},
+      'RegistrationsClosedActivityState': {'text': 'Prijave zatvorene', 'color': Colors.orange.shade100, 'textColor': Colors.orange},
+      'FinishedActivityState': {'text': 'Završena', 'color': Colors.blue.shade100, 'textColor': Colors.blue},
+      'CancelledActivityState': {'text': 'Otkazana', 'color': Colors.red.shade100, 'textColor': Colors.red},
+    };
+
+    final config = stateConfig[activityState] ?? {'text': activityState, 'color': Colors.grey.shade100, 'textColor': Colors.grey.shade600};
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: config['color'] as Color, borderRadius: BorderRadius.circular(12)),
+      child: Text(
+        config['text'] as String,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: config['textColor'] as Color),
+      ),
+    );
   }
 
   Future<void> _saveActivityEquipment(
@@ -1746,22 +1656,15 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     }
     if (_error != null) {
       return Center(
-        child: Text(
-          'Greška pri učitavanju: $_error',
-          style: const TextStyle(color: Colors.red),
-        ),
+        child: Text('Greška pri učitavanju: $_error', style: const TextStyle(color: Colors.red)),
       );
     }
-    if (_activities == null ||
-        _activities!.items == null ||
-        _activities!.items!.isEmpty) {
+    if (_activities?.items?.isEmpty ?? true) {
       return const Center(
-        child: Text(
-          'Nema dostupnih aktivnosti',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
+        child: Text('Nema dostupnih aktivnosti', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
       );
     }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Scrollbar(
@@ -1776,178 +1679,63 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 1200),
             child: DataTable(
-              headingRowColor: MaterialStateColor.resolveWith(
-                (states) => Colors.grey.shade100,
-              ),
+              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey.shade100),
               columnSpacing: 32,
               columns: const [
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('NAZIV'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('LOKACIJA'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('VRIJEME POČETKA'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('VRIJEME ZAVRŠETKA'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('ODRED'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('TIP'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('PRIVATNOST'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('STATUS'),
-                  ),
-                ),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('NAZIV'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('LOKACIJA'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('VRIJEME POČETKA'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('VRIJEME ZAVRŠETKA'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('ODRED'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('TIP'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('PRIVATNOST'))),
+                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('STATUS'))),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
               ],
-              rows: _activities!.items!.map((activity) {
-                final canEditOrDelete =
-                    _role == 'Admin' ||
-                    (_role == 'Troop' && _loggedInUserId == activity.troopId);
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(activity.title),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(activity.locationName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          activity.startTime != null
-                              ? formatDateTime(activity.startTime!)
-                              : '-',
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          activity.endTime != null
-                              ? formatDateTime(activity.endTime!)
-                              : '-',
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(activity.troopName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(activity.activityTypeName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: activity.isPrivate
-                            ? const Icon(
-                                Icons.lock,
-                                color: Colors.red,
-                                size: 16,
-                              )
-                            : const Icon(
-                                Icons.public,
-                                color: Colors.green,
-                                size: 16,
-                              ),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: _buildActivityStateChip(activity.activityState),
-                      ),
-                    ),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.visibility, color: Colors.grey),
-                        tooltip: 'Prikaži detalje',
-                        onPressed: () => _onViewActivity(activity),
-                      ),
-                    ),
-                    DataCell(
-                      _canEditActivity(activity)
-                          ? IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Uredi',
-                              onPressed: () => _onEditActivity(activity),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.grey),
-                              tooltip: _getEditDisabledReason(activity),
-                              onPressed: null,
-                            ),
-                    ),
-                    DataCell(
-                      _canDeleteActivity(activity)
-                          ? IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Obriši',
-                              onPressed: () => _onDeleteActivity(activity),
-                            )
-                          : IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                color: Colors.grey,
-                              ),
-                              tooltip: _getDeleteDisabledReason(activity),
-                              onPressed: null,
-                            ),
-                    ),
-                  ],
-                );
-              }).toList(),
+              rows: _activities!.items!.map((activity) => _buildActivityRow(activity)).toList(),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  DataRow _buildActivityRow(Activity activity) {
+    return DataRow(
+      cells: [
+        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.title))),
+        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.locationName))),
+        DataCell(Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(activity.startTime != null ? formatDateTime(activity.startTime!) : '-'),
+        )),
+        DataCell(Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(activity.endTime != null ? formatDateTime(activity.endTime!) : '-'),
+        )),
+        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.troopName))),
+        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.activityTypeName))),
+        DataCell(Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: activity.isPrivate
+              ? const Icon(Icons.lock, color: Colors.red, size: 16)
+              : const Icon(Icons.public, color: Colors.green, size: 16),
+        )),
+        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _buildActivityStateChip(activity.activityState))),
+        DataCell(IconButton(
+          icon: const Icon(Icons.visibility, color: Colors.grey),
+          tooltip: 'Prikaži detalje',
+          onPressed: () => _onViewActivity(activity),
+        )),
+        DataCell(_canEditActivity(activity)
+            ? IconButton(icon: const Icon(Icons.edit, color: Colors.blue), tooltip: 'Uredi', onPressed: () => _onEditActivity(activity))
+            : IconButton(icon: const Icon(Icons.edit, color: Colors.grey), tooltip: _getEditDisabledReason(activity), onPressed: null)),
+        DataCell(_canDeleteActivity(activity)
+            ? IconButton(icon: const Icon(Icons.delete, color: Colors.red), tooltip: 'Obriši', onPressed: () => _onDeleteActivity(activity))
+            : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), tooltip: _getDeleteDisabledReason(activity), onPressed: null)),
+      ],
     );
   }
 }

@@ -15,8 +15,25 @@ DateTime parseDate(dynamic dateInput) {
   } else if (dateInput is String) {
     if (dateInput.contains('.')) {
       final parts = dateInput.split('.');
-      return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-    } else {
+      if (parts.length >= 3) {
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      }
+    }
+    else if (dateInput.contains('/')) {
+      final parts = dateInput.split('/');
+      if (parts.length >= 3) {
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      }
+    }
+    else {
       return DateTime.parse(dateInput);
     }
   }

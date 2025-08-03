@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scouttrack_desktop/models/equipment.dart';
 import 'package:scouttrack_desktop/models/activity_equipment.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 
 class ActivityDialogWidgets {
   static Future<dynamic> showEquipmentSelectionDialog({
@@ -95,10 +95,12 @@ class ActivityDialogWidgets {
                 UIComponents.buildFormField(
                   controller: nameController,
                   labelText: 'Naziv opreme *',
-                  validator: (value) => FormValidationUtils.validateRequired(
-                    value,
-                    'Naziv opreme',
-                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Naziv opreme je obavezan';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 UIComponents.buildFormField(

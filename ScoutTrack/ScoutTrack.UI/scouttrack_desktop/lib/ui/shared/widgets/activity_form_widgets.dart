@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:scouttrack_desktop/models/equipment.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 
 class ActivityFormWidgets {
@@ -133,8 +132,12 @@ class ActivityFormWidgets {
           child: UIComponents.buildFormField(
             controller: TextEditingController(text: dateValue),
             labelText: '$label datum',
-            validator: (value) =>
-                FormValidationUtils.validateRequired(value, '$label datum'),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$label datum je obavezan';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(width: 16),
@@ -142,8 +145,12 @@ class ActivityFormWidgets {
           child: UIComponents.buildFormField(
             controller: TextEditingController(text: timeValue),
             labelText: '$label vrijeme',
-            validator: (value) =>
-                FormValidationUtils.validateRequired(value, '$label vrijeme'),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$label vrijeme je obavezno';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(width: 8),

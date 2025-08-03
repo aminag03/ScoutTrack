@@ -7,7 +7,7 @@ namespace ScoutTrack.Model.Requests
     {
         [Required]
         [MaxLength(100, ErrorMessage = "Title must not exceed 100 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9���掞����\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
+        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
         public string Title { get; set; } = string.Empty;
 
         [MaxLength(500, ErrorMessage = "Description must not exceed 500 characters.")]
@@ -16,6 +16,7 @@ namespace ScoutTrack.Model.Requests
         public bool isPrivate { get; set; }
 
         public DateTime? StartTime { get; set; }
+        
         public DateTime? EndTime { get; set; }
 
         [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90.")]
@@ -25,7 +26,7 @@ namespace ScoutTrack.Model.Requests
         public double Longitude { get; set; }
 
         [MaxLength(200, ErrorMessage = "Location name must not exceed 200 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9���掞����\s\-\']+$", ErrorMessage = "LocationName contains invalid characters.")]
+        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "LocationName contains invalid characters.")]
         public string LocationName { get; set; } = string.Empty;
 
         public int? CityId { get; set; }

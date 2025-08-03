@@ -7,7 +7,8 @@ namespace ScoutTrack.Model.Requests
     public class MemberInsertRequest
     {
         [Required]
-        [MaxLength(100)]
+        [MaxLength(50, ErrorMessage = "Username most not exceed 50 characters.")]
+        [RegularExpression(@"^[A-Za-z0-9_.]+$", ErrorMessage = "Username can only contain letters, numbers, dots, underscores, or hyphens.")]
         public string Username { get; set; } = string.Empty;
 
         [Required]
@@ -17,13 +18,16 @@ namespace ScoutTrack.Model.Requests
 
         [Required]
         [MaxLength(50)]
+        [RegularExpression(@"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$", ErrorMessage = "FirstName contains invalid characters.")]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]
+        [RegularExpression(@"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$", ErrorMessage = "LastName contains invalid characters.")]
         public string LastName { get; set; } = string.Empty;
 
         [Required]
+        [Range(1900, 2024, ErrorMessage = "Birth date must be between 1900 and current year.")]
         public DateTime BirthDate { get; set; }
 
         [Required]
@@ -45,7 +49,7 @@ namespace ScoutTrack.Model.Requests
 
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters long.")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$",
-        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
+            ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
         public string? Password { get; set; }
 
         public string PasswordConfirm { get; set; } = string.Empty;

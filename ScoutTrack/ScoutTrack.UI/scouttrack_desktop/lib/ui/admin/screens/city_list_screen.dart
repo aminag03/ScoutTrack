@@ -9,7 +9,7 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -213,40 +213,52 @@ class _CityListScreenState extends State<CityListScreen> {
             ),
             columnSpacing: 32,
             columns: const [
-              DataColumn(label: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('NAZIV'),
-              )),
-              DataColumn(label: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('VRIJEME KREIRANJA'),
-              )),
-              DataColumn(label: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('VRIJEME IZMJENE'),
-              )),
+              DataColumn(
+                label: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('NAZIV'),
+                ),
+              ),
+              DataColumn(
+                label: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('VRIJEME KREIRANJA'),
+                ),
+              ),
+              DataColumn(
+                label: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('VRIJEME IZMJENE'),
+                ),
+              ),
               DataColumn(label: Text('')),
               DataColumn(label: Text('')),
             ],
             rows: _cities!.items!.map((city) {
               return DataRow(
                 cells: [
-                  DataCell(Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(city.name),
-                  )),
-                  DataCell(Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(formatDateTime(city.createdAt)),
-                  )),
-                  DataCell(Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      city.updatedAt != null
-                          ? formatDateTime(city.updatedAt!)
-                          : '-',
+                  DataCell(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(city.name),
                     ),
-                  )),
+                  ),
+                  DataCell(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(formatDateTime(city.createdAt)),
+                    ),
+                  ),
+                  DataCell(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        city.updatedAt != null
+                            ? formatDateTime(city.updatedAt!)
+                            : '-',
+                      ),
+                    ),
+                  ),
                   DataCell(
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
@@ -275,7 +287,10 @@ class _CityListScreenState extends State<CityListScreen> {
     int safeTotalPages = totalPages > 0 ? totalPages : 1;
     int safeCurrentPage = currentPage > 0 ? currentPage : 1;
 
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(1, (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages));
+    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
+      1,
+      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
+    );
     int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
     List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
 
@@ -289,33 +304,47 @@ class _CityListScreenState extends State<CityListScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchCities(page: 1) : null,
+            onPressed: hasResults && safeCurrentPage > 1
+                ? () => _fetchCities(page: 1)
+                : null,
           ),
 
           TextButton(
-            onPressed: hasResults && safeCurrentPage > 1 ? () => _fetchCities(page: safeCurrentPage - 1) : null,
+            onPressed: hasResults && safeCurrentPage > 1
+                ? () => _fetchCities(page: safeCurrentPage - 1)
+                : null,
             child: const Text('Prethodna'),
           ),
 
-          ...pageNumbers.map((page) => TextButton(
-                onPressed: hasResults && page != safeCurrentPage ? () => _fetchCities(page: page) : null,
-                child: Text(
-                  '$page',
-                  style: TextStyle(
-                    fontWeight: page == safeCurrentPage ? FontWeight.bold : FontWeight.normal,
-                    color: page == safeCurrentPage ? Colors.blue : Colors.black,
-                  ),
+          ...pageNumbers.map(
+            (page) => TextButton(
+              onPressed: hasResults && page != safeCurrentPage
+                  ? () => _fetchCities(page: page)
+                  : null,
+              child: Text(
+                '$page',
+                style: TextStyle(
+                  fontWeight: page == safeCurrentPage
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
                 ),
-              )),
+              ),
+            ),
+          ),
 
           TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchCities(page: safeCurrentPage + 1) : null,
+            onPressed: hasResults && safeCurrentPage < safeTotalPages
+                ? () => _fetchCities(page: safeCurrentPage + 1)
+                : null,
             child: const Text('Sljedeća'),
           ),
 
           IconButton(
             icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages ? () => _fetchCities(page: safeTotalPages) : null,
+            onPressed: hasResults && safeCurrentPage < safeTotalPages
+                ? () => _fetchCities(page: safeTotalPages)
+                : null,
           ),
         ],
       ),
@@ -352,7 +381,19 @@ class _CityListScreenState extends State<CityListScreen> {
     if (confirm == true) {
       try {
         await _cityProvider.delete(city.id);
-        await _fetchCities();
+
+        // Check if we're on the last page and it's the last item
+        final currentItemsOnPage = _cities?.items?.length ?? 0;
+        final newTotalCount = (_cities?.totalCount ?? 0) - 1;
+        final newTotalPages = (newTotalCount / pageSize).ceil();
+
+        // If we're on the last page and deleting the last item, go to previous page
+        if (currentItemsOnPage == 1 && currentPage > 1) {
+          await _fetchCities(page: currentPage - 1);
+        } else {
+          await _fetchCities();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Grad ${city.name} je obrisan.')),
         );
@@ -364,10 +405,12 @@ class _CityListScreenState extends State<CityListScreen> {
 
   Future<void> _showCityDialog({City? city}) async {
     final _formKey = GlobalKey<FormState>();
-    final TextEditingController nameController = 
-        TextEditingController(text: city?.name ?? '');
-    
-    LatLng selectedLocation = (city?.latitude != null && city?.longitude != null)
+    final TextEditingController nameController = TextEditingController(
+      text: city?.name ?? '',
+    );
+
+    LatLng selectedLocation =
+        (city?.latitude != null && city?.longitude != null)
         ? LatLng(city!.latitude!, city.longitude!)
         : LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
 
@@ -380,23 +423,28 @@ class _CityListScreenState extends State<CityListScreen> {
           builder: (context, setState) {
             Future<void> _openMapPicker() async {
               final initialLocation = selectedLocation;
-              
+
               final result = await showDialog<Map<String, double>>(
                 context: context,
-                builder: (context) => MapPickerDialog(
-                  initialLocation: initialLocation,
-                ),
+                builder: (context) =>
+                    MapPickerDialog(initialLocation: initialLocation),
               );
 
               if (result != null) {
                 setState(() {
-                  selectedLocation = LatLng(result['latitude']!, result['longitude']!);
+                  selectedLocation = LatLng(
+                    result['latitude']!,
+                    result['longitude']!,
+                  );
                 });
               }
             }
 
             return Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: 800,
@@ -410,7 +458,10 @@ class _CityListScreenState extends State<CityListScreen> {
                     children: [
                       Text(
                         isEdit ? 'Uredi grad' : 'Dodaj grad',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Form(
@@ -419,10 +470,26 @@ class _CityListScreenState extends State<CityListScreen> {
                           children: [
                             TextFormField(
                               controller: nameController,
-                              decoration: const InputDecoration(labelText: 'Naziv'),
-                              validator: (value) =>
-                                  FormValidationUtils.validateCityName(value, 'Naziv'),
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              decoration: const InputDecoration(
+                                labelText: 'Naziv',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Naziv je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Naziv ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Naziv grada može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 24),
                             const Text(
@@ -440,7 +507,9 @@ class _CityListScreenState extends State<CityListScreen> {
                               height: 300,
                               child: FlutterMap(
                                 options: MapOptions(
-                                  center: selectedLocation ?? const LatLng(43.8563, 18.4131),
+                                  center:
+                                      selectedLocation ??
+                                      const LatLng(43.8563, 18.4131),
                                   zoom: selectedLocation != null ? 10 : 6,
                                   onTap: (tapPosition, point) {
                                     setState(() {
@@ -450,8 +519,10 @@ class _CityListScreenState extends State<CityListScreen> {
                                 ),
                                 children: [
                                   TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.scouttrack_desktop',
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.scouttrack_desktop',
                                   ),
                                   if (selectedLocation != null)
                                     MarkerLayer(
@@ -488,7 +559,11 @@ class _CityListScreenState extends State<CityListScreen> {
                               if (_formKey.currentState?.validate() ?? false) {
                                 if (selectedLocation == null) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Molimo odaberite lokaciju na mapi')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Molimo odaberite lokaciju na mapi',
+                                      ),
+                                    ),
                                   );
                                   return;
                                 }
@@ -499,19 +574,33 @@ class _CityListScreenState extends State<CityListScreen> {
                                     "latitude": selectedLocation!.latitude,
                                     "longitude": selectedLocation!.longitude,
                                   };
-                                  
+
                                   if (isEdit) {
-                                    await _cityProvider.update(city!.id, requestBody);
+                                    await _cityProvider.update(
+                                      city!.id,
+                                      requestBody,
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Grad "${city.name}" je ažuriran.')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Grad "${city.name}" je ažuriran.',
+                                        ),
+                                      ),
                                     );
                                   } else {
                                     await _cityProvider.insert(requestBody);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Grad je dodan.')),
+                                      const SnackBar(
+                                        content: Text('Grad je dodan.'),
+                                      ),
                                     );
                                   }
-                                  await _fetchCities();
+                                  // After adding a new city, go to the last page to show it
+                                  final newTotalCount =
+                                      (_cities?.totalCount ?? 0) + 1;
+                                  final newTotalPages =
+                                      (newTotalCount / pageSize).ceil();
+                                  await _fetchCities(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

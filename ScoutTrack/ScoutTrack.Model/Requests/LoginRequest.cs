@@ -11,7 +11,7 @@ namespace ScoutTrack.Model.Requests
         [MinLength(2)]
         public string UsernameOrEmail { get; set; } = string.Empty;
         [Required]
-        [MinLength(6)]
+        [MinLength(8)]
         public string Password { get; set; } = string.Empty;
     }
 }

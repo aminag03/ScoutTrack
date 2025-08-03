@@ -13,7 +13,7 @@ import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -192,6 +192,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         minDate: DateTime(1907),
         maxDate: DateTime.now(),
         title: 'Odaberite datum osnivanja',
+        controller: foundingDateController,
       );
 
       if (picked != null) {
@@ -269,12 +270,23 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: nameController,
                               decoration: const InputDecoration(
                                 labelText: 'Naziv *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopName(
-                                    value,
-                                    'Naziv',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Naziv je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Naziv ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Naziv može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -283,9 +295,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: usernameController,
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateUsername(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke, donje crte ili crtice.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -294,9 +319,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: emailController,
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateEmail(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'E-mail ne smije imati više od 100 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -305,9 +343,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: contactPhoneController,
                               decoration: const InputDecoration(
                                 labelText: 'Kontakt telefon *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validatePhone(value),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Telefon je obavezan.';
+                                }
+                                if (value.length > 20) {
+                                  return 'Telefon ne smije imati više od 20 znakova.';
+                                }
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -316,12 +367,23 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: scoutMasterController,
                               decoration: const InputDecoration(
                                 labelText: 'Starješina *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopPersonName(
-                                    value,
-                                    'Ime i prezime starješine',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime starješine je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime starješine ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime starješine može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -330,12 +392,18 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: troopLeaderController,
                               decoration: const InputDecoration(
                                 labelText: 'Načelnik *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopPersonName(
-                                    value,
-                                    'Ime i prezime načelnika',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime načelnika je obavezno';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime načelnika ne smije biti duže od 100 znakova';
+                                }
+
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -344,6 +412,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               controller: foundingDateController,
                               decoration: const InputDecoration(
                                 labelText: 'Datum osnivanja *',
+                                errorMaxLines: 3,
                                 suffixIcon: Icon(Icons.calendar_today),
                               ),
                               readOnly: true,
@@ -359,6 +428,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               value: selectedCityId,
                               decoration: const InputDecoration(
                                 labelText: 'Grad *',
+                                errorMaxLines: 3,
                               ),
                               items: _cities
                                   .map(
@@ -368,11 +438,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                     ),
                                   )
                                   .toList(),
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Grad',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Grad je obavezan';
+                                }
+                                return null;
+                              },
                               onChanged: (val) {
                                 setState(() {
                                   selectedCityId = val;

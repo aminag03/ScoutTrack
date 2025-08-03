@@ -15,7 +15,7 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:image_picker/image_picker.dart';
@@ -470,7 +470,19 @@ class _MemberListScreenState extends State<MemberListScreen> {
     if (confirm) {
       try {
         await _memberProvider.delete(member.id);
-        await _fetchMembers();
+
+        // Check if we're on the last page and it's the last item
+        final currentItemsOnPage = _members?.items?.length ?? 0;
+        final newTotalCount = (_members?.totalCount ?? 0) - 1;
+        final newTotalPages = (newTotalCount / pageSize).ceil();
+
+        // If we're on the last page and deleting the last item, go to previous page
+        if (currentItemsOnPage == 1 && currentPage > 1) {
+          await _fetchMembers(page: currentPage - 1);
+        } else {
+          await _fetchMembers();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -513,7 +525,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
       text: member?.email ?? '',
     );
     final TextEditingController passwordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
     final TextEditingController contactPhoneController = TextEditingController(
       text: member?.contactPhone ?? '',
     );
@@ -540,6 +553,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         minDate: DateTime(1900),
         maxDate: DateTime.now(),
         title: 'Odaberite datum rođenja',
+        controller: birthDateController,
       );
       if (picked != null) {
         setState(() {
@@ -717,40 +731,98 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               controller: firstNameController,
                               decoration: const InputDecoration(
                                 labelText: 'Ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateMemberName(value, 'Ime'),
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime je obavezan.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Ime ne smije imati više od 50 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: lastNameController,
                               decoration: const InputDecoration(
                                 labelText: 'Prezime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateMemberName(value, 'Prezime'),  
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Prezime je obavezan.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Prezime ne smije imati više od 50 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Prezime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: usernameController,
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateUsername(value),
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke, donje crte ili crtice.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: emailController,
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateEmail(value),
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'E-mail ne smije imati više od 100 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 12),
                             if (!isEdit) ...[
@@ -759,6 +831,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 obscureText: !passwordVisible,
                                 decoration: InputDecoration(
                                   labelText: 'Lozinka *',
+                                  errorMaxLines: 3,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       passwordVisible
@@ -767,15 +840,27 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        passwordVisible =
-                                            !passwordVisible;
+                                        passwordVisible = !passwordVisible;
                                       });
                                     },
                                   ),
                                 ),
-                                validator: (value) =>
-                                    FormValidationUtils.validatePassword(value),
-                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Lozinka je obavezna.';
+                                  }
+                                  if (value.length < 8) {
+                                    return 'Lozinka mora imati najmanje 8 znakova.';
+                                  }
+                                  if (!RegExp(
+                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
+                                  ).hasMatch(value)) {
+                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                                  }
+                                  return null;
+                                },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
@@ -785,6 +870,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 obscureText: !confirmPasswordVisible,
                                 decoration: InputDecoration(
                                   labelText: 'Potvrdi lozinku *',
+                                  errorMaxLines: 3,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       confirmPasswordVisible
@@ -802,7 +888,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 validator: (v) => v != passwordController.text
                                     ? 'Lozinke se ne poklapaju'
                                     : null,
-                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
@@ -810,9 +897,22 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               controller: contactPhoneController,
                               decoration: const InputDecoration(
                                 labelText: 'Telefon *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validatePhone(value),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Telefon je obavezan.';
+                                }
+                                if (value.length > 20) {
+                                  return 'Telefon ne smije imati više od 20 znakova.';
+                                }
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -824,6 +924,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                   controller: birthDateController,
                                   decoration: const InputDecoration(
                                     labelText: 'Datum rođenja *',
+                                    errorMaxLines: 3,
                                     suffixIcon: Icon(Icons.calendar_today),
                                   ),
                                   validator: (value) =>
@@ -840,6 +941,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               value: selectedGender,
                               decoration: const InputDecoration(
                                 labelText: 'Spol *',
+                                errorMaxLines: 3,
                               ),
                               items: const [
                                 DropdownMenuItem(
@@ -851,11 +953,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                   child: Text('Ženski'),
                                 ),
                               ],
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Spol',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Spol je obavezan.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -869,6 +972,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               value: selectedCityId,
                               decoration: const InputDecoration(
                                 labelText: 'Grad *',
+                                errorMaxLines: 3,
                               ),
                               items: _cities
                                   .map(
@@ -878,11 +982,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     ),
                                   )
                                   .toList(),
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Grad',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Grad je obavezan.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -897,6 +1002,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 value: selectedTroopId,
                                 decoration: const InputDecoration(
                                   labelText: 'Odred *',
+                                  errorMaxLines: 3,
                                 ),
                                 items: _troops
                                     .map(
@@ -906,11 +1012,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       ),
                                     )
                                     .toList(),
-                                validator: (value) =>
-                                    FormValidationUtils.validateDropdown(
-                                      value,
-                                      'Odred',
-                                    ),
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Odred je obavezan.';
+                                  }
+                                  return null;
+                                },
                                 onChanged: (val) {
                                   setState(() {
                                     selectedTroopId = val;
@@ -975,8 +1082,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       "password": passwordController.text
                                           .trim(),
                                     if (!isEdit)
-                                      "confirmPassword": confirmPasswordController.text
-                                          .trim(),
+                                      "confirmPassword":
+                                          confirmPasswordController.text.trim(),
                                     "contactPhone": contactPhoneController.text
                                         .trim(),
                                     "birthDate": parseDate(
@@ -1008,7 +1115,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       ),
                                     );
                                   }
-                                  await _fetchMembers();
+                                  // After adding a new member, go to the last page to show it
+                                  final newTotalCount =
+                                      (_members?.totalCount ?? 0) + 1;
+                                  final newTotalPages =
+                                      (newTotalCount / pageSize).ceil();
+                                  await _fetchMembers(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

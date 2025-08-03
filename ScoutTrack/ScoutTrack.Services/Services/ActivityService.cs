@@ -68,11 +68,11 @@ namespace ScoutTrack.Services
 
                 if (orderBy.Equals("memberCount", StringComparison.OrdinalIgnoreCase))
                 {
-                    responseList = responseList.OrderBy(x => x.MemberCount).ToList();
+                    responseList = responseList.OrderBy(x => x.RegistrationCount).ToList();
                 }
                 else if (orderBy.Equals("-memberCount", StringComparison.OrdinalIgnoreCase))
                 {
-                    responseList = responseList.OrderByDescending(x => x.MemberCount).ToList();
+                    responseList = responseList.OrderByDescending(x => x.RegistrationCount).ToList();
                 }
                 else
                 {
@@ -363,7 +363,7 @@ namespace ScoutTrack.Services
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 ActivityState = entity.ActivityState,
-                MemberCount = _context.ActivityRegistrations.Count(ar => ar.ActivityId == entity.Id),
+                RegistrationCount = _context.ActivityRegistrations.Count(ar => ar.ActivityId == entity.Id),
                 ImagePath = entity.ImagePath,
             };
         }

@@ -1,48 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:intl/intl.dart';
 
 class DatePickerUtils {
-  /// Shows a date picker dialog using SfDateRangePicker
   static Future<DateTime?> showDatePickerDialog({
     required BuildContext context,
     required DateTime initialDate,
     DateTime? minDate,
     DateTime? maxDate,
     String title = 'Odaberite datum',
+    TextEditingController? controller,
   }) async {
+    DateTime? selectedDate = initialDate;
+    
+    if (controller != null && controller.text.isNotEmpty) {
+      try {
+        final parsedDate = parseDate(controller.text);
+        selectedDate = parsedDate;
+      } catch (e) {
+        selectedDate = initialDate;
+      }
+    } else if (controller != null) {
+      selectedDate = initialDate;
+    }
+
     final DateTime? picked = await showDialog<DateTime>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SizedBox(
-          width: 300,
-          height: 400,
-          child: SfDateRangePicker(
-            initialSelectedDate: initialDate,
-            minDate: minDate ?? DateTime(1900),
-            maxDate: maxDate ?? DateTime.now(),
-            selectionMode: DateRangePickerSelectionMode.single,
-            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-              if (args.value is DateTime) {
-                Navigator.pop(context, args.value as DateTime);
-              }
-            },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: 300,
+            height: 400,
+            child: SfDateRangePicker(
+              initialSelectedDate: selectedDate,
+              minDate: minDate ?? DateTime(1900),
+              maxDate: maxDate ?? DateTime.now(),
+              selectionMode: DateRangePickerSelectionMode.single,
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                if (args.value is DateTime) {
+                  setState(() {
+                    selectedDate = args.value as DateTime;
+                  });
+                }
+              },
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Odustani'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, selectedDate),
+              child: const Text('Sačuvaj'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Odustani'),
-          ),
-        ],
       ),
     );
 
     return picked;
   }
 
-  /// Shows a date picker dialog using Flutter's built-in showDatePicker
   static Future<DateTime?> showFlutterDatePicker({
     required BuildContext context,
     required DateTime initialDate,
@@ -59,7 +80,6 @@ class DatePickerUtils {
     return picked;
   }
 
-  /// Creates a date picker form field with calendar icon
   static Widget createDatePickerField({
     required TextEditingController controller,
     required String labelText,
@@ -84,7 +104,6 @@ class DatePickerUtils {
     );
   }
 
-  /// Shows a date picker and updates the controller with formatted date
   static Future<void> showDatePickerAndUpdate({
     required BuildContext context,
     required TextEditingController controller,
@@ -100,6 +119,7 @@ class DatePickerUtils {
       minDate: minDate,
       maxDate: maxDate,
       title: title,
+      controller: controller,
     );
 
     if (picked != null) {
@@ -109,7 +129,6 @@ class DatePickerUtils {
     }
   }
 
-  /// Validates if a date string is not empty
   static String? validateRequiredDate(String? value) {
     if (value == null || value.isEmpty) {
       return 'Datum je obavezan.';
@@ -117,7 +136,6 @@ class DatePickerUtils {
     return null;
   }
 
-  /// Validates if a date is within a specific range
   static String? validateDateRange(
     String? value,
     DateTime? minDate,
@@ -140,5 +158,24 @@ class DatePickerUtils {
     }
 
     return null;
+  }
+
+  static Future<DateTime?> showDatePickerWithController({
+    required BuildContext context,
+    required TextEditingController controller,
+    DateTime? minDate,
+    DateTime? maxDate,
+    String title = 'Odaberite datum',
+    DateTime? fallbackDate,
+  }) async {
+    final defaultDate = fallbackDate ?? DateTime.now();
+    return await showDatePickerDialog(
+      context: context,
+      initialDate: defaultDate,
+      minDate: minDate,
+      maxDate: maxDate,
+      title: title,
+      controller: controller,
+    );
   }
 }

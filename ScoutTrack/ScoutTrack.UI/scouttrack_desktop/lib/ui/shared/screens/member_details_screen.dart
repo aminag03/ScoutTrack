@@ -12,7 +12,7 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -222,9 +222,23 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               controller: firstNameController,
                               decoration: const InputDecoration(
                                 labelText: 'Ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateMemberName(value, 'Ime'), 
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Ime ne smije imati više od 50 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -233,9 +247,23 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               controller: lastNameController,
                               decoration: const InputDecoration(
                                 labelText: 'Prezime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateMemberName(value, 'Prezime'), 
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Prezime je obavezan.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Prezime ne smije imati više od 50 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Prezime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -244,9 +272,22 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               controller: usernameController,
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateUsername(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke, donje crte ili crtice.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -255,9 +296,22 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               controller: emailController,
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateEmail(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'E-mail ne smije imati više od 100 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -266,9 +320,22 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               controller: contactPhoneController,
                               decoration: const InputDecoration(
                                 labelText: 'Telefon *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validatePhone(value),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Telefon je obavezan.';
+                                }
+                                if (value.length > 20) {
+                                  return 'Telefon ne smije imati više od 20 znakova.';
+                                }
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -280,6 +347,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   controller: birthDateController,
                                   decoration: const InputDecoration(
                                     labelText: 'Datum rođenja *',
+                                    errorMaxLines: 3,
                                     suffixIcon: Icon(Icons.calendar_today),
                                   ),
                                   validator: (value) =>
@@ -296,6 +364,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               value: selectedGender,
                               decoration: const InputDecoration(
                                 labelText: 'Spol *',
+                                errorMaxLines: 3,
                               ),
                               items: const [
                                 DropdownMenuItem(
@@ -307,11 +376,12 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   child: Text('Ženski'),
                                 ),
                               ],
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Spol',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Spol je obavezan.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -325,6 +395,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                               value: selectedCityId,
                               decoration: const InputDecoration(
                                 labelText: 'Grad *',
+                                errorMaxLines: 3,
                               ),
                               items: _cities
                                   .map(
@@ -334,11 +405,12 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                     ),
                                   )
                                   .toList(),
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Grad',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Grad je obavezan.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -353,6 +425,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                 value: selectedTroopId,
                                 decoration: const InputDecoration(
                                   labelText: 'Odred *',
+                                  errorMaxLines: 3,
                                 ),
                                 items: _troops
                                     .map(
@@ -362,11 +435,12 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                       ),
                                     )
                                     .toList(),
-                                validator: (value) =>
-                                    FormValidationUtils.validateDropdown(
-                                      value,
-                                      'Odred',
-                                    ),
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Odred je obavezan.';
+                                  }
+                                  return null;
+                                },
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
                                 onChanged: (val) {

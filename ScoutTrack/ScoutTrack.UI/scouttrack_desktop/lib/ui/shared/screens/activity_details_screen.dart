@@ -53,7 +53,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   String _formatActivityState(String state) {
     switch (state) {
       case 'DraftActivityState':
-        return 'Draft';
+        return 'Nacrt';
       case 'ActiveActivityState':
         return 'Aktivna';
       case 'RegistrationsClosedActivityState':

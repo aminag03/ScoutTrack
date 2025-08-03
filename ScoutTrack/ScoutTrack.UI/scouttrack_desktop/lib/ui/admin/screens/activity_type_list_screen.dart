@@ -8,7 +8,6 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 
 class ActivityTypeListScreen extends StatefulWidget {
   const ActivityTypeListScreen({super.key});
@@ -396,7 +395,19 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
     if (confirm == true) {
       try {
         await _activityTypeProvider.delete(activityType.id);
-        await _fetchActivityTypes();
+
+        // Check if we're on the last page and it's the last item
+        final currentItemsOnPage = _activityTypes?.items?.length ?? 0;
+        final newTotalCount = (_activityTypes?.totalCount ?? 0) - 1;
+        final newTotalPages = (newTotalCount / pageSize).ceil();
+
+        // If we're on the last page and deleting the last item, go to previous page
+        if (currentItemsOnPage == 1 && currentPage > 1) {
+          await _fetchActivityTypes(page: currentPage - 1);
+        } else {
+          await _fetchActivityTypes();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Tip aktivnosti ${activityType.name} je obrisan.'),
@@ -453,8 +464,21 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                         TextFormField(
                           controller: nameController,
                           decoration: const InputDecoration(labelText: 'Naziv'),
-                          validator: (value) =>
-                              FormValidationUtils.validateActivityTypeName(value, 'Naziv'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Naziv je obavezan.';
+                            }
+                            if (value.length > 100) {
+                              return 'Naziv ne smije imati više od 100 znakova.';
+                            }
+                            final regex = RegExp(
+                              r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                            );
+                            if (!regex.hasMatch(value.trim())) {
+                              return 'Naziv može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                            }
+                            return null;
+                          },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 16),
@@ -462,8 +486,12 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                           controller: descriptionController,
                           decoration: const InputDecoration(labelText: 'Opis'),
                           maxLines: 3,
-                          validator: (value) =>
-                              FormValidationUtils.validateActivityTypeDescription(value, 'Opis'),
+                          validator: (value) {
+                            if (value != null && value.length > 500) {
+                              return 'Opis ne smije imati više od 500 znakova.';
+                            }
+                            return null;
+                          },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],
@@ -508,7 +536,12 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                                   ),
                                 );
                               }
-                              await _fetchActivityTypes();
+                              // After adding a new activity type, go to the last page to show it
+                              final newTotalCount =
+                                  (_activityTypes?.totalCount ?? 0) + 1;
+                              final newTotalPages = (newTotalCount / pageSize)
+                                  .ceil();
+                              await _fetchActivityTypes(page: newTotalPages);
                               Navigator.of(context).pop();
                             } catch (e) {
                               showErrorSnackbar(context, e);

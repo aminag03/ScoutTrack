@@ -5,7 +5,7 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/providers/admin_provider.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 
 class AdminDetailsScreen extends StatefulWidget {
@@ -57,8 +57,20 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Korisničko ime *',
                         ),
-                        validator: (value) =>
-                            FormValidationUtils.validateUsername(value),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Korisničko ime je obavezno.';
+                          }
+                          if (value.length > 50) {
+                            return 'Korisničko ime ne smije imati više od 50 znakova.';
+                          }
+                          if (!RegExp(
+                            r"^[A-Za-z0-9_.]+$",
+                          ).hasMatch(value.trim())) {
+                            return 'Korisničko ime može sadržavati samo slova, brojeve, tačke i donje crte.';
+                          }
+                          return null;
+                        },
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -67,8 +79,20 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                       child: TextFormField(
                         controller: emailController,
                         decoration: const InputDecoration(labelText: 'Email *'),
-                        validator: (value) =>
-                            FormValidationUtils.validateEmail(value),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'E-mail je obavezan.';
+                          }
+                          if (value.length > 100) {
+                            return 'E-mail ne smije imati više od 100 znakova.';
+                          }
+                          if (!RegExp(
+                            r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                          ).hasMatch(value.trim())) {
+                            return 'Unesite ispravan e-mail.';
+                          }
+                          return null;
+                        },
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -79,8 +103,21 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Puno ime *',
                         ),
-                        validator: (value) =>
-                            FormValidationUtils.validateName(value, 'Puno ime'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Puno ime je obavezan.';
+                          }
+                          if (value.length > 100) {
+                            return 'Puno ime ne smije imati više od 100 znakova.';
+                          }
+                          final regex = RegExp(
+                            r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                          );
+                          if (!regex.hasMatch(value.trim())) {
+                            return 'Puno ime može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                          }
+                          return null;
+                        },
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
@@ -219,8 +256,20 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                               },
                             ),
                           ),
-                          validator: (v) =>
-                              FormValidationUtils.validatePassword(v),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Lozinka je obavezna.';
+                            }
+                            if (v.length < 8) {
+                              return 'Lozinka mora imati najmanje 8 znakova.';
+                            }
+                            if (!RegExp(
+                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
+                            ).hasMatch(v)) {
+                              return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                            }
+                            return null;
+                          },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                         const SizedBox(height: 8),

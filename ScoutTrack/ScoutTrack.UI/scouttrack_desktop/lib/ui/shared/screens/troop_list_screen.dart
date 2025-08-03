@@ -17,7 +17,7 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
+
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -505,7 +505,19 @@ class _TroopListScreenState extends State<TroopListScreen> {
     if (confirm) {
       try {
         await _troopProvider.delete(troop.id);
-        await _fetchTroops();
+
+        // Check if we're on the last page and it's the last item
+        final currentItemsOnPage = _troops?.items?.length ?? 0;
+        final newTotalCount = (_troops?.totalCount ?? 0) - 1;
+        final newTotalPages = (newTotalCount / pageSize).ceil();
+
+        // If we're on the last page and deleting the last item, go to previous page
+        if (currentItemsOnPage == 1 && currentPage > 1) {
+          await _fetchTroops(page: currentPage - 1);
+        } else {
+          await _fetchTroops();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Odred ${troop.name} je obrisan.')),
         );
@@ -552,7 +564,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
       text: troop?.email ?? '',
     );
     final TextEditingController passwordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
     final TextEditingController contactPhoneController = TextEditingController(
       text: troop?.contactPhone ?? '',
     );
@@ -589,6 +602,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
         minDate: DateTime(1907),
         maxDate: DateTime.now(),
         title: 'Odaberite datum osnivanja',
+        controller: foundingDateController,
       );
 
       if (picked != null) {
@@ -702,12 +716,23 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: nameController,
                               decoration: const InputDecoration(
                                 labelText: 'Naziv *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopName(
-                                    value,
-                                    'Naziv',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Naziv je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Naziv ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Naziv može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -716,9 +741,22 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: usernameController,
                               decoration: const InputDecoration(
                                 labelText: 'Korisničko ime *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateUsername(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke, donje crte ili crtice.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -727,9 +765,22 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: emailController,
                               decoration: const InputDecoration(
                                 labelText: 'E-mail *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateEmail(value),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'E-mail ne smije imati više od 100 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -740,6 +791,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 obscureText: !passwordVisible,
                                 decoration: InputDecoration(
                                   labelText: 'Lozinka *',
+                                  errorMaxLines: 3,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       passwordVisible
@@ -748,14 +800,25 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        passwordVisible =
-                                            !passwordVisible;
+                                        passwordVisible = !passwordVisible;
                                       });
                                     },
                                   ),
                                 ),
-                                validator: (value) =>
-                                    FormValidationUtils.validatePassword(value),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Lozinka je obavezna.';
+                                  }
+                                  if (value.length < 8) {
+                                    return 'Lozinka mora imati najmanje 8 znakova.';
+                                  }
+                                  if (!RegExp(
+                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
+                                  ).hasMatch(value)) {
+                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                                  }
+                                  return null;
+                                },
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
                               ),
@@ -767,6 +830,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 obscureText: !confirmPasswordVisible,
                                 decoration: InputDecoration(
                                   labelText: 'Potvrdi lozinku *',
+                                  errorMaxLines: 3,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       confirmPasswordVisible
@@ -784,7 +848,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 validator: (v) => v != passwordController.text
                                     ? 'Lozinke se ne poklapaju'
                                     : null,
-                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
                               ),
                               const SizedBox(height: 12),
                             ],
@@ -792,9 +857,22 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: contactPhoneController,
                               decoration: const InputDecoration(
                                 labelText: 'Kontakt telefon *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validatePhone(value),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Telefon je obavezan.';
+                                }
+                                if (value.length > 20) {
+                                  return 'Telefon ne smije imati više od 20 znakova.';
+                                }
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -803,12 +881,23 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: scoutMasterController,
                               decoration: const InputDecoration(
                                 labelText: 'Starješina *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopPersonName(
-                                    value,
-                                    'Ime i prezime starješine',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime starješine je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime starješine ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime starješine može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -817,12 +906,23 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               controller: troopLeaderController,
                               decoration: const InputDecoration(
                                 labelText: 'Načelnik *',
+                                errorMaxLines: 3,
                               ),
-                              validator: (value) =>
-                                  FormValidationUtils.validateTroopPersonName(
-                                    value,
-                                    'Ime i prezime načelnika',
-                                  ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ime i prezime načelnika je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'Ime i prezime načelnika ne smije imati više od 100 znakova.';
+                                }
+                                final regex = RegExp(
+                                  r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
+                                );
+                                if (!regex.hasMatch(value.trim())) {
+                                  return 'Ime i prezime načelnika može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
@@ -839,6 +939,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                         controller: foundingDateController,
                                         decoration: InputDecoration(
                                           labelText: 'Datum osnivanja *',
+                                          errorMaxLines: 3,
                                           suffixIcon: Icon(
                                             Icons.calendar_today,
                                           ),
@@ -859,6 +960,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                               value: selectedCityId,
                               decoration: const InputDecoration(
                                 labelText: 'Grad *',
+                                errorMaxLines: 3,
                               ),
                               items: _cities
                                   .map(
@@ -868,11 +970,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     ),
                                   )
                                   .toList(),
-                              validator: (value) =>
-                                  FormValidationUtils.validateDropdown(
-                                    value,
-                                    'Grad',
-                                  ),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Grad je obavezan.';
+                                }
+                                return null;
+                              },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (val) {
@@ -1021,8 +1124,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                       "password": passwordController.text
                                           .trim(),
                                     if (!isEdit)
-                                      "confirmPassword": confirmPasswordController.text
-                                          .trim(),
+                                      "confirmPassword":
+                                          confirmPasswordController.text.trim(),
                                     "cityId": selectedCityId,
                                     "latitude": selectedLocation.latitude,
                                     "longitude": selectedLocation.longitude,
@@ -1070,7 +1173,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                     );
                                   }
 
-                                  await _fetchTroops();
+                                  // After adding a new troop, go to the last page to show it
+                                  final newTotalCount =
+                                      (_troops?.totalCount ?? 0) + 1;
+                                  final newTotalPages =
+                                      (newTotalCount / pageSize).ceil();
+                                  await _fetchTroops(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

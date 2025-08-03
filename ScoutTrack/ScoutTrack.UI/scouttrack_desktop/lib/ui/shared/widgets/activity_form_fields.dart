@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scouttrack_desktop/models/activity_type.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/form_validation_utils.dart';
 
 class ActivityFormFields {
   static List<Widget> buildMainFormFields({
@@ -23,24 +22,40 @@ class ActivityFormFields {
       UIComponents.buildFormField(
         controller: titleController,
         labelText: 'Upišite naziv aktivnosti',
-        validator: (value) =>
-            FormValidationUtils.validateName(value, 'Naziv') ??
-            FormValidationUtils.validateLength(value, 'Naziv', 100),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Naziv je obavezan';
+          }
+          if (value.length > 100) {
+            return 'Naziv ne smije biti duži od 100 znakova';
+          }
+          return null;
+        },
       ),
       const SizedBox(height: 16),
       UIComponents.buildFormField(
         controller: locationNameController,
         labelText: 'Upišite naziv lokacije',
-        validator: (value) =>
-            FormValidationUtils.validateName(value, 'Naziv lokacije') ??
-            FormValidationUtils.validateLength(value, 'Naziv lokacije', 100),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Naziv lokacije je obavezan';
+          }
+          if (value.length > 200) {
+            return 'Naziv lokacije ne smije biti duži od 200 znakova';
+          }
+          return null;
+        },
       ),
       const SizedBox(height: 16),
       UIComponents.buildFormField(
         controller: descriptionController,
         labelText: 'Opis aktivnosti',
-        validator: (value) =>
-            FormValidationUtils.validateLength(value, 'Opis', 500),
+        validator: (value) {
+          if (value != null && value.length > 500) {
+            return 'Opis ne smije biti duži od 500 znakova';
+          }
+          return null;
+        },
       ),
       const SizedBox(height: 16),
       UIComponents.buildFormField(
@@ -92,8 +107,12 @@ class ActivityFormFields {
           child: UIComponents.buildFormField(
             controller: dateController,
             labelText: '$label datum',
-            validator: (value) =>
-                FormValidationUtils.validateRequired(value, '$label datum'),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$label datum je obavezan';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(width: 16),
@@ -101,8 +120,12 @@ class ActivityFormFields {
           child: UIComponents.buildFormField(
             controller: timeController,
             labelText: '$label vrijeme',
-            validator: (value) =>
-                FormValidationUtils.validateRequired(value, '$label vrijeme'),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$label vrijeme je obavezno';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -156,8 +179,12 @@ class ActivityFormFields {
                   DropdownMenuItem<int>(value: type.id, child: Text(type.name)),
             )
             .toList(),
-        validator: (value) =>
-            FormValidationUtils.validateDropdown(value, 'Tip aktivnosti'),
+        validator: (value) {
+          if (value == null) {
+            return 'Tip aktivnosti je obavezan';
+          }
+          return null;
+        },
         autovalidateMode: AutovalidateMode.onUserInteraction,
         onChanged: onActivityTypeChanged,
       ),
@@ -170,8 +197,12 @@ class ActivityFormFields {
             border: OutlineInputBorder(),
           ),
           items: [],
-          validator: (value) =>
-              FormValidationUtils.validateDropdown(value, 'Odred'),
+          validator: (value) {
+            if (value == null) {
+              return 'Odred je obavezan';
+            }
+            return null;
+          },
           autovalidateMode: AutovalidateMode.onUserInteraction,
           onChanged: onTroopChanged,
         ),
