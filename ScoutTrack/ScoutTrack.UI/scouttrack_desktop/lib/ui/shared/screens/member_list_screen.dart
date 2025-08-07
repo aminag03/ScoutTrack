@@ -391,7 +391,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
               ],
             ),
             if (_role == 'Troop') ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Checkbox(
@@ -411,42 +411,51 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   ),
                   const Text(
                     'Prikaži samo moje članove',
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 14),
                   ),
                 ],
               ),
             ],
-            const SizedBox(height: 16),
-            Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            PaginationControls(
-              currentPage: currentPage,
-              totalPages: totalPages,
-              totalCount: _members?.totalCount ?? 0,
-              onPageChanged: (page) => _fetchMembers(page: page),
-            ),
-            if (_shouldShowNotificationButton()) ...[
-              const SizedBox(height: 16),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _onSendNotification,
-                  icon: const Icon(Icons.notifications),
-                  label: const Text(
-                    'Pošalji obavještenje prikazanim članovima',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _buildResultView()),
+                  const SizedBox(height: 4),
+                  PaginationControls(
+                    currentPage: currentPage,
+                    totalPages: totalPages,
+                    totalCount: _members?.totalCount ?? 0,
+                    onPageChanged: (page) => _fetchMembers(page: page),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
+                  if (_shouldShowNotificationButton()) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: _onSendNotification,
+                        icon: const Icon(Icons.notifications),
+                        label: const Text(
+                          'Pošalji obavještenje prikazanim članovima',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          minimumSize: const Size(0, 48),
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
-                    minimumSize: const Size(0, 48),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -1082,7 +1091,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       "password": passwordController.text
                                           .trim(),
                                     if (!isEdit)
-                                      "confirmPassword":
+                                      "passwordConfirm":
                                           confirmPasswordController.text.trim(),
                                     "contactPhone": contactPhoneController.text
                                         .trim(),
@@ -1271,157 +1280,172 @@ class _MemberListScreenState extends State<MemberListScreen> {
       );
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 4),
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
+        trackVisibility: true,
+        thickness: 8,
+        radius: const Radius.circular(4),
         child: SingleChildScrollView(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 1200),
-            child: DataTable(
-              headingRowColor: MaterialStateColor.resolveWith(
-                (states) => Colors.grey.shade100,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: DataTable(
+                headingRowColor: MaterialStateColor.resolveWith(
+                  (states) => Colors.grey.shade100,
+                ),
+                columnSpacing: 32,
+                columns: const [
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('IME'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('PREZIME'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('KORISNIČKO IME'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('GRAD'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('ODRED'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('DATUM ROĐENJA'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('SPOL'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('AKTIVAN'),
+                    ),
+                  ),
+                  DataColumn(label: Text('')),
+                  DataColumn(label: Text('')),
+                  DataColumn(label: Text('')),
+                ],
+                rows: _members!.items!.map((member) {
+                  final canEditOrDelete =
+                      _role == 'Admin' ||
+                      (_role == 'Troop' && _loggedInUserId == member.troopId);
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(member.firstName),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(member.lastName),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(member.username),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(member.cityName),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(_getTroopName(member.troopId)),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(formatDate(member.birthDate)),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(member.gender == 0 ? 'Muški' : 'Ženski'),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: member.isActive
+                              ? const Icon(Icons.check, color: Colors.green)
+                              : const Icon(Icons.close, color: Colors.red),
+                        ),
+                      ),
+                      DataCell(
+                        IconButton(
+                          icon: const Icon(
+                            Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          tooltip: 'Detalji',
+                          onPressed: () => _onViewMember(member),
+                        ),
+                      ),
+                      DataCell(
+                        canEditOrDelete
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                                tooltip: 'Uredi',
+                                onPressed: () => _onEditMember(member),
+                              )
+                            : const SizedBox(),
+                      ),
+                      DataCell(
+                        canEditOrDelete
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                tooltip: 'Obriši',
+                                onPressed: () => _onDeleteMember(member),
+                              )
+                            : const SizedBox(),
+                      ),
+                    ],
+                  );
+                }).toList(),
               ),
-              columnSpacing: 32,
-              columns: const [
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('IME'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('PREZIME'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('KORISNIČKO IME'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('GRAD'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('ODRED'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('DATUM ROĐENJA'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('SPOL'),
-                  ),
-                ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('AKTIVAN'),
-                  ),
-                ),
-                DataColumn(label: Text('')),
-                DataColumn(label: Text('')),
-                DataColumn(label: Text('')),
-              ],
-              rows: _members!.items!.map((member) {
-                final canEditOrDelete =
-                    _role == 'Admin' ||
-                    (_role == 'Troop' && _loggedInUserId == member.troopId);
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(member.firstName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(member.lastName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(member.username),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(member.cityName),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(_getTroopName(member.troopId)),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(formatDate(member.birthDate)),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(member.gender == 0 ? 'Muški' : 'Ženski'),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: member.isActive
-                            ? const Icon(Icons.check, color: Colors.green)
-                            : const Icon(Icons.close, color: Colors.red),
-                      ),
-                    ),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.visibility, color: Colors.grey),
-                        tooltip: 'Detalji',
-                        onPressed: () => _onViewMember(member),
-                      ),
-                    ),
-                    DataCell(
-                      canEditOrDelete
-                          ? IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Uredi',
-                              onPressed: () => _onEditMember(member),
-                            )
-                          : const SizedBox(),
-                    ),
-                    DataCell(
-                      canEditOrDelete
-                          ? IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Obriši',
-                              onPressed: () => _onDeleteMember(member),
-                            )
-                          : const SizedBox(),
-                    ),
-                  ],
-                );
-              }).toList(),
             ),
           ),
         ),

@@ -48,5 +48,192 @@ namespace ScoutTrack.Services.Services
 
             return activity != null && activity.TroopId == troopId;
         }
+
+        public async Task<bool> CanViewActivityRegistrationAsync(ClaimsPrincipal user, int registrationId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            var registration = await _context.ActivityRegistrations
+                .Include(ar => ar.Activity)
+                .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+            if (registration == null) return false;
+
+            if (userRole == "Troop")
+            {
+                return registration.Activity.TroopId == userId;
+            }
+
+            if (userRole == "Member")
+            {
+                return registration.MemberId == userId;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanModifyActivityRegistrationAsync(ClaimsPrincipal user, int registrationId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            var registration = await _context.ActivityRegistrations
+                .Include(ar => ar.Activity)
+                .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+            if (registration == null) return false;
+
+            if (userRole == "Troop")
+            {
+                return registration.Activity.TroopId == userId;
+            }
+
+            if (userRole == "Member")
+            {
+                return registration.MemberId == userId;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanApproveActivityRegistrationAsync(ClaimsPrincipal user, int registrationId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Troop")
+            {
+                var registration = await _context.ActivityRegistrations
+                    .Include(ar => ar.Activity)
+                    .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+                if (registration == null) return false;
+
+                return registration.Activity.TroopId == userId;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanCancelActivityRegistrationAsync(ClaimsPrincipal user, int registrationId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Member")
+            {
+                var registration = await _context.ActivityRegistrations
+                    .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+                if (registration == null) return false;
+
+                return registration.MemberId == userId;
+            }
+
+            if (userRole == "Troop")
+            {
+                var registration = await _context.ActivityRegistrations
+                    .Include(ar => ar.Activity)
+                    .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+                if (registration == null) return false;
+
+                return registration.Activity.TroopId == userId;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanCompleteActivityRegistrationAsync(ClaimsPrincipal user, int registrationId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Troop")
+            {
+                var registration = await _context.ActivityRegistrations
+                    .Include(ar => ar.Activity)
+                    .FirstOrDefaultAsync(ar => ar.Id == registrationId);
+
+                if (registration == null) return false;
+
+                return registration.Activity.TroopId == userId;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanViewActivityAsync(ClaimsPrincipal user, int activityId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            var activity = await _context.Activities
+                .FirstOrDefaultAsync(a => a.Id == activityId);
+
+            if (activity == null) return false;
+
+            if (activity.isPrivate)
+            {
+                if (userRole == "Troop")
+                {
+                    return activity.TroopId == userId;
+                }
+                else if (userRole == "Member")
+                {
+                    var member = await _context.Members
+                        .FirstOrDefaultAsync(m => m.Id == userId);
+                    
+                    return member != null && member.TroopId == activity.TroopId;
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+        public async Task<bool> CanRegisterForActivityAsync(ClaimsPrincipal user, int activityId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Member")
+            {
+                var activity = await _context.Activities
+                    .FirstOrDefaultAsync(a => a.Id == activityId);
+
+                if (activity == null) return false;
+
+                if (activity.isPrivate)
+                {
+                    var member = await _context.Members
+                        .FirstOrDefaultAsync(m => m.Id == userId);
+                    
+                    return member != null && member.TroopId == activity.TroopId;
+                }
+
+                var memberExists = await _context.Members
+                    .AnyAsync(m => m.Id == userId);
+                
+                return memberExists;
+            }
+
+            return false;
+        }
     }
 }

@@ -34,7 +34,6 @@ namespace ScoutTrack.Model.Requests
         [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "Name contains invalid characters.")]
         public string TroopLeader { get; set; } = string.Empty;
 
-        [Range(1907, 2024, ErrorMessage = "Founding date must be between 1907 and current year.")]
         public DateTime? FoundingDate { get; set; }
 
         [MaxLength(20)]

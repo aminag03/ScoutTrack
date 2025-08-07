@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Threading.Tasks;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
@@ -13,5 +14,7 @@ namespace ScoutTrack.Services.Interfaces
         Task<ActivityResponse> FinishAsync(int id);
         Task<ActivityResponse?> UpdateImageAsync(int id, string? imagePath);
         Task<ActivityResponse?> UpdateSummaryAsync(int id, string summary);
+        Task<PagedResult<ActivityResponse>> GetForUserAsync(ClaimsPrincipal user, ActivitySearchObject search);
+        Task<ActivityResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id);
     }
 } 

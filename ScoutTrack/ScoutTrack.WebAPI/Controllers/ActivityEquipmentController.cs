@@ -9,7 +9,6 @@ namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    [Authorize]
     public class ActivityEquipmentController : BaseCRUDController<ActivityEquipmentResponse, ActivityEquipmentSearchObject, ActivityEquipmentUpsertRequest, ActivityEquipmentUpsertRequest>
     {
         private readonly IActivityEquipmentService _activityEquipmentService;
@@ -34,6 +33,7 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpDelete("activity/{activityId}/equipment/{equipmentId}")]
+        [Authorize(Roles = "Admin,Troop")]
         public async Task<ActionResult<bool>> RemoveByActivityIdAndEquipmentId(int activityId, int equipmentId)
         {
             try

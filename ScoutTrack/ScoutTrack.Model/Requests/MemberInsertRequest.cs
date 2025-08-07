@@ -27,7 +27,6 @@ namespace ScoutTrack.Model.Requests
         public string LastName { get; set; } = string.Empty;
 
         [Required]
-        [Range(1900, 2024, ErrorMessage = "Birth date must be between 1900 and current year.")]
         public DateTime BirthDate { get; set; }
 
         [Required]

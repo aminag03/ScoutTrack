@@ -8,6 +8,7 @@ using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Interfaces;
 using ScoutTrack.Services.Services;
 using ScoutTrack.Services.Services.ActivityStateMachine;
+using ScoutTrack.Services.Services.ActivityRegistrationStateMachine;
 using ScoutTrack.WebAPI.Filters;
 using System.Text;
 
@@ -27,6 +28,9 @@ builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<IAccessControlService, AccessControlService>();
 builder.Services.AddTransient<IEquipmentService, EquipmentService>();
 builder.Services.AddTransient<IActivityEquipmentService, ActivityEquipmentService>();
+builder.Services.AddTransient<IActivityRegistrationService, ActivityRegistrationService>();
+
+// Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();
 builder.Services.AddTransient<InitialActivityState>();
 builder.Services.AddTransient<DraftActivityState>();
@@ -34,6 +38,14 @@ builder.Services.AddTransient<ActiveActivityState>();
 builder.Services.AddTransient<RegistrationsClosedActivityState>();
 builder.Services.AddTransient<CancelledActivityState>();
 builder.Services.AddTransient<FinishedActivityState>();
+
+// Activity Registration State Machine
+builder.Services.AddTransient<BaseActivityRegistrationState>();
+builder.Services.AddTransient<PendingActivityRegistrationState>();
+builder.Services.AddTransient<ApprovedActivityRegistrationState>();
+builder.Services.AddTransient<RejectedActivityRegistrationState>();
+builder.Services.AddTransient<CancelledActivityRegistrationState>();
+builder.Services.AddTransient<CompletedActivityRegistrationState>();
 
 
 builder.Services.AddMapster();

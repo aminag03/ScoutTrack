@@ -12,6 +12,7 @@ using ScoutTrack.Services.Database.Entities;
 using ScoutTrack.Services.Extensions;
 using ScoutTrack.Services.Interfaces;
 using ScoutTrack.Services.Services.ActivityStateMachine;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,13 +27,15 @@ namespace ScoutTrack.Services
         protected readonly BaseActivityState _baseActivityState;
         private readonly ILogger<MemberService> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly IAccessControlService _accessControlService;
 
-        public ActivityService(ScoutTrackDbContext context, IMapper mapper, BaseActivityState baseActivityState, ILogger<MemberService> logger, IWebHostEnvironment env) : base(context, mapper)
+        public ActivityService(ScoutTrackDbContext context, IMapper mapper, BaseActivityState baseActivityState, ILogger<MemberService> logger, IWebHostEnvironment env, IAccessControlService accessControlService) : base(context, mapper)
         {
             _context = context;
             _baseActivityState = baseActivityState;
             _logger = logger;
             _env = env;
+            _accessControlService = accessControlService;
         }
 
         public override async Task<PagedResult<ActivityResponse>> GetAsync(ActivitySearchObject search)
@@ -366,6 +369,41 @@ namespace ScoutTrack.Services
                 RegistrationCount = _context.ActivityRegistrations.Count(ar => ar.ActivityId == entity.Id),
                 ImagePath = entity.ImagePath,
             };
+        }
+
+        public async Task<PagedResult<ActivityResponse>> GetForUserAsync(ClaimsPrincipal user, ActivitySearchObject search)
+        {
+            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (userRole == "Member")
+            {
+                var member = await _context.Members
+                    .FirstOrDefaultAsync(m => m.Id == userId);
+                
+                if (member != null)
+                {
+                    search.ShowPublicAndOwn = true;
+                    search.OwnTroopId = member.TroopId;
+                }
+            }
+            else if (userRole == "Troop")
+            {
+                search.ShowPublicAndOwn = true;
+                search.OwnTroopId = userId;
+            }
+
+            return await GetAsync(search);
+        }
+
+        public async Task<ActivityResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id)
+        {
+            if (!await _accessControlService.CanViewActivityAsync(user, id))
+            {
+                throw new UnauthorizedAccessException("You do not have permission to view this activity.");
+            }
+
+            return await GetByIdAsync(id);
         }
     }
 } 

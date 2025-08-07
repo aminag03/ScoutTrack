@@ -21,6 +21,11 @@ namespace ScoutTrack.WebAPI.Filters
                 context.ModelState.AddModelError("userError", context.Exception.Message);
                 context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             }
+            else if (context.Exception is UnauthorizedAccessException)
+            {
+                context.ModelState.AddModelError("forbidden", context.Exception.Message);
+                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            }
             else
             {
                 context.ModelState.AddModelError("ERROR", "Server side error, please check logs");

@@ -12,6 +12,7 @@ namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize]
     public class ActivityController : BaseCRUDController<ActivityResponse, ActivitySearchObject, ActivityUpsertRequest, ActivityUpsertRequest>
     {
         private readonly IAuthService _authService;
@@ -23,6 +24,19 @@ namespace ScoutTrack.WebAPI.Controllers
             _authService = authService;
             _accessControlService = accessControlService;
             _activityService = activityService;
+        }
+
+        [HttpGet]
+        public override async Task<PagedResult<ActivityResponse>> Get([FromQuery] ActivitySearchObject? search)
+        {
+            search ??= new ActivitySearchObject();
+            return await _activityService.GetForUserAsync(User, search);
+        }
+
+        [HttpGet("{id}")]
+        public override async Task<ActivityResponse?> GetById(int id)
+        {
+            return await _activityService.GetByIdForUserAsync(User, id);
         }
 
         [HttpPost]
@@ -69,14 +83,30 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPut("{id}/activate")]
+        [Authorize(Roles = "Admin,Troop")]
         public virtual async Task<ActivityResponse?> ActivateAsync(int id)
         {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
             return await _activityService.ActivateAsync(id);
         }
 
         [HttpPut("{id}/deactivate")]
+        [Authorize(Roles = "Admin,Troop")]
         public virtual async Task<ActivityResponse?> DeactivateAsync(int id)
         {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
             return await _activityService.DeactivateAsync(id);
         }
 

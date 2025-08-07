@@ -331,10 +331,13 @@ class _TroopListScreenState extends State<TroopListScreen> {
       );
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
+        trackVisibility: true,
+        thickness: 8,
+        radius: const Radius.circular(4),
         child: SingleChildScrollView(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
