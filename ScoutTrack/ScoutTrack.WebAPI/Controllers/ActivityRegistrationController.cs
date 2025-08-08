@@ -23,7 +23,7 @@ namespace ScoutTrack.WebAPI.Controllers
         public override async Task<PagedResult<ActivityRegistrationResponse>> Get([FromQuery] ActivityRegistrationSearchObject? search = null)
         {
             search ??= new ActivityRegistrationSearchObject();
-            return await _activityRegistrationService.GetForUserAsync(User, search);
+            return await _activityRegistrationService.GetAsync(search);
         }
 
         [HttpGet("by-activity/{activityId}")]
@@ -31,7 +31,7 @@ namespace ScoutTrack.WebAPI.Controllers
         {
             search ??= new ActivityRegistrationSearchObject();
             search.ActivityId = activityId;
-            var result = await _activityRegistrationService.GetForUserAsync(User, search);
+            var result = await _activityRegistrationService.GetAsync(search);
             return Ok(result);
         }
 
@@ -40,14 +40,14 @@ namespace ScoutTrack.WebAPI.Controllers
         {
             search ??= new ActivityRegistrationSearchObject();
             search.MemberId = userId;
-            var result = await _activityRegistrationService.GetForUserAsync(User, search);
+            var result = await _activityRegistrationService.GetAsync(search);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
         public override async Task<ActivityRegistrationResponse?> GetById(int id)
         {
-            return await _activityRegistrationService.GetByIdForUserAsync(User, id);
+            return await _activityRegistrationService.GetByIdAsync(id);
         }
 
         [HttpPost]
@@ -59,16 +59,17 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Member")]
         public override async Task<IActionResult> Update(int id, [FromBody] ActivityRegistrationUpsertRequest request)
         {
-            var result = await _activityRegistrationService.UpdateForUserAsync(User, id, request);
+            var result = await _activityRegistrationService.UpdateAsync(id, request);
             return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public override async Task<IActionResult> Delete(int id)
         {
-            var result = await _activityRegistrationService.DeleteForUserAsync(User, id);
+            var result = await _activityRegistrationService.DeleteAsync(id);
             if (!result)
                 return NotFound();
 
@@ -79,22 +80,22 @@ namespace ScoutTrack.WebAPI.Controllers
         [Authorize(Roles = "Troop,Admin")]
         public async Task<ActionResult<ActivityRegistrationResponse>> Approve(int id)
         {
-            var result = await _activityRegistrationService.ApproveForUserAsync(User, id);
+            var result = await _activityRegistrationService.ApproveAsync(id);
             return Ok(result);
         }
 
         [HttpPost("{id}/reject")]
         [Authorize(Roles = "Troop,Admin")]
-        public async Task<ActionResult<ActivityRegistrationResponse>> Reject(int id, [FromQuery] string reason = "")
+        public async Task<ActionResult<ActivityRegistrationResponse>> Reject(int id)
         {
-            var result = await _activityRegistrationService.RejectForUserAsync(User, id, reason);
+            var result = await _activityRegistrationService.RejectAsync(id);
             return Ok(result);
         }
 
         [HttpPost("{id}/cancel")]
         public async Task<ActionResult<ActivityRegistrationResponse>> Cancel(int id)
         {
-            var result = await _activityRegistrationService.CancelForUserAsync(User, id);
+            var result = await _activityRegistrationService.CancelAsync(id);
             return Ok(result);
         }
 
@@ -102,7 +103,7 @@ namespace ScoutTrack.WebAPI.Controllers
         [Authorize(Roles = "Troop,Admin")]
         public async Task<ActionResult<ActivityRegistrationResponse>> Complete(int id)
         {
-            var result = await _activityRegistrationService.CompleteForUserAsync(User, id);
+            var result = await _activityRegistrationService.CompleteAsync(id);
             return Ok(result);
         }
     }

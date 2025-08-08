@@ -45,6 +45,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String? _role;
   int? _loggedInUserId;
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
   int? _selectedTroopId;
   int? _selectedActivityTypeId;
   String? _selectedSort;
@@ -79,6 +80,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _verticalScrollController.dispose();
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
@@ -206,8 +208,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _onAddActivity,
                       icon: const Icon(Icons.add),
-                      label: const Text('Kreiraj aktivnost', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), minimumSize: const Size(0, 48)),
+                      label: const Text(
+                        'Kreiraj aktivnost',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
+                        minimumSize: const Size(0, 48),
+                      ),
                     ),
                   ),
               ],
@@ -1431,12 +1445,21 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   String _getTroopName(int? troopId) {
-          if (troopId == null) return 'Nepoznat odred';
-      try {
-        return _troops.firstWhere((t) => t.id == troopId, orElse: () => Troop(name: 'Nepoznat odred', createdAt: DateTime.now(), foundingDate: DateTime.now())).name;
-      } catch (e) {
-        return 'Nepoznat odred';
-      }
+    if (troopId == null) return 'Nepoznat odred';
+    try {
+      return _troops
+          .firstWhere(
+            (t) => t.id == troopId,
+            orElse: () => Troop(
+              name: 'Nepoznat odred',
+              createdAt: DateTime.now(),
+              foundingDate: DateTime.now(),
+            ),
+          )
+          .name;
+    } catch (e) {
+      return 'Nepoznat odred';
+    }
   }
 
   Widget _buildSearchField() {
@@ -1458,74 +1481,112 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   Widget _buildTroopDropdown() {
     return Padding(
       padding: const EdgeInsets.only(right: 12),
-              child: DropdownButtonFormField<int?>(
-          value: _selectedTroopId,
-          decoration: const InputDecoration(labelText: 'Odred', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          isExpanded: true,
-          onChanged: (value) {
-            setState(() {
-              _selectedTroopId = value;
-              if (value != null) _showOnlyMyActivities = false;
-              currentPage = 1;
-            });
-            _fetchActivities();
-          },
-          items: [
-            const DropdownMenuItem(value: null, child: Text("Svi odredi")),
-            ..._troops.map((troop) => DropdownMenuItem(value: troop.id, child: Text(troop.name))),
-          ],
+      child: DropdownButtonFormField<int?>(
+        value: _selectedTroopId,
+        decoration: const InputDecoration(
+          labelText: 'Odred',
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedTroopId = value;
+            if (value != null) _showOnlyMyActivities = false;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: [
+          const DropdownMenuItem(value: null, child: Text("Svi odredi")),
+          ..._troops.map(
+            (troop) =>
+                DropdownMenuItem(value: troop.id, child: Text(troop.name)),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildActivityTypeDropdown() {
     return Padding(
       padding: const EdgeInsets.only(right: 12),
-              child: DropdownButtonFormField<int?>(
-          value: _selectedActivityTypeId,
-          decoration: const InputDecoration(labelText: 'Tip aktivnosti', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          isExpanded: true,
-          onChanged: (value) {
-            setState(() {
-              _selectedActivityTypeId = value;
-              currentPage = 1;
-            });
-            _fetchActivities();
-          },
-          items: [
-            const DropdownMenuItem(value: null, child: Text("Svi tipovi")),
-            ..._activityTypes.map((type) => DropdownMenuItem(value: type.id, child: Text(type.name))),
-          ],
+      child: DropdownButtonFormField<int?>(
+        value: _selectedActivityTypeId,
+        decoration: const InputDecoration(
+          labelText: 'Tip aktivnosti',
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedActivityTypeId = value;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: [
+          const DropdownMenuItem(value: null, child: Text("Svi tipovi")),
+          ..._activityTypes.map(
+            (type) => DropdownMenuItem(value: type.id, child: Text(type.name)),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSortDropdown() {
     return Padding(
       padding: const EdgeInsets.only(right: 12),
-              child: DropdownButtonFormField<String?>(
-          value: _selectedSort,
-          decoration: const InputDecoration(labelText: 'Sortiraj', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          isExpanded: true,
-          onChanged: (value) {
-            setState(() {
-              _selectedSort = value;
-              currentPage = 1;
-            });
-            _fetchActivities();
-          },
-          items: const [
-            DropdownMenuItem(value: null, child: Text('Bez sortiranja')),
-            DropdownMenuItem(value: 'title', child: Text('Naziv (A-Ž)')),
-            DropdownMenuItem(value: '-title', child: Text('Naziv (Ž-A)')),
-            DropdownMenuItem(value: 'startTime', child: Text('Vrijeme početka (najranije)')),
-            DropdownMenuItem(value: '-startTime', child: Text('Vrijeme početka (najkasnije)')),
-            DropdownMenuItem(value: 'endTime', child: Text('Vrijeme završetka (najranije)')),
-            DropdownMenuItem(value: '-endTime', child: Text('Vrijeme završetka (najkasnije)')),
-            DropdownMenuItem(value: 'memberCount', child: Text('Broj učesnika (najmanji)')),
-            DropdownMenuItem(value: '-memberCount', child: Text('Broj učesnika (najveći)')),
-          ],
+      child: DropdownButtonFormField<String?>(
+        value: _selectedSort,
+        decoration: const InputDecoration(
+          labelText: 'Sortiraj',
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedSort = value;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: const [
+          DropdownMenuItem(value: null, child: Text('Bez sortiranja')),
+          DropdownMenuItem(value: 'title', child: Text('Naziv (A-Ž)')),
+          DropdownMenuItem(value: '-title', child: Text('Naziv (Ž-A)')),
+          DropdownMenuItem(
+            value: 'startTime',
+            child: Text('Vrijeme početka (najranije)'),
+          ),
+          DropdownMenuItem(
+            value: '-startTime',
+            child: Text('Vrijeme početka (najkasnije)'),
+          ),
+          DropdownMenuItem(
+            value: 'endTime',
+            child: Text('Vrijeme završetka (najranije)'),
+          ),
+          DropdownMenuItem(
+            value: '-endTime',
+            child: Text('Vrijeme završetka (najkasnije)'),
+          ),
+          DropdownMenuItem(
+            value: 'memberCount',
+            child: Text('Broj učesnika (najmanji)'),
+          ),
+          DropdownMenuItem(
+            value: '-memberCount',
+            child: Text('Broj učesnika (najveći)'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1589,23 +1650,59 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     return 'Aktivnost se može brisati';
   }
 
-      Widget _buildActivityStateChip(String activityState) {
-      final stateConfig = {
-        'DraftActivityState': {'text': 'Nacrt', 'color': Colors.grey.shade300, 'textColor': Colors.black},
-        'ActiveActivityState': {'text': 'Aktivna', 'color': Colors.green.shade100, 'textColor': Colors.green},
-        'RegistrationsClosedActivityState': {'text': 'Prijave zatvorene', 'color': Colors.orange.shade100, 'textColor': Colors.orange},
-        'FinishedActivityState': {'text': 'Završena', 'color': Colors.blue.shade100, 'textColor': Colors.blue},
-        'CancelledActivityState': {'text': 'Otkazana', 'color': Colors.red.shade100, 'textColor': Colors.red},
-      };
+  Widget _buildActivityStateChip(String activityState) {
+    final stateConfig = {
+      'DraftActivityState': {
+        'text': 'Nacrt',
+        'color': Colors.grey.shade300,
+        'textColor': Colors.black,
+      },
+      'ActiveActivityState': {
+        'text': 'Aktivna',
+        'color': Colors.green.shade100,
+        'textColor': Colors.green,
+      },
+      'RegistrationsClosedActivityState': {
+        'text': 'Prijave zatvorene',
+        'color': Colors.orange.shade100,
+        'textColor': Colors.orange,
+      },
+      'FinishedActivityState': {
+        'text': 'Završena',
+        'color': Colors.blue.shade100,
+        'textColor': Colors.blue,
+      },
+      'CancelledActivityState': {
+        'text': 'Otkazana',
+        'color': Colors.red.shade100,
+        'textColor': Colors.red,
+      },
+    };
 
-      final config = stateConfig[activityState] ?? {'text': activityState, 'color': Colors.grey.shade100, 'textColor': Colors.grey.shade600};
+    final config =
+        stateConfig[activityState] ??
+        {
+          'text': activityState,
+          'color': Colors.grey.shade100,
+          'textColor': Colors.grey.shade600,
+        };
 
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: config['color'] as Color, borderRadius: BorderRadius.circular(12)),
-        child: Text(config['text'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: config['textColor'] as Color)),
-      );
-    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: config['color'] as Color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        config['text'] as String,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: config['textColor'] as Color,
+        ),
+      ),
+    );
+  }
 
   Future<void> _saveActivityEquipment(
     int activityId,
@@ -1655,10 +1752,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(child: Text('Greška pri učitavanju: $_error', style: const TextStyle(color: Colors.red)));
+      return Center(
+        child: Text(
+          'Greška pri učitavanju: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
     }
     if (_activities?.items?.isEmpty ?? true) {
-      return const Center(child: Text('Nema dostupnih aktivnosti', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)));
+      return const Center(
+        child: Text(
+          'Nema dostupnih aktivnosti',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      );
     }
 
     return Container(
@@ -1675,25 +1782,70 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 1200),
             child: SingleChildScrollView(
+              controller: _verticalScrollController,
               scrollDirection: Axis.vertical,
-                          child: DataTable(
-              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey.shade100),
-              columnSpacing: 32,
-              columns: const [
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('NAZIV'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('LOKACIJA'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('VRIJEME POČETKA'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('VRIJEME ZAVRŠETKA'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('ODRED'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('TIP'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('PRIVATNOST'))),
-                DataColumn(label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('STATUS'))),
-                DataColumn(label: Text('')),
-                DataColumn(label: Text('')),
-                DataColumn(label: Text('')),
-              ],
-              rows: _activities!.items!.map((activity) => _buildActivityRow(activity)).toList(),
-            ),
+              child: DataTable(
+                headingRowColor: MaterialStateColor.resolveWith(
+                  (states) => Colors.grey.shade100,
+                ),
+                columnSpacing: 32,
+                columns: const [
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('NAZIV'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('LOKACIJA'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('VRIJEME POČETKA'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('VRIJEME ZAVRŠETKA'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('ODRED'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('TIP'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('PRIVATNOST'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('STATUS'),
+                    ),
+                  ),
+                  DataColumn(label: Text('')),
+                  DataColumn(label: Text('')),
+                  DataColumn(label: Text('')),
+                ],
+                rows: _activities!.items!
+                    .map((activity) => _buildActivityRow(activity))
+                    .toList(),
+              ),
             ),
           ),
         ),
@@ -1701,20 +1853,98 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     );
   }
 
-    DataRow _buildActivityRow(Activity activity) {
+  DataRow _buildActivityRow(Activity activity) {
     return DataRow(
       cells: [
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.title))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.locationName))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.startTime != null ? formatDateTime(activity.startTime!) : '-'))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.endTime != null ? formatDateTime(activity.endTime!) : '-'))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.troopName))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(activity.activityTypeName))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: activity.isPrivate ? const Icon(Icons.lock, color: Colors.red, size: 16) : const Icon(Icons.public, color: Colors.green, size: 16))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _buildActivityStateChip(activity.activityState))),
-        DataCell(IconButton(icon: const Icon(Icons.visibility, color: Colors.grey), tooltip: 'Prikaži detalje', onPressed: () => _onViewActivity(activity))),
-        DataCell(_canEditOrDeleteActivity(activity) ? (_canEditActivity(activity) ? IconButton(icon: const Icon(Icons.edit, color: Colors.blue), tooltip: 'Uredi', onPressed: () => _onEditActivity(activity)) : IconButton(icon: const Icon(Icons.edit, color: Colors.grey), tooltip: _getEditDisabledReason(activity), onPressed: null)) : const SizedBox()),
-        DataCell(_canEditOrDeleteActivity(activity) ? IconButton(icon: const Icon(Icons.delete, color: Colors.red), tooltip: 'Obriši', onPressed: () => _onDeleteActivity(activity)) : const SizedBox()),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(activity.title),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(activity.locationName),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              activity.startTime != null
+                  ? formatDateTime(activity.startTime!)
+                  : '-',
+            ),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              activity.endTime != null
+                  ? formatDateTime(activity.endTime!)
+                  : '-',
+            ),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(activity.troopName),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(activity.activityTypeName),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: activity.isPrivate
+                ? const Icon(Icons.lock, color: Colors.red, size: 16)
+                : const Icon(Icons.public, color: Colors.green, size: 16),
+          ),
+        ),
+        DataCell(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _buildActivityStateChip(activity.activityState),
+          ),
+        ),
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.visibility, color: Colors.grey),
+            tooltip: 'Prikaži detalje',
+            onPressed: () => _onViewActivity(activity),
+          ),
+        ),
+        DataCell(
+          _canEditOrDeleteActivity(activity)
+              ? (_canEditActivity(activity)
+                    ? IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        tooltip: 'Uredi',
+                        onPressed: () => _onEditActivity(activity),
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.grey),
+                        tooltip: _getEditDisabledReason(activity),
+                        onPressed: null,
+                      ))
+              : const SizedBox(),
+        ),
+        DataCell(
+          _canEditOrDeleteActivity(activity)
+              ? IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Obriši',
+                  onPressed: () => _onDeleteActivity(activity),
+                )
+              : const SizedBox(),
+        ),
       ],
     );
   }

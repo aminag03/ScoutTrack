@@ -34,8 +34,6 @@ namespace ScoutTrack.Services.Services
 
         public override async Task<ActivityRegistrationResponse> CreateAsync(ActivityRegistrationUpsertRequest request)
         {
-            // This method is now deprecated in favor of CreateForUserAsync
-            // which automatically sets member ID from claims and status to Pending
             throw new UserException("Use CreateForUserAsync instead of CreateAsync for activity registrations.");
         }
 
@@ -53,7 +51,7 @@ namespace ScoutTrack.Services.Services
             return await state.ApproveAsync(id);
         }
 
-        public async Task<ActivityRegistrationResponse> RejectAsync(int id, string reason = "")
+        public async Task<ActivityRegistrationResponse> RejectAsync(int id)
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
@@ -64,7 +62,7 @@ namespace ScoutTrack.Services.Services
                 throw new UserException("Activity registration not found.");
 
             var state = _baseActivityRegistrationState.GetActivityRegistrationState(GetStateNameFromStatus(entity.Status));
-            return await state.RejectAsync(id, reason);
+            return await state.RejectAsync(id);
         }
 
         public async Task<ActivityRegistrationResponse> CancelAsync(int id)
@@ -120,11 +118,13 @@ namespace ScoutTrack.Services.Services
                     };
                 }
                 
+                /*
                 if (search.ActivityId.HasValue && !troopActivityIds.Contains(search.ActivityId.Value))
                 {
                     throw new UnauthorizedAccessException("You do not have permission to view registrations for this activity.");
                 }
-                
+                */ 
+
                 if (!search.ActivityId.HasValue)
                 {
                     search.OwnTroopActivityIds = troopActivityIds;
@@ -183,14 +183,14 @@ namespace ScoutTrack.Services.Services
             return await ApproveAsync(id);
         }
 
-        public async Task<ActivityRegistrationResponse> RejectForUserAsync(ClaimsPrincipal user, int id, string reason = "")
+        public async Task<ActivityRegistrationResponse> RejectForUserAsync(ClaimsPrincipal user, int id)
         {
             if (!await _accessControlService.CanApproveActivityRegistrationAsync(user, id))
             {
                 throw new UnauthorizedAccessException("You do not have permission to reject this registration.");
             }
 
-            return await RejectAsync(id, reason);
+            return await RejectAsync(id);
         }
 
         public async Task<ActivityRegistrationResponse> CancelForUserAsync(ClaimsPrincipal user, int id)

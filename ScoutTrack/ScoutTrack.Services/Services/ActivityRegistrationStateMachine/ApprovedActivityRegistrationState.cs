@@ -19,6 +19,28 @@ namespace ScoutTrack.Services.Services.ActivityRegistrationStateMachine
         {
         }
 
+        public override async Task<ActivityRegistrationResponse> ApproveAsync(int id)
+        {
+            var entity = await _context.ActivityRegistrations.FindAsync(id);
+            if (entity == null)
+                throw new Exception("Activity registration not found");
+
+            // Already approved, but allow the operation to succeed
+            return _mapper.Map<ActivityRegistrationResponse>(entity);
+        }
+
+        public override async Task<ActivityRegistrationResponse> RejectAsync(int id)
+        {
+            var entity = await _context.ActivityRegistrations.FindAsync(id);
+            if (entity == null)
+                throw new Exception("Activity registration not found");
+
+            entity.Status = RegistrationStatus.Rejected;
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<ActivityRegistrationResponse>(entity);
+        }
+
         public override async Task<ActivityRegistrationResponse> CompleteAsync(int id)
         {
             var entity = await _context.ActivityRegistrations.FindAsync(id);

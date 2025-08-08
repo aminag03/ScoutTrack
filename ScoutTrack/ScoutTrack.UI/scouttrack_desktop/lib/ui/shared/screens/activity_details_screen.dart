@@ -11,6 +11,8 @@ import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
 import 'package:scouttrack_desktop/models/activity_equipment.dart';
+import 'package:scouttrack_desktop/providers/activity_registration_provider.dart';
+import 'package:scouttrack_desktop/models/activity_registration.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -31,14 +33,21 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   int? _loggedInUserId;
   late TabController _tabController;
   List<ActivityEquipment> _equipment = [];
+  List<ActivityRegistration> _registrations = [];
+  List<ActivityRegistration> _filteredRegistrations = [];
+  int? _statusFilter;
   bool _canStartOrFinish = false;
+  bool _canManageRegistrations = false;
   late MapController _mapController;
   late ActivityProvider _activityProvider;
+  late ActivityRegistrationProvider _activityRegistrationProvider;
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _mapController = MapController();
     _activity = widget.activity;
     _loadInitialData();
@@ -47,6 +56,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -72,6 +83,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     super.didChangeDependencies();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _activityProvider = ActivityProvider(authProvider);
+    _activityRegistrationProvider = ActivityRegistrationProvider(authProvider);
   }
 
   Future<void> _loadInitialData() async {
@@ -84,9 +96,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       _loggedInUserId = userId;
       _canStartOrFinish =
           role == 'Admin' || (role == 'Troop' && userId == _activity?.troopId);
+      _canManageRegistrations =
+          role == 'Admin' || (role == 'Troop' && userId == _activity?.troopId);
     });
 
     await _loadEquipment();
+    await _loadRegistrations();
   }
 
   Future<void> _loadEquipment() async {
@@ -102,6 +117,30 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       });
     } catch (e) {
       print('Error loading equipment: $e');
+    }
+  }
+
+  Future<void> _loadRegistrations() async {
+    try {
+      final registrations = await _activityRegistrationProvider.getByActivity(
+        _activity!.id,
+      );
+      setState(() {
+        _registrations = registrations.items ?? [];
+        _applyStatusFilter();
+      });
+    } catch (e) {
+      print('Error loading registrations: $e');
+    }
+  }
+
+  void _applyStatusFilter() {
+    if (_statusFilter == null) {
+      _filteredRegistrations = List.from(_registrations);
+    } else {
+      _filteredRegistrations = _registrations
+          .where((registration) => registration.status == _statusFilter)
+          .toList();
     }
   }
 
@@ -276,7 +315,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.summarize, color: Colors.green, size: 20),
+                        const Icon(
+                          Icons.summarize,
+                          color: Colors.green,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         const Text(
                           'Sažetak aktivnosti',
@@ -390,6 +433,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               indicatorColor: const Color(0xFF4F8055),
               tabs: const [
                 Tab(text: 'Galerija'),
+                Tab(text: 'Registracije'),
                 Tab(text: 'Recenzije'),
               ],
             ),
@@ -398,7 +442,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [_buildGalleryTab(), _buildReviewsTab()],
+              children: [
+                _buildGalleryTab(),
+                _buildRegistrationsTab(),
+                _buildReviewsTab(),
+              ],
             ),
           ),
         ],
@@ -425,6 +473,458 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildRegistrationsTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Header with count and filter
+          Row(
+            children: [
+              const Icon(Icons.people, color: Colors.blue, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Registracije (${_filteredRegistrations.length}/${_registrations.length})',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              // Status filter dropdown
+              Container(
+                width: 200,
+                child: DropdownButtonFormField<int?>(
+                  value: _statusFilter,
+                  decoration: const InputDecoration(
+                    labelText: 'Filtriraj po statusu',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Svi statusi'),
+                    ),
+                    const DropdownMenuItem<int>(
+                      value: 0,
+                      child: Text('Na čekanju'),
+                    ),
+                    const DropdownMenuItem<int>(
+                      value: 1,
+                      child: Text('Odobreno'),
+                    ),
+                    const DropdownMenuItem<int>(
+                      value: 2,
+                      child: Text('Odbijeno'),
+                    ),
+                    const DropdownMenuItem<int>(
+                      value: 3,
+                      child: Text('Završeno'),
+                    ),
+                    const DropdownMenuItem<int>(
+                      value: 4,
+                      child: Text('Otkazano'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _statusFilter = value;
+                      _applyStatusFilter();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Scrollbar(
+                controller: _horizontalScrollController,
+                thumbVisibility: true,
+                trackVisibility: true,
+                thickness: 8,
+                radius: const Radius.circular(4),
+                child: SingleChildScrollView(
+                  controller: _horizontalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 800),
+                    child: Scrollbar(
+                      controller: _verticalScrollController,
+                      thumbVisibility: true,
+                      trackVisibility: true,
+                      thickness: 8,
+                      radius: const Radius.circular(4),
+                      child: SingleChildScrollView(
+                        controller: _verticalScrollController,
+                        scrollDirection: Axis.vertical,
+                        child: DataTable(
+                          headingRowColor: MaterialStateColor.resolveWith(
+                            (states) => Colors.grey.shade100,
+                          ),
+                          columnSpacing: 32,
+                          columns: [
+                            const DataColumn(label: Text('UČESNIK')),
+                            const DataColumn(label: Text('NAPOMENA')),
+                            const DataColumn(label: Text('STATUS')),
+                            const DataColumn(
+                              label: Text('VRIJEME REGISTRACIJE'),
+                            ),
+                            if (_canManageRegistrations)
+                              const DataColumn(label: Text('AKCIJE')),
+                          ],
+                          rows: _filteredRegistrations.map((registration) {
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Text(
+                                    registration.memberName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    registration.notes.isNotEmpty
+                                        ? registration.notes
+                                        : 'Nema napomene',
+                                    style: TextStyle(
+                                      color: registration.notes.isNotEmpty
+                                          ? Colors.black87
+                                          : Colors.grey,
+                                      fontStyle: registration.notes.isEmpty
+                                          ? FontStyle.italic
+                                          : FontStyle.normal,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  _buildRegistrationStatusChip(
+                                    registration.status,
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    DateFormat(
+                                      'dd. MM. yyyy. HH:mm',
+                                    ).format(registration.registeredAt),
+                                  ),
+                                ),
+                                if (_canManageRegistrations)
+                                  DataCell(
+                                    _buildRegistrationActions(registration),
+                                  ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          if (_filteredRegistrations.isEmpty) ...[
+            const SizedBox(height: 32),
+            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              _statusFilter == null ? 'Nema registracija' : 'Nema registracija s odabranim statusom',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _statusFilter == null 
+                ? 'Još se niko nije prijavio na ovu aktivnost.'
+                : 'Nema registracija s odabranim statusom.',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegistrationStatusChip(int status) {
+    switch (status) {
+      case 0: // Pending
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade300),
+          ),
+          child: Text(
+            'Na čekanju',
+            style: TextStyle(
+              color: Colors.orange.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      case 1: // Approved
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.green.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.shade300),
+          ),
+          child: Text(
+            'Odobreno',
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      case 2: // Rejected
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.red.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.shade300),
+          ),
+          child: Text(
+            'Odbijeno',
+            style: TextStyle(
+              color: Colors.red.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      case 3: // Cancelled
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Text(
+            'Otkazano',
+            style: TextStyle(
+              color: Colors.grey.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      case 4: // Completed
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade300),
+          ),
+          child: Text(
+            'Završeno',
+            style: TextStyle(
+              color: Colors.blue.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      default:
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Text(
+            'Nepoznato',
+            style: TextStyle(
+              color: Colors.grey.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+    }
+  }
+
+  Widget _buildRegistrationActions(ActivityRegistration registration) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (registration.status == 0) ...[
+          IconButton(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            tooltip: 'Odobri',
+            onPressed: () => _onApproveRegistration(registration),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+            tooltip: 'Odbij',
+            onPressed: () => _onRejectRegistration(registration),
+          ),
+        ] else if (registration.status == 1) ...[
+          IconButton(
+            icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+            tooltip: 'Odbij',
+            onPressed: () => _onRejectRegistration(registration),
+          ),
+          IconButton(
+            icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
+            tooltip: 'Označi kao završeno',
+            onPressed: () => _onCompleteRegistration(registration),
+          ),
+        ] else if (registration.status == 2) ...[
+          IconButton(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            tooltip: 'Odobri',
+            onPressed: () => _onApproveRegistration(registration),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _onApproveRegistration(ActivityRegistration registration) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odobri registraciju'),
+        content: Text(
+          'Jeste li sigurni da želite odobriti registraciju za ${registration.memberName}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Odobri'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _activityRegistrationProvider.approve(registration.id);
+        await _loadRegistrations();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registracija za ${registration.memberName} je odobrena.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onRejectRegistration(ActivityRegistration registration) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odbij registraciju'),
+        content: Text(
+          'Jeste li sigurni da želite odbiti registraciju za ${registration.memberName}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Odbij'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _activityRegistrationProvider.reject(registration.id);
+        await _loadRegistrations();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registracija za ${registration.memberName} je odbijena.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onCompleteRegistration(
+    ActivityRegistration registration,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Označi kao završeno'),
+        content: Text(
+          'Jeste li sigurni da želite označiti registraciju za ${registration.memberName} kao završenu?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Završi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _activityRegistrationProvider.complete(registration.id);
+        await _loadRegistrations();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registracija za ${registration.memberName} je označena kao završena.',
+            ),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
   Widget _buildReviewsTab() {
@@ -727,9 +1227,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             ElevatedButton.icon(
               onPressed: _onWriteSummary,
               icon: const Icon(Icons.edit_note),
-              label: Text(_activity?.summary.isNotEmpty == true 
-                  ? 'Uredi sažetak' 
-                  : 'Napiši sažetak'),
+              label: Text(
+                _activity?.summary.isNotEmpty == true
+                    ? 'Uredi sažetak'
+                    : 'Napiši sažetak',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -987,7 +1489,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _showSummaryDialog() async {
-    final summaryController = TextEditingController(text: _activity?.summary ?? '');
+    final summaryController = TextEditingController(
+      text: _activity?.summary ?? '',
+    );
     final formKey = GlobalKey<FormState>();
 
     await showDialog(
@@ -1035,10 +1539,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               onPressed: () async {
                 if (formKey.currentState?.validate() ?? false) {
                   try {
-                    final updatedActivity = await _activityProvider.updateSummary(
-                      _activity!.id,
-                      summaryController.text.trim(),
-                    );
+                    final updatedActivity = await _activityProvider
+                        .updateSummary(
+                          _activity!.id,
+                          summaryController.text.trim(),
+                        );
                     setState(() {
                       _activity = updatedActivity;
                     });

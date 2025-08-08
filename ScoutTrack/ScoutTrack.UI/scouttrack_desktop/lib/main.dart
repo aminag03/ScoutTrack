@@ -7,6 +7,7 @@ import 'providers/admin_provider.dart';
 import 'providers/member_provider.dart';
 import 'providers/equipment_provider.dart';
 import 'providers/activity_type_provider.dart';
+import 'providers/activity_registration_provider.dart';
 
 void main() {
   runApp(
@@ -39,6 +40,12 @@ void main() {
             Provider.of<AuthProvider>(context, listen: false),
           ),
           update: (_, auth, __) => ActivityTypeProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ActivityRegistrationProvider>(
+          create: (context) => ActivityRegistrationProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (_, auth, __) => ActivityRegistrationProvider(auth),
         ),
       ],
       child: const MyApp(),

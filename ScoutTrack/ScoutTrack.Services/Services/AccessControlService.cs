@@ -88,11 +88,6 @@ namespace ScoutTrack.Services.Services
 
             if (registration == null) return false;
 
-            if (userRole == "Troop")
-            {
-                return registration.Activity.TroopId == userId;
-            }
-
             if (userRole == "Member")
             {
                 return registration.MemberId == userId;
@@ -132,22 +127,19 @@ namespace ScoutTrack.Services.Services
             if (userRole == "Member")
             {
                 var registration = await _context.ActivityRegistrations
-                    .FirstOrDefaultAsync(ar => ar.Id == registrationId);
-
-                if (registration == null) return false;
-
-                return registration.MemberId == userId;
-            }
-
-            if (userRole == "Troop")
-            {
-                var registration = await _context.ActivityRegistrations
                     .Include(ar => ar.Activity)
                     .FirstOrDefaultAsync(ar => ar.Id == registrationId);
 
                 if (registration == null) return false;
 
-                return registration.Activity.TroopId == userId;
+                if (registration.MemberId != userId) return false;
+
+                if (registration.Activity.ActivityState != "ActiveActivityState")
+                {
+                    return false;
+                }
+
+                return true;
             }
 
             return false;
@@ -218,6 +210,11 @@ namespace ScoutTrack.Services.Services
                     .FirstOrDefaultAsync(a => a.Id == activityId);
 
                 if (activity == null) return false;
+
+                if (activity.ActivityState != "ActiveActivityState")
+                {
+                    return false;
+                }
 
                 if (activity.isPrivate)
                 {

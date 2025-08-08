@@ -40,6 +40,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   String? _role;
   int? _loggedInUserId;
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
   int? _selectedCityId;
   int? _selectedTroopId;
   int? _selectedGender;
@@ -74,6 +75,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _verticalScrollController.dispose();
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
@@ -1293,6 +1295,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 1200),
             child: SingleChildScrollView(
+              controller: _verticalScrollController,
               scrollDirection: Axis.vertical,
               child: DataTable(
                 headingRowColor: MaterialStateColor.resolveWith(

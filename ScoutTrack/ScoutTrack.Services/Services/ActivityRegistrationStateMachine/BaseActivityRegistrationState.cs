@@ -41,7 +41,7 @@ namespace ScoutTrack.Services.Services.ActivityRegistrationStateMachine
             throw new UserException("Not allowed");
         }
 
-        public virtual async Task<ActivityRegistrationResponse> RejectAsync(int id, string reason = "")
+        public virtual async Task<ActivityRegistrationResponse> RejectAsync(int id)
         {
             throw new UserException("Not allowed");
         }
