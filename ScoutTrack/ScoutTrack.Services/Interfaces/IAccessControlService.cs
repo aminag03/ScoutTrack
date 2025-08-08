@@ -18,5 +18,7 @@ namespace ScoutTrack.Services.Interfaces
         Task<bool> CanCompleteActivityRegistrationAsync(ClaimsPrincipal user, int registrationId);
         Task<bool> CanViewActivityAsync(ClaimsPrincipal user, int activityId);
         Task<bool> CanRegisterForActivityAsync(ClaimsPrincipal user, int activityId);
+        Task<bool> CanReviewActivityAsync(ClaimsPrincipal user, int activityId);
+        Task<bool> CanModifyReviewAsync(ClaimsPrincipal user, int reviewId);
     }
 }

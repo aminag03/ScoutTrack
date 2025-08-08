@@ -29,6 +29,7 @@ builder.Services.AddTransient<IAccessControlService, AccessControlService>();
 builder.Services.AddTransient<IEquipmentService, EquipmentService>();
 builder.Services.AddTransient<IActivityEquipmentService, ActivityEquipmentService>();
 builder.Services.AddTransient<IActivityRegistrationService, ActivityRegistrationService>();
+builder.Services.AddTransient<IReviewService, ReviewService>();
 
 // Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();

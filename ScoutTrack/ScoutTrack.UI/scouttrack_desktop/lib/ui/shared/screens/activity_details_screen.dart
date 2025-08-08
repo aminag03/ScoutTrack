@@ -13,6 +13,8 @@ import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
 import 'package:scouttrack_desktop/models/activity_equipment.dart';
 import 'package:scouttrack_desktop/providers/activity_registration_provider.dart';
 import 'package:scouttrack_desktop/models/activity_registration.dart';
+import 'package:scouttrack_desktop/providers/review_provider.dart';
+import 'package:scouttrack_desktop/models/review.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -41,6 +43,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   late MapController _mapController;
   late ActivityProvider _activityProvider;
   late ActivityRegistrationProvider _activityRegistrationProvider;
+  late ReviewProvider _reviewProvider;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
@@ -49,6 +52,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   int _pageSize = 10;
   int _totalRegistrations = 0;
   bool _isLoadingRegistrations = false;
+
+  // Review variables
+  List<Review> _reviews = [];
+  int _currentReviewPage = 1;
+  int _reviewPageSize = 10;
+  int _totalReviews = 0;
+  double _averageRating = 0.0;
+  bool _isLoadingReviews = false;
+  String _reviewSearchQuery = '';
+  String _reviewSortBy = 'createdat_desc';
+
 
   @override
   void initState() {
@@ -90,6 +104,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _activityProvider = ActivityProvider(authProvider);
     _activityRegistrationProvider = ActivityRegistrationProvider(authProvider);
+    _reviewProvider = ReviewProvider(authProvider);
   }
 
   Future<void> _loadInitialData() async {
@@ -108,6 +123,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
     await _loadEquipment();
     await _loadRegistrations();
+    await _loadReviews();
   }
 
   Future<void> _loadEquipment() async {
@@ -152,25 +168,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         filter: filter,
       );
 
-      print('DEBUG: registrations.items = ${registrations.items}');
-      print('DEBUG: registrations.totalCount = ${registrations.totalCount}');
-      print(
-        'DEBUG: registrations.items?.length = ${registrations.items?.length}',
-      );
-
       setState(() {
         _registrations = registrations.items ?? [];
         _totalRegistrations = registrations.totalCount ?? 0;
         _isLoadingRegistrations = false;
         _applyStatusFilter();
       });
-
-      print(
-        'DEBUG: After setState - _registrations.length = ${_registrations.length}',
-      );
-      print(
-        'DEBUG: After setState - _filteredRegistrations.length = ${_filteredRegistrations.length}',
-      );
     } catch (e) {
       setState(() {
         _isLoadingRegistrations = false;
@@ -191,6 +194,75 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     });
     _loadRegistrations();
   }
+
+  Future<void> _loadReviews({int? page}) async {
+    if (page != null) {
+      _currentReviewPage = page;
+    }
+
+    setState(() {
+      _isLoadingReviews = true;
+    });
+
+    try {
+      // Load paginated reviews for display
+      final filter = <String, dynamic>{
+        'page': _currentReviewPage - 1, // Backend expects 0-based pagination
+        'pageSize': _reviewPageSize,
+        'includeTotalCount': true,
+      };
+
+      // Add search query if provided
+      if (_reviewSearchQuery.isNotEmpty) {
+        filter['fts'] = _reviewSearchQuery;
+      }
+
+      // Add sort order
+      if (_reviewSortBy.isNotEmpty) {
+        filter['orderBy'] = _reviewSortBy;
+      }
+
+      final reviews = await _reviewProvider.getByActivity(
+        _activity!.id,
+        filter: filter,
+      );
+
+      // Load all reviews for calculating average rating (without search/filter)
+      final allReviewsFilter = <String, dynamic>{
+        'retrieveAll': true,
+        'includeTotalCount': true,
+      };
+
+      final allReviews = await _reviewProvider.getByActivity(
+        _activity!.id,
+        filter: allReviewsFilter,
+      );
+
+      // Calculate average rating from all reviews
+      double averageRating = 0.0;
+      if (allReviews.items != null && allReviews.items!.isNotEmpty) {
+        double totalRating = allReviews.items!.fold(
+          0.0,
+          (sum, review) => sum + review.rating,
+        );
+        averageRating = totalRating / allReviews.items!.length;
+      }
+
+      setState(() {
+        _reviews = reviews.items ?? [];
+        _totalReviews = reviews.totalCount ?? 0;
+        _averageRating = averageRating;
+        _isLoadingReviews = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingReviews = false;
+      });
+      print('Error loading reviews: $e');
+    }
+  }
+
+
 
   Widget _buildPaginationControls() {
     final totalPages = (_totalRegistrations / _pageSize).ceil();
@@ -846,6 +918,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       );
     }
 
+    // Add delete button for admins (only show if user is admin)
+    if (_role == 'Admin') {
+      actions.add(
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+          tooltip: 'Obriši registraciju',
+          onPressed: () => _onDeleteRegistration(registration),
+        ),
+      );
+    }
+
     return Row(mainAxisSize: MainAxisSize.min, children: actions);
   }
 
@@ -971,15 +1054,106 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     }
   }
 
+  Future<void> _onDeleteRegistration(ActivityRegistration registration) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Obriši registraciju'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati registraciju za ${registration.memberName}?\n\n'
+          'Ova akcija je nepovratna i obrisat će registraciju iz sustava.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _activityRegistrationProvider.delete(registration.id);
+        await _loadRegistrations();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registracija za ${registration.memberName} je obrisana.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
   Widget _buildReviewsTab() {
     return Column(
       children: [
+        // Average rating and total count display
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.amber.shade200),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Prosječna ocjena: ${_averageRating.toStringAsFixed(1)}/5.0',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Ukupno recenzija: $_totalReviews',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              // Display stars for average rating
+              Row(
+                children: List.generate(
+                  5,
+                  (index) => Icon(
+                    index < _averageRating.floor()
+                        ? Icons.star
+                        : index < _averageRating
+                        ? Icons.star_half
+                        : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Search and filter controls
         Row(
           children: [
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  hintText: 'Pretraži...',
+                  hintText: 'Pretraži po imenu člana...',
                   prefixIcon: Icon(Icons.search),
                   border: OutlineInputBorder(),
                   isDense: true,
@@ -988,123 +1162,194 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                     vertical: 12,
                   ),
                 ),
+                onChanged: (value) {
+                  setState(() {
+                    _reviewSearchQuery = value;
+                    _currentReviewPage = 1;
+                  });
+                  _loadReviews();
+                },
               ),
             ),
             const SizedBox(width: 12),
             DropdownButton<String>(
-              value: null,
+              value: _reviewSortBy,
               hint: const Text('Sortiraj'),
               items: const [
-                DropdownMenuItem(value: 'newest', child: Text('Najnovije')),
-                DropdownMenuItem(value: 'oldest', child: Text('Najstarije')),
-                DropdownMenuItem(value: 'rating', child: Text('Po ocjeni')),
+                DropdownMenuItem(
+                  value: 'createdat_desc',
+                  child: Text('Najnovije'),
+                ),
+                DropdownMenuItem(value: 'createdat', child: Text('Najstarije')),
+                DropdownMenuItem(
+                  value: 'rating_desc',
+                  child: Text('Najbolje ocjene'),
+                ),
+                DropdownMenuItem(
+                  value: 'rating',
+                  child: Text('Najgore ocjene'),
+                ),
               ],
               onChanged: (value) {
-                // TODO: Implement sorting
+                if (value != null) {
+                  setState(() {
+                    _reviewSortBy = value;
+                    _currentReviewPage = 1;
+                  });
+                  _loadReviews();
+                }
               },
             ),
           ],
         ),
         const SizedBox(height: 16),
+
+
+
+        // Reviews list
         Expanded(
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      topRight: Radius.circular(8),
+            child: _isLoadingReviews
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
                     ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'UČESNIK',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          'OCJENA',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          'RECENZIJA',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      SizedBox(width: 40),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: const Center(
+                  )
+                : _reviews.isEmpty
+                ? const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.rate_review, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          'Recenzije',
+                          'Nema recenzija',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Not implemented yet',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                       ],
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: _reviews.length,
+                    itemBuilder: (context, index) {
+                      final review = _reviews[index];
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.grey.shade200,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: Colors.grey.shade300,
+                                  child: Text(
+                                    review.memberName.isNotEmpty
+                                        ? review.memberName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        review.memberName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          ...List.generate(
+                                            5,
+                                            (starIndex) => Icon(
+                                              starIndex < review.rating
+                                                  ? Icons.star
+                                                  : Icons.star_border,
+                                              color: Colors.amber,
+                                              size: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${review.rating}/5',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      DateFormat(
+                                        'dd. MM. yyyy.',
+                                      ).format(review.createdAt),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    // Add delete button for admins
+                                    if (_role == 'Admin') ...[
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        onPressed: () => _onDeleteReview(review),
+                                        icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                                        tooltip: 'Obriši recenziju',
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              review.content,
+                              style: const TextStyle(fontSize: 14, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ],
-            ),
           ),
         ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Prethodna'),
-            ),
-            Row(
-              children: [
-                _buildPageButton(1, true),
-                _buildPageButton(2, false),
-                _buildPageButton(3, false),
-                const Text('...'),
-                _buildPageButton(6, false),
-                _buildPageButton(7, false),
-              ],
-            ),
-            TextButton.icon(
-              onPressed: () {},
-              label: const Text('Sljedeća'),
-              icon: const Icon(Icons.arrow_forward),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        const Text('Prikazano 10 od 64', style: TextStyle(color: Colors.grey)),
+
+        // Review pagination
+        if (_totalReviews > 0) ...[
+          const SizedBox(height: 16),
+          _buildReviewPaginationControls(),
+        ],
       ],
     );
   }
@@ -1127,6 +1372,112 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       ),
     );
   }
+
+  Widget _buildReviewPaginationControls() {
+    final totalPages = (_totalReviews / _reviewPageSize).ceil();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton.icon(
+          onPressed: _currentReviewPage > 1
+              ? () => _loadReviews(page: _currentReviewPage - 1)
+              : null,
+          icon: const Icon(Icons.arrow_back),
+          label: const Text('Prethodna'),
+        ),
+        Row(
+          children: [
+            if (totalPages <= 7) ...[
+              for (int i = 1; i <= totalPages; i++)
+                _buildReviewPageButton(i, i == _currentReviewPage),
+            ] else ...[
+              _buildReviewPageButton(1, _currentReviewPage == 1),
+              if (_currentReviewPage > 3) const Text('...'),
+              if (_currentReviewPage > 2)
+                _buildReviewPageButton(_currentReviewPage - 1, false),
+              _buildReviewPageButton(_currentReviewPage, true),
+              if (_currentReviewPage < totalPages - 1)
+                _buildReviewPageButton(_currentReviewPage + 1, false),
+              if (_currentReviewPage < totalPages - 2) const Text('...'),
+              _buildReviewPageButton(
+                totalPages,
+                _currentReviewPage == totalPages,
+              ),
+            ],
+          ],
+        ),
+        TextButton.icon(
+          onPressed: _currentReviewPage < totalPages
+              ? () => _loadReviews(page: _currentReviewPage + 1)
+              : null,
+          label: const Text('Sljedeća'),
+          icon: const Icon(Icons.arrow_forward),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewPageButton(int page, bool isActive) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: CircleAvatar(
+        radius: 16,
+        backgroundColor: isActive
+            ? const Color(0xFF4F8055)
+            : Colors.grey.shade300,
+        child: TextButton(
+          onPressed: isActive ? null : () => _loadReviews(page: page),
+          child: Text(
+            page.toString(),
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onDeleteReview(Review review) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Obriši recenziju'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati recenziju od ${review.memberName}? Ova akcija je nepovratna.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _reviewProvider.delete(review.id);
+        await _loadReviews();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Recenzija od ${review.memberName} je obrisana.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+
 
   Widget _buildActionButtons() {
     // Only show action buttons if user owns the activity or is admin

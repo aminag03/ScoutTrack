@@ -104,16 +104,6 @@ class _MasterScreenState extends State<MasterScreen> {
 
                 if (widget.role == 'Admin') ...[
                   _SidebarItem(
-                    icon: Icons.location_city,
-                    label: 'Gradovi',
-                    selected: selectedLabel == 'Gradovi',
-                    onTap: () => _handleTap('Gradovi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const CityListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
                     icon: Icons.groups,
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
@@ -161,6 +151,16 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const EquipmentListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.location_city,
+                    label: 'Gradovi',
+                    selected: selectedLabel == 'Gradovi',
+                    onTap: () => _handleTap('Gradovi', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const CityListScreen()));
                     }),
                   ),
                 ],

@@ -232,5 +232,45 @@ namespace ScoutTrack.Services.Services
 
             return false;
         }
+
+        public async Task<bool> CanReviewActivityAsync(ClaimsPrincipal user, int activityId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole != "Member" || userId == null)
+                return false;
+
+            // Check if activity is finished
+            var activity = await _context.Activities
+                .FirstOrDefaultAsync(a => a.Id == activityId);
+
+            if (activity == null || activity.ActivityState != "FinishedActivityState")
+                return false;
+
+            // Check if member has a completed registration for this activity
+            var registration = await _context.ActivityRegistrations
+                .FirstOrDefaultAsync(ar => ar.ActivityId == activityId && ar.MemberId == userId);
+
+            return registration != null && registration.Status == Common.Enums.RegistrationStatus.Completed;
+        }
+
+        public async Task<bool> CanModifyReviewAsync(ClaimsPrincipal user, int reviewId)
+        {
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Member" && userId != null)
+            {
+                var review = await _context.Reviews
+                    .FirstOrDefaultAsync(r => r.Id == reviewId);
+
+                return review != null && review.MemberId == userId;
+            }
+
+            return false;
+        }
     }
 }
