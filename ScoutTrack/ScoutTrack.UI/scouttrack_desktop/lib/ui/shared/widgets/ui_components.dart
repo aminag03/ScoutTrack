@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class UIComponents {
-  /// Creates an info chip widget
   static Widget buildInfoChip(String text, IconData icon, {Color? color}) {
     return Chip(
       avatar: Icon(icon, size: 18, color: color),
@@ -11,7 +10,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a detail section widget
   static Widget buildDetailSection(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +24,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a detail row widget
   static Widget buildDetailRow(String label, String value, [IconData? icon]) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -40,7 +37,7 @@ class UIComponents {
           SizedBox(
             width: 120,
             child: Text(
-              '$label:',
+              '$label',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[700],
@@ -54,7 +51,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a big action button widget
   static Widget buildBigActionButton({
     required IconData icon,
     required String label,
@@ -91,7 +87,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a confirmation dialog
   static Future<bool> showConfirmationDialog({
     required BuildContext context,
     required String title,
@@ -123,7 +118,6 @@ class UIComponents {
     return result ?? false;
   }
 
-  /// Creates a delete confirmation dialog
   static Future<bool> showDeleteConfirmationDialog({
     required BuildContext context,
     required String itemName,
@@ -138,7 +132,6 @@ class UIComponents {
     );
   }
 
-  /// Creates an activation/deactivation confirmation dialog
   static Future<bool> showActivationConfirmationDialog({
     required BuildContext context,
     required bool isActive,
@@ -154,7 +147,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a loading overlay
   static Widget buildLoadingOverlay({
     required bool isLoading,
     required Widget child,
@@ -172,7 +164,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a search field
   static Widget buildSearchField({
     required TextEditingController controller,
     required String hintText,
@@ -198,7 +189,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a dropdown form field
   static Widget buildDropdownField<T>({
     required T? value,
     required String labelText,
@@ -229,7 +219,6 @@ class UIComponents {
     );
   }
 
-  /// Creates a form field with standard styling
   static Widget buildFormField({
     required TextEditingController controller,
     required String labelText,

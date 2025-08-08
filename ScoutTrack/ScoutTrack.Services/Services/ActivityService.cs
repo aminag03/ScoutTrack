@@ -294,6 +294,18 @@ namespace ScoutTrack.Services
             var result = await registrationsClosedState.FinishAsync(id);
             _logger.LogInformation($"Successfully finished activity {id}. New state: {result.ActivityState}");
 
+            var registrationsToDelete = await _context.ActivityRegistrations
+                .Where(ar => ar.ActivityId == id && (ar.Status == Common.Enums.RegistrationStatus.Pending 
+                || ar.Status == Common.Enums.RegistrationStatus.Rejected || ar.Status == Common.Enums.RegistrationStatus.Cancelled))
+                .ToListAsync();
+
+            if (registrationsToDelete.Any())
+            {
+                _context.ActivityRegistrations.RemoveRange(registrationsToDelete);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Cleaned up {registrationsToDelete.Count} registrations for finished activity {id}");
+            }
+
             return result;
         }
 
@@ -336,6 +348,19 @@ namespace ScoutTrack.Services
                 return null;
 
             entity.Summary = summary;
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<ActivityResponse>(entity);
+        }
+
+        public async Task<ActivityResponse?> TogglePrivacyAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                return null;
+
+            entity.isPrivate = !entity.isPrivate;
             entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();

@@ -195,5 +195,19 @@ namespace ScoutTrack.WebAPI.Controllers
             }
             return await _activityService.UpdateSummaryAsync(id, request.Summary);
         }
+
+        [HttpPut("{id}/toggle-privacy")]
+        [Authorize(Roles = "Admin,Troop")]
+        public virtual async Task<ActivityResponse?> TogglePrivacyAsync(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return null;
+                }
+            }
+            return await _activityService.TogglePrivacyAsync(id);
+        }
     }
 } 

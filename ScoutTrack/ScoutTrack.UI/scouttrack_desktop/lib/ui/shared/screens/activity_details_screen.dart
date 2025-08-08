@@ -44,6 +44,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
+  // Pagination variables
+  int _currentPage = 1;
+  int _pageSize = 10;
+  int _totalRegistrations = 0;
+  bool _isLoadingRegistrations = false;
+
   @override
   void initState() {
     super.initState();
@@ -120,28 +126,136 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     }
   }
 
-  Future<void> _loadRegistrations() async {
+  Future<void> _loadRegistrations({int? page}) async {
+    if (page != null) {
+      _currentPage = page;
+    }
+
+    setState(() {
+      _isLoadingRegistrations = true;
+    });
+
     try {
+      final filter = <String, dynamic>{
+        'page': _currentPage - 1, // Backend expects 0-based pagination
+        'pageSize': _pageSize,
+        'includeTotalCount': true,
+      };
+
+      // Add status filter if selected
+      if (_statusFilter != null) {
+        filter['status'] = _statusFilter;
+      }
+
       final registrations = await _activityRegistrationProvider.getByActivity(
         _activity!.id,
+        filter: filter,
       );
+
+      print('DEBUG: registrations.items = ${registrations.items}');
+      print('DEBUG: registrations.totalCount = ${registrations.totalCount}');
+      print(
+        'DEBUG: registrations.items?.length = ${registrations.items?.length}',
+      );
+
       setState(() {
         _registrations = registrations.items ?? [];
+        _totalRegistrations = registrations.totalCount ?? 0;
+        _isLoadingRegistrations = false;
         _applyStatusFilter();
       });
+
+      print(
+        'DEBUG: After setState - _registrations.length = ${_registrations.length}',
+      );
+      print(
+        'DEBUG: After setState - _filteredRegistrations.length = ${_filteredRegistrations.length}',
+      );
     } catch (e) {
+      setState(() {
+        _isLoadingRegistrations = false;
+      });
       print('Error loading registrations: $e');
     }
   }
 
   void _applyStatusFilter() {
-    if (_statusFilter == null) {
-      _filteredRegistrations = List.from(_registrations);
-    } else {
-      _filteredRegistrations = _registrations
-          .where((registration) => registration.status == _statusFilter)
-          .toList();
-    }
+    // With pagination, filtering is handled server-side
+    _filteredRegistrations = List.from(_registrations);
+  }
+
+  void _onStatusFilterChanged(int? value) {
+    setState(() {
+      _statusFilter = value;
+      _currentPage = 1; // Reset to first page when filter changes
+    });
+    _loadRegistrations();
+  }
+
+  Widget _buildPaginationControls() {
+    final totalPages = (_totalRegistrations / _pageSize).ceil();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton.icon(
+          onPressed: _currentPage > 1
+              ? () => _loadRegistrations(page: _currentPage - 1)
+              : null,
+          icon: const Icon(Icons.arrow_back),
+          label: const Text('Prethodna'),
+        ),
+        Row(
+          children: [
+            if (totalPages <= 7) ...[
+              for (int i = 1; i <= totalPages; i++)
+                _buildRegistrationPageButton(i, i == _currentPage),
+            ] else ...[
+              _buildRegistrationPageButton(1, _currentPage == 1),
+              if (_currentPage > 3) const Text('...'),
+              if (_currentPage > 2)
+                _buildRegistrationPageButton(_currentPage - 1, false),
+              _buildRegistrationPageButton(_currentPage, true),
+              if (_currentPage < totalPages - 1)
+                _buildRegistrationPageButton(_currentPage + 1, false),
+              if (_currentPage < totalPages - 2) const Text('...'),
+              _buildRegistrationPageButton(
+                totalPages,
+                _currentPage == totalPages,
+              ),
+            ],
+          ],
+        ),
+        TextButton.icon(
+          onPressed: _currentPage < totalPages
+              ? () => _loadRegistrations(page: _currentPage + 1)
+              : null,
+          label: const Text('Sljedeća'),
+          icon: const Icon(Icons.arrow_forward),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegistrationPageButton(int page, bool isActive) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: CircleAvatar(
+        radius: 16,
+        backgroundColor: isActive
+            ? const Color(0xFF4F8055)
+            : Colors.grey.shade300,
+        child: TextButton(
+          onPressed: isActive ? null : () => _loadRegistrations(page: page),
+          child: Text(
+            page.toString(),
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -409,7 +523,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               const SizedBox(height: 32),
             ],
 
-            // Action buttons (only for activity owners)
             _buildActionButtons(),
           ],
         ),
@@ -480,67 +593,47 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header with count and filter
           Row(
             children: [
               const Icon(Icons.people, color: Colors.blue, size: 24),
               const SizedBox(width: 8),
               Text(
-                'Registracije (${_filteredRegistrations.length}/${_registrations.length})',
+                'Registracije (${_filteredRegistrations.length}/${_totalRegistrations})',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const Spacer(),
-              // Status filter dropdown
-              Container(
+              SizedBox(
                 width: 200,
                 child: DropdownButtonFormField<int?>(
                   value: _statusFilter,
                   decoration: const InputDecoration(
                     labelText: 'Filtriraj po statusu',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
-                  items: [
-                    const DropdownMenuItem<int?>(
+                  items: const [
+                    DropdownMenuItem<int?>(
                       value: null,
                       child: Text('Svi statusi'),
                     ),
-                    const DropdownMenuItem<int>(
-                      value: 0,
-                      child: Text('Na čekanju'),
-                    ),
-                    const DropdownMenuItem<int>(
-                      value: 1,
-                      child: Text('Odobreno'),
-                    ),
-                    const DropdownMenuItem<int>(
-                      value: 2,
-                      child: Text('Odbijeno'),
-                    ),
-                    const DropdownMenuItem<int>(
-                      value: 3,
-                      child: Text('Završeno'),
-                    ),
-                    const DropdownMenuItem<int>(
-                      value: 4,
-                      child: Text('Otkazano'),
-                    ),
+                    DropdownMenuItem<int>(value: 0, child: Text('Na čekanju')),
+                    DropdownMenuItem<int>(value: 1, child: Text('Odobreno')),
+                    DropdownMenuItem<int>(value: 2, child: Text('Odbijeno')),
+                    DropdownMenuItem<int>(value: 3, child: Text('Završeno')),
+                    DropdownMenuItem<int>(value: 4, child: Text('Otkazano')),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _statusFilter = value;
-                      _applyStatusFilter();
-                    });
-                  },
+                  onChanged: _onStatusFilterChanged,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -567,67 +660,84 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       child: SingleChildScrollView(
                         controller: _verticalScrollController,
                         scrollDirection: Axis.vertical,
-                        child: DataTable(
-                          headingRowColor: MaterialStateColor.resolveWith(
-                            (states) => Colors.grey.shade100,
-                          ),
-                          columnSpacing: 32,
-                          columns: [
-                            const DataColumn(label: Text('UČESNIK')),
-                            const DataColumn(label: Text('NAPOMENA')),
-                            const DataColumn(label: Text('STATUS')),
-                            const DataColumn(
-                              label: Text('VRIJEME REGISTRACIJE'),
-                            ),
-                            if (_canManageRegistrations)
-                              const DataColumn(label: Text('AKCIJE')),
-                          ],
-                          rows: _filteredRegistrations.map((registration) {
-                            return DataRow(
-                              cells: [
-                                DataCell(
-                                  Text(
-                                    registration.memberName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                        child: _isLoadingRegistrations
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32.0),
+                                  child: CircularProgressIndicator(),
                                 ),
-                                DataCell(
-                                  Text(
-                                    registration.notes.isNotEmpty
-                                        ? registration.notes
-                                        : 'Nema napomene',
-                                    style: TextStyle(
-                                      color: registration.notes.isNotEmpty
-                                          ? Colors.black87
-                                          : Colors.grey,
-                                      fontStyle: registration.notes.isEmpty
-                                          ? FontStyle.italic
-                                          : FontStyle.normal,
-                                    ),
-                                  ),
+                              )
+                            : DataTable(
+                                headingRowColor: MaterialStateColor.resolveWith(
+                                  (states) => Colors.grey.shade100,
                                 ),
-                                DataCell(
-                                  _buildRegistrationStatusChip(
-                                    registration.status,
+                                columnSpacing: 32,
+                                columns: [
+                                  const DataColumn(label: Text('UČESNIK')),
+                                  const DataColumn(label: Text('NAPOMENA')),
+                                  const DataColumn(label: Text('STATUS')),
+                                  const DataColumn(
+                                    label: Text('VRIJEME REGISTRACIJE'),
                                   ),
-                                ),
-                                DataCell(
-                                  Text(
-                                    DateFormat(
-                                      'dd. MM. yyyy. HH:mm',
-                                    ).format(registration.registeredAt),
-                                  ),
-                                ),
-                                if (_canManageRegistrations)
-                                  DataCell(
-                                    _buildRegistrationActions(registration),
-                                  ),
-                              ],
-                            );
-                          }).toList(),
-                        ),
+                                  if (_canManageRegistrations)
+                                    const DataColumn(label: Text('AKCIJE')),
+                                ],
+                                rows: _filteredRegistrations
+                                    .map(
+                                      (registration) => DataRow(
+                                        cells: [
+                                          DataCell(
+                                            Text(
+                                              registration.memberName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              registration.notes.isNotEmpty
+                                                  ? registration.notes
+                                                  : 'Nema napomene',
+                                              style: TextStyle(
+                                                color:
+                                                    registration
+                                                        .notes
+                                                        .isNotEmpty
+                                                    ? Colors.black87
+                                                    : Colors.grey,
+                                                fontStyle:
+                                                    registration.notes.isEmpty
+                                                    ? FontStyle.italic
+                                                    : FontStyle.normal,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            _buildRegistrationStatusChip(
+                                              registration.status,
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              DateFormat(
+                                                'dd. MM. yyyy. HH:mm',
+                                              ).format(
+                                                registration.registeredAt,
+                                              ),
+                                            ),
+                                          ),
+                                          if (_canManageRegistrations)
+                                            DataCell(
+                                              _buildRegistrationActions(
+                                                registration,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
                       ),
                     ),
                   ),
@@ -635,13 +745,14 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
           ),
-
-          if (_filteredRegistrations.isEmpty) ...[
+          if (_filteredRegistrations.isEmpty && !_isLoadingRegistrations) ...[
             const SizedBox(height: 32),
             const Icon(Icons.people_outline, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              _statusFilter == null ? 'Nema registracija' : 'Nema registracija s odabranim statusom',
+              _statusFilter == null
+                  ? 'Nema registracija'
+                  : 'Nema registracija s odabranim statusom',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -650,11 +761,15 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              _statusFilter == null 
-                ? 'Još se niko nije prijavio na ovu aktivnost.'
-                : 'Nema registracija s odabranim statusom.',
+              _statusFilter == null
+                  ? 'Još se niko nije prijavio na ovu aktivnost.'
+                  : 'Nema registracija s odabranim statusom.',
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
+          ],
+          if (_totalRegistrations > 0) ...[
+            const SizedBox(height: 16),
+            _buildPaginationControls(),
           ],
         ],
       ),
@@ -662,147 +777,76 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Widget _buildRegistrationStatusChip(int status) {
-    switch (status) {
-      case 0: // Pending
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange.shade300),
-          ),
-          child: Text(
-            'Na čekanju',
-            style: TextStyle(
-              color: Colors.orange.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case 1: // Approved
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.green.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade300),
-          ),
-          child: Text(
-            'Odobreno',
-            style: TextStyle(
-              color: Colors.green.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case 2: // Rejected
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.red.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade300),
-          ),
-          child: Text(
-            'Odbijeno',
-            style: TextStyle(
-              color: Colors.red.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case 3: // Cancelled
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Text(
-            'Otkazano',
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case 4: // Completed
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade300),
-          ),
-          child: Text(
-            'Završeno',
-            style: TextStyle(
-              color: Colors.blue.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      default:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Text(
-            'Nepoznato',
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-    }
+    final statusData = {
+      0: {'text': 'Na čekanju', 'color': Colors.orange},
+      1: {'text': 'Odobreno', 'color': Colors.green},
+      2: {'text': 'Odbijeno', 'color': Colors.red},
+      3: {'text': 'Otkazano', 'color': Colors.grey},
+      4: {'text': 'Završeno', 'color': Colors.blue},
+    };
+
+    final data =
+        statusData[status] ?? {'text': 'Nepoznato', 'color': Colors.grey};
+    final color = data['color'] as MaterialColor;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.shade300),
+      ),
+      child: Text(
+        data['text'] as String,
+        style: TextStyle(
+          color: color.shade800,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   Widget _buildRegistrationActions(ActivityRegistration registration) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (registration.status == 0) ...[
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
-            tooltip: 'Odobri',
-            onPressed: () => _onApproveRegistration(registration),
-          ),
-          IconButton(
-            icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-            tooltip: 'Odbij',
-            onPressed: () => _onRejectRegistration(registration),
-          ),
-        ] else if (registration.status == 1) ...[
-          IconButton(
-            icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-            tooltip: 'Odbij',
-            onPressed: () => _onRejectRegistration(registration),
-          ),
-          IconButton(
-            icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
-            tooltip: 'Označi kao završeno',
-            onPressed: () => _onCompleteRegistration(registration),
-          ),
-        ] else if (registration.status == 2) ...[
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
-            tooltip: 'Odobri',
-            onPressed: () => _onApproveRegistration(registration),
-          ),
-        ],
-      ],
-    );
+    final actions = <Widget>[];
+
+    if (registration.status == 0) {
+      actions.addAll([
+        IconButton(
+          icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          tooltip: 'Odobri',
+          onPressed: () => _onApproveRegistration(registration),
+        ),
+        IconButton(
+          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+          tooltip: 'Odbij',
+          onPressed: () => _onRejectRegistration(registration),
+        ),
+      ]);
+    } else if (registration.status == 1) {
+      actions.addAll([
+        IconButton(
+          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+          tooltip: 'Odbij',
+          onPressed: () => _onRejectRegistration(registration),
+        ),
+        IconButton(
+          icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
+          tooltip: 'Označi kao završeno',
+          onPressed: () => _onCompleteRegistration(registration),
+        ),
+      ]);
+    } else if (registration.status == 2) {
+      actions.add(
+        IconButton(
+          icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          tooltip: 'Odobri',
+          onPressed: () => _onApproveRegistration(registration),
+        ),
+      );
+    }
+
+    return Row(mainAxisSize: MainAxisSize.min, children: actions);
   }
 
   Future<void> _onApproveRegistration(ActivityRegistration registration) async {
@@ -1095,8 +1139,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
     switch (activityState) {
       case 'DraftActivityState':
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
           children: [
             ElevatedButton.icon(
               onPressed: _onActivateActivity,
@@ -1115,7 +1161,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              onPressed: _onTogglePrivacy,
+              icon: Icon(
+                _activity?.isPrivate == true ? Icons.public : Icons.lock,
+              ),
+              label: Text(
+                _activity?.isPrivate == true
+                    ? 'Učini javnom'
+                    : 'Učini privatnom',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _activity?.isPrivate == true
+                    ? Colors.blue
+                    : Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             ElevatedButton.icon(
               onPressed: _onCancelActivity,
               icon: const Icon(Icons.cancel),
@@ -1137,8 +1207,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         );
 
       case 'ActiveActivityState':
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
           children: [
             ElevatedButton.icon(
               onPressed: _onCloseRegistrations,
@@ -1157,7 +1229,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              onPressed: _onTogglePrivacy,
+              icon: Icon(
+                _activity?.isPrivate == true ? Icons.public : Icons.lock,
+              ),
+              label: Text(
+                _activity?.isPrivate == true
+                    ? 'Učini javnom'
+                    : 'Učini privatnom',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _activity?.isPrivate == true
+                    ? Colors.blue
+                    : Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             ElevatedButton.icon(
               onPressed: _onCancelActivity,
               icon: const Icon(Icons.cancel),
@@ -1179,8 +1275,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         );
 
       case 'RegistrationsClosedActivityState':
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
           children: [
             ElevatedButton.icon(
               onPressed: _onFinishActivity,
@@ -1199,13 +1297,20 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 16),
             ElevatedButton.icon(
-              onPressed: _onCancelActivity,
-              icon: const Icon(Icons.cancel),
-              label: const Text('Otkaži aktivnost'),
+              onPressed: _onTogglePrivacy,
+              icon: Icon(
+                _activity?.isPrivate == true ? Icons.public : Icons.lock,
+              ),
+              label: Text(
+                _activity?.isPrivate == true
+                    ? 'Učini javnom'
+                    : 'Učini privatnom',
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: _activity?.isPrivate == true
+                    ? Colors.blue
+                    : Colors.orange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1217,23 +1322,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-          ],
-        );
-
-      case 'FinishedActivityState':
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
             ElevatedButton.icon(
-              onPressed: _onWriteSummary,
-              icon: const Icon(Icons.edit_note),
-              label: Text(
-                _activity?.summary.isNotEmpty == true
-                    ? 'Uredi sažetak'
-                    : 'Napiši sažetak',
-              ),
+              onPressed: _onCancelActivity,
+              icon: const Icon(Icons.cancel),
+              label: const Text('Otkaži aktivnost'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1410,6 +1504,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           _activity = updatedActivity;
         });
 
+        // Refresh registrations after finishing activity
+        await _loadRegistrations();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -1486,6 +1583,65 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   void _onWriteSummary() {
     _showSummaryDialog();
+  }
+
+  Future<void> _onTogglePrivacy() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          _activity?.isPrivate == true ? 'Učini javnom' : 'Učini privatnom',
+        ),
+        content: Text(
+          _activity?.isPrivate == true
+              ? 'Jeste li sigurni da želite učiniti ovu aktivnost javnom?'
+              : 'Jeste li sigurni da želite učiniti ovu aktivnost privatnom?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _activity?.isPrivate == true
+                  ? Colors.blue
+                  : Colors.orange,
+            ),
+            child: Text(
+              _activity?.isPrivate == true ? 'Učini javnom' : 'Učini privatnom',
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.togglePrivacy(
+          _activity!.id,
+        );
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _activity?.isPrivate == true
+                  ? 'Aktivnost je sada privatna.'
+                  : 'Aktivnost je sada javna.',
+            ),
+            backgroundColor: _activity?.isPrivate == true
+                ? Colors.orange
+                : Colors.blue,
+          ),
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
   Future<void> _showSummaryDialog() async {

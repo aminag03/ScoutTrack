@@ -226,4 +226,34 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
     }
   }
+
+  Future<Activity> togglePrivacy(int id) async {
+    final uri = Uri.parse(
+      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/toggle-privacy",
+    );
+
+    final token = authProvider?.accessToken;
+    if (token == null) throw Exception("Niste prijavljeni.");
+
+    try {
+      final response = await http.put(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return Activity.fromJson(jsonDecode(response.body));
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['title'] ?? 'Greška prilikom promjene privatnosti aktivnosti.',
+        );
+      }
+    } catch (e) {
+      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
+    }
+  }
 }

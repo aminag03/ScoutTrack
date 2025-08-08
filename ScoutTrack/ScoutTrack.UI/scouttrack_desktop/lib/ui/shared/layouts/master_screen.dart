@@ -167,12 +167,6 @@ class _MasterScreenState extends State<MasterScreen> {
 
                 if (widget.role == 'Troop') ...[
                   _SidebarItem(
-                    icon: Icons.event,
-                    label: 'Moje aktivnosti',
-                    selected: selectedLabel == 'Moje aktivnosti',
-                    onTap: () => _handleTap('Moje aktivnosti', () {}),
-                  ),
-                  _SidebarItem(
                     icon: Icons.badge,
                     label: 'Odredi',
                     selected: selectedLabel == 'Odredi',
