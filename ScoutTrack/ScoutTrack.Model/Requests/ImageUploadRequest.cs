@@ -7,6 +7,6 @@ namespace ScoutTrack.Model.Requests
 {
     public class ImageUploadRequest
     {
-        public IFormFile? Image { get; set; } = null!;
+        public IFormFile? Image { get; set; }
     }
 }

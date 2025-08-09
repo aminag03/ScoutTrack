@@ -12,7 +12,6 @@ namespace ScoutTrack.Model.Requests
         [Required]
         public int ActivityId { get; set; }
 
-        [Required]
         [MaxLength(2000)]
         public string Content { get; set; } = string.Empty;
 

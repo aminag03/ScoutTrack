@@ -1313,8 +1313,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     "description": descriptionController.text
                                         .trim(),
                                     "isPrivate": isPrivate,
-                                    "locationName": locationNameController.text
-                                        .trim(),
                                     "latitude": selectedLocation.latitude,
                                     "longitude": selectedLocation.longitude,
                                     "fee":
@@ -1576,14 +1574,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           DropdownMenuItem(
             value: '-endTime',
             child: Text('Vrijeme završetka (najkasnije)'),
-          ),
-          DropdownMenuItem(
-            value: 'memberCount',
-            child: Text('Broj učesnika (najmanji)'),
-          ),
-          DropdownMenuItem(
-            value: '-memberCount',
-            child: Text('Broj učesnika (najveći)'),
           ),
         ],
       ),

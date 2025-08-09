@@ -23,7 +23,7 @@ class Activity {
   final String activityState;
   final DateTime createdAt;
   final DateTime? updatedAt;
-  final int memberCount;
+  final int registrationCount;
   final String imagePath;
   final String summary;
 
@@ -47,7 +47,7 @@ class Activity {
     this.activityState = '',
     required this.createdAt,
     this.updatedAt,
-    this.memberCount = 0,
+    this.registrationCount = 0,
     this.imagePath = '',
     this.summary = ''
   });

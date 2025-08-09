@@ -32,7 +32,7 @@ Activity _$ActivityFromJson(Map<String, dynamic> json) => Activity(
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
-  memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+  registrationCount: (json['registrationCount'] as num?)?.toInt() ?? 0,
   imagePath: json['imagePath'] as String? ?? '',
   summary: json['summary'] as String? ?? '',
 );
@@ -57,7 +57,7 @@ Map<String, dynamic> _$ActivityToJson(Activity instance) => <String, dynamic>{
   'activityState': instance.activityState,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
-  'memberCount': instance.memberCount,
+  'registrationCount': instance.registrationCount,
   'imagePath': instance.imagePath,
   'summary': instance.summary,
 };

@@ -3,6 +3,7 @@ using ScoutTrack.Common.Enums;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Interfaces;
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -269,6 +270,71 @@ namespace ScoutTrack.Services.Services
 
                 return review != null && review.MemberId == userId;
             }
+
+            return false;
+        }
+
+        public async Task<bool> CanCreatePostAsync(ClaimsPrincipal user, int activityId)
+        {
+            var activity = await _context.Activities
+                .Include(a => a.Registrations)
+                .FirstOrDefaultAsync(a => a.Id == activityId);
+
+            if (activity == null) return false;
+
+            if (activity.ActivityState != "FinishedActivityState") return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return false;
+
+            if (userRole == "Troop" && activity.TroopId == userId) return true;
+
+            if (userRole == "Member")
+            {
+                var registration = activity.Registrations
+                    .FirstOrDefault(r => r.MemberId == userId && r.Status == Common.Enums.RegistrationStatus.Completed);
+                return registration != null;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CanEditPostAsync(ClaimsPrincipal user, int postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.Activity)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return false;
+
+            if (post.CreatedById == userId) return true;
+
+            return false;
+        }
+
+        public async Task<bool> CanDeletePostAsync(ClaimsPrincipal user, int postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.Activity)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Troop" && post.Activity.TroopId == userId) return true;
+
+            if (post.CreatedById == userId) return true;
 
             return false;
         }

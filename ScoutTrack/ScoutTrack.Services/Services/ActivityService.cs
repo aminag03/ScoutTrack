@@ -391,7 +391,8 @@ namespace ScoutTrack.Services
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 ActivityState = entity.ActivityState,
-                RegistrationCount = _context.ActivityRegistrations.Count(ar => ar.ActivityId == entity.Id),
+                RegistrationCount = _context.ActivityRegistrations.Where(ar => ar.Status == Common.Enums.RegistrationStatus.Completed).
+                    Count(ar => ar.ActivityId == entity.Id),
                 ImagePath = entity.ImagePath,
             };
         }
