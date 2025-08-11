@@ -42,7 +42,7 @@ namespace ScoutTrack.WebAPI.Controllers
         public async Task<PagedResult<PostResponse>> GetByActivity(int activityId, [FromQuery] PostSearchObject? search)
         {
             search ??= new PostSearchObject();
-            return await _postService.GetByActivityAsync(activityId, search);
+            return await _postService.GetByActivityForUserAsync(activityId, search, User);
         }
 
         [HttpPost]

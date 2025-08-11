@@ -236,21 +236,21 @@ namespace ScoutTrack.Services.Database
 
             // Comment
             modelBuilder.Entity<Comment>()
-                .HasIndex(c => new { c.PostId, c.MemberId, c.CreatedAt });
+                .HasIndex(c => new { c.PostId, c.CreatedById, c.CreatedAt });
             modelBuilder.Entity<Comment>()
-                .HasOne(c => c.Member)
-                .WithMany()
-                .HasForeignKey(c => c.MemberId)
+                .HasOne(c => c.CreatedBy)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(c => c.CreatedById)
                 .OnDelete(DeleteBehavior.NoAction);
 
             // Like
             modelBuilder.Entity<Like>()
-                .HasIndex(l => new { l.PostId, l.MemberId })
+                .HasIndex(l => new { l.PostId, l.CreatedById })
                 .IsUnique();
             modelBuilder.Entity<Like>()
-                .HasOne(l => l.Member)
-                .WithMany()
-                .HasForeignKey(l => l.MemberId)
+                .HasOne(l => l.CreatedBy)
+                .WithMany(u => u.Likes)
+                .HasForeignKey(l => l.CreatedById)
                 .OnDelete(DeleteBehavior.NoAction);
 
             // Review

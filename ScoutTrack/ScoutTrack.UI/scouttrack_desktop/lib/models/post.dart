@@ -1,4 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:scouttrack_desktop/models/comment.dart';
+import 'package:scouttrack_desktop/models/like.dart';
 
 part 'post.g.dart';
 
@@ -12,11 +14,14 @@ class Post {
   final String activityTitle;
   final int createdById;
   final String createdByName;
-  final String createdByRole;
+  final String? createdByTroopName;
+  final String? createdByAvatarUrl;
   final List<PostImage> images;
   final int likeCount;
   final int commentCount;
   final bool isLikedByCurrentUser;
+  final List<Like> likes;
+  final List<Comment> comments;
 
   Post({
     this.id = 0,
@@ -27,11 +32,14 @@ class Post {
     this.activityTitle = '',
     this.createdById = 0,
     this.createdByName = '',
-    this.createdByRole = '',
+    this.createdByTroopName,
+    this.createdByAvatarUrl,
     this.images = const [],
     this.likeCount = 0,
     this.commentCount = 0,
     this.isLikedByCurrentUser = false,
+    this.likes = const [],
+    this.comments = const [],
   });
 
   factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);

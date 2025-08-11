@@ -97,29 +97,46 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       _loggedInUserId = userId;
     });
 
-    final activityTypeProvider = ActivityTypeProvider(authProvider);
-    final troopProvider = TroopProvider(authProvider);
-    final equipmentProvider = EquipmentProvider(authProvider);
-    var filter = {"RetrieveAll": true};
-    final activityTypeResult = await activityTypeProvider.get(filter: filter);
-    final troopResult = await troopProvider.get(filter: filter);
-    final equipmentResult = await equipmentProvider.get(filter: filter);
-    setState(() {
-      _activityTypes = activityTypeResult.items ?? [];
-      _troops = troopResult.items ?? [];
-      _equipment = equipmentResult.items ?? [];
+    try {
+      final activityTypeProvider = ActivityTypeProvider(authProvider);
+      final troopProvider = TroopProvider(authProvider);
+      final equipmentProvider = EquipmentProvider(authProvider);
+      var filter = {"RetrieveAll": true};
+      final activityTypeResult = await activityTypeProvider.get(filter: filter);
+      final troopResult = await troopProvider.get(filter: filter);
+      final equipmentResult = await equipmentProvider.get(filter: filter);
+      setState(() {
+        _activityTypes = activityTypeResult.items ?? [];
+        _troops = troopResult.items ?? [];
+        _equipment = equipmentResult.items ?? [];
 
-      if (widget.initialTroopId != null) {
-        final troopExists = _troops.any(
-          (troop) => troop.id == widget.initialTroopId,
-        );
-        if (troopExists) {
-          _selectedTroopId = widget.initialTroopId;
-          _showOnlyMyActivities = false;
+        if (widget.initialTroopId != null) {
+          final troopExists = _troops.any(
+            (troop) => troop.id == widget.initialTroopId,
+          );
+          if (troopExists) {
+            _selectedTroopId = widget.initialTroopId;
+            _showOnlyMyActivities = false;
+          }
         }
+      });
+      await _fetchActivities();
+    } catch (e) {
+      // Handle authentication errors gracefully
+      if (e.toString().contains("Token nije moguće osvježiti") ||
+          e.toString().contains("Niste autorizovani")) {
+        // Redirect to login or show login prompt
+        setState(() {
+          _error = "Sesija je istekla. Molimo prijavite se ponovo.";
+        });
+        // You might want to navigate to login screen here
+        // Navigator.of(context).pushReplacementNamed('/login');
+      } else {
+        setState(() {
+          _error = e.toString();
+        });
       }
-    });
-    await _fetchActivities();
+    }
   }
 
   void _onSearchChanged() {

@@ -10,6 +10,7 @@ namespace ScoutTrack.Services.Interfaces
     {
         Task<PostResponse> CreateAsync(PostUpsertRequest request, ClaimsPrincipal user);
         Task<PagedResult<PostResponse>> GetByActivityAsync(int activityId, PostSearchObject search);
+        Task<PagedResult<PostResponse>> GetByActivityForUserAsync(int activityId, PostSearchObject search, ClaimsPrincipal user);
         Task<PostResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id);
         Task<PostResponse> LikePostAsync(int postId, int userId);
         Task<PostResponse> UnlikePostAsync(int postId, int userId);

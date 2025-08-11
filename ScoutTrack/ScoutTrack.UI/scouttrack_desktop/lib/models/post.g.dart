@@ -17,7 +17,8 @@ Post _$PostFromJson(Map<String, dynamic> json) => Post(
   activityTitle: json['activityTitle'] as String? ?? '',
   createdById: (json['createdById'] as num?)?.toInt() ?? 0,
   createdByName: json['createdByName'] as String? ?? '',
-  createdByRole: json['createdByRole'] as String? ?? '',
+  createdByTroopName: json['createdByTroopName'] as String?,
+  createdByAvatarUrl: json['createdByAvatarUrl'] as String?,
   images:
       (json['images'] as List<dynamic>?)
           ?.map((e) => PostImage.fromJson(e as Map<String, dynamic>))
@@ -26,6 +27,16 @@ Post _$PostFromJson(Map<String, dynamic> json) => Post(
   likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
   commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
   isLikedByCurrentUser: json['isLikedByCurrentUser'] as bool? ?? false,
+  likes:
+      (json['likes'] as List<dynamic>?)
+          ?.map((e) => Like.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  comments:
+      (json['comments'] as List<dynamic>?)
+          ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$PostToJson(Post instance) => <String, dynamic>{
@@ -37,11 +48,14 @@ Map<String, dynamic> _$PostToJson(Post instance) => <String, dynamic>{
   'activityTitle': instance.activityTitle,
   'createdById': instance.createdById,
   'createdByName': instance.createdByName,
-  'createdByRole': instance.createdByRole,
+  'createdByTroopName': instance.createdByTroopName,
+  'createdByAvatarUrl': instance.createdByAvatarUrl,
   'images': instance.images,
   'likeCount': instance.likeCount,
   'commentCount': instance.commentCount,
   'isLikedByCurrentUser': instance.isLikedByCurrentUser,
+  'likes': instance.likes,
+  'comments': instance.comments,
 };
 
 PostImage _$PostImageFromJson(Map<String, dynamic> json) => PostImage(

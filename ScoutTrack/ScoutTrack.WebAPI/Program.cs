@@ -31,6 +31,8 @@ builder.Services.AddTransient<IActivityEquipmentService, ActivityEquipmentServic
 builder.Services.AddTransient<IActivityRegistrationService, ActivityRegistrationService>();
 builder.Services.AddTransient<IReviewService, ReviewService>();
 builder.Services.AddTransient<IPostService, PostService>();
+builder.Services.AddTransient<ICommentService, CommentService>();
+builder.Services.AddTransient<ILikeService, LikeService>();
 
 // Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();

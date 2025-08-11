@@ -24,8 +24,8 @@ namespace ScoutTrack.Services.Database.Entities
         public int PostId { get; set; }
         public Post Post { get; set; } = null!;
 
-        [ForeignKey(nameof(Member))]
-        public int MemberId { get; set; }
-        public Member Member { get; set; } = null!;
+        [ForeignKey(nameof(CreatedBy))]
+        public int CreatedById { get; set; }
+        public UserAccount CreatedBy { get; set; } = null!;
     }
 }

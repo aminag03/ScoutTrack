@@ -312,7 +312,8 @@ namespace ScoutTrack.Services.Services
             var userId = _authService.GetUserId(user);
             var userRole = _authService.GetUserRole(user);
 
-            if (userRole == "Admin") return false;
+            // Admin can edit any post
+            if (userRole == "Admin") return true;
 
             if (post.CreatedById == userId) return true;
 
@@ -335,6 +336,121 @@ namespace ScoutTrack.Services.Services
             if (userRole == "Troop" && post.Activity.TroopId == userId) return true;
 
             if (post.CreatedById == userId) return true;
+
+            return false;
+        }
+
+        public async Task<bool> CanCreateCommentAsync(ClaimsPrincipal user, int postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.Activity)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null) return false;
+
+            if (post.Activity.ActivityState != "FinishedActivityState") return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return false;
+
+            return true;
+        }
+
+        public async Task<bool> CanEditCommentAsync(ClaimsPrincipal user, int commentId)
+        {
+            var comment = await _context.Comments
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+
+            if (comment == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            // Admin can edit any comment
+            if (userRole == "Admin") return true;
+
+            if (comment.CreatedById == userId) return true;
+
+            return false;
+        }
+
+        public async Task<bool> CanDeleteCommentAsync(ClaimsPrincipal user, int commentId)
+        {
+            var comment = await _context.Comments
+                .Include(c => c.Post)
+                .ThenInclude(p => p.Activity)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+
+            if (comment == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Troop" && comment.Post.Activity.TroopId == userId) return true;
+
+            if (comment.CreatedById == userId) return true;
+
+            return false;
+        }
+
+        public async Task<bool> CanLikePostAsync(ClaimsPrincipal user, int postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.Activity)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null) return false;
+
+            if (post.Activity.ActivityState != "FinishedActivityState") return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return false;
+
+            return true;
+        }
+
+        public async Task<bool> CanUnlikePostAsync(ClaimsPrincipal user, int postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.Activity)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return false;
+
+            var like = await _context.Likes
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.CreatedById == userId);
+
+            return like != null;
+        }
+
+        public async Task<bool> CanDeleteLikeAsync(ClaimsPrincipal user, int likeId)
+        {
+            var like = await _context.Likes
+                .Include(l => l.Post)
+                .ThenInclude(p => p.Activity)
+                .FirstOrDefaultAsync(l => l.Id == likeId);
+
+            if (like == null) return false;
+
+            var userId = _authService.GetUserId(user);
+            var userRole = _authService.GetUserRole(user);
+
+            if (userRole == "Admin") return true;
+
+            if (userRole == "Troop" && like.Post.Activity.TroopId == userId) return true;
+
+            if (like.CreatedById == userId) return true;
 
             return false;
         }

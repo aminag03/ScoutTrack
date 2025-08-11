@@ -18,6 +18,10 @@ import 'package:scouttrack_desktop/providers/review_provider.dart';
 import 'package:scouttrack_desktop/models/review.dart';
 import 'package:scouttrack_desktop/providers/post_provider.dart';
 import 'package:scouttrack_desktop/models/post.dart';
+import 'package:scouttrack_desktop/providers/comment_provider.dart';
+import 'package:scouttrack_desktop/models/comment.dart';
+import 'package:scouttrack_desktop/providers/like_provider.dart';
+import 'package:scouttrack_desktop/models/like.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -50,16 +54,16 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   late ActivityRegistrationProvider _activityRegistrationProvider;
   late ReviewProvider _reviewProvider;
   late PostProvider _postProvider;
+  late CommentProvider _commentProvider;
+  late LikeProvider _likeProvider;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
-  // Pagination variables
   int _currentPage = 1;
   int _pageSize = 10;
   int _totalRegistrations = 0;
   bool _isLoadingRegistrations = false;
 
-  // Review variables
   List<Review> _reviews = [];
   int _currentReviewPage = 1;
   int _reviewPageSize = 10;
@@ -69,7 +73,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   String _reviewSearchQuery = '';
   String _reviewSortBy = 'createdat_desc';
 
-  // Post/Gallery variables
   List<Post> _posts = [];
   bool _isLoadingPosts = false;
   bool _canCreatePost = false;
@@ -116,6 +119,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     _activityRegistrationProvider = ActivityRegistrationProvider(authProvider);
     _reviewProvider = ReviewProvider(authProvider);
     _postProvider = PostProvider(authProvider);
+    _commentProvider = CommentProvider(authProvider);
+    _likeProvider = LikeProvider(authProvider);
   }
 
   Future<void> _loadInitialData() async {
@@ -177,12 +182,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
     try {
       final filter = <String, dynamic>{
-        'page': _currentPage - 1, // Backend expects 0-based pagination
+        'page': _currentPage - 1,
         'pageSize': _pageSize,
         'includeTotalCount': true,
       };
 
-      // Add status filter if selected
       if (_statusFilter != null) {
         filter['status'] = _statusFilter;
       }
@@ -432,7 +436,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         color: Theme.of(context).colorScheme.surface,
         child: Column(
           children: [
-            // Header bar
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
@@ -490,7 +493,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Activity image if exists
             if (_activity!.imagePath.isNotEmpty) ...[
               Container(
                 height: 200,
@@ -1620,7 +1622,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                         color: Colors.grey,
                                       ),
                                     ),
-                                    // Add delete button for admins
                                     if (_role == 'Admin') ...[
                                       const SizedBox(width: 8),
                                       IconButton(
@@ -2608,34 +2609,72 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     );
   }
 
-  void _showPostDetails(Post post) async {
+  void _showPostDetails(Post initialPost) async {
     final PageController pageController = PageController();
     int currentImageIndex = 0;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userInfo = await authProvider.getCurrentUserInfo();
 
+    final postProvider = PostProvider(authProvider);
+    final commentProvider = CommentProvider(authProvider);
+    final likeProvider = LikeProvider(authProvider);
+
     bool canEdit = false;
     bool canDelete = false;
+    bool isAdmin = false;
 
     if (userInfo != null) {
       final userRole = userInfo['role'] as String?;
       final userId = userInfo['id'] as int?;
 
-      canEdit = PermissionUtils.canEditPost(userRole, userId, post);
+      isAdmin = userRole == 'Admin';
+      canEdit = PermissionUtils.canEditPost(userRole, userId, initialPost);
       canDelete = PermissionUtils.canDeletePost(
         userRole,
         userId,
-        post,
+        initialPost,
         _activity!,
       );
     }
+
+    Post currentPost =
+        initialPost;
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            bool isLiked = currentPost.isLikedByCurrentUser;
+            int likeCount = currentPost.likeCount;
+            int commentCount = currentPost.commentCount;
+            List<Comment> comments = List.from(currentPost.comments);
+
+            final TextEditingController commentController =
+                TextEditingController();
+            final FocusNode commentFocusNode = FocusNode();
+
+            Future<void> refreshPostData() async {
+              try {
+                final refreshedPosts = await postProvider.getByActivity(
+                  _activity!.id,
+                );
+                final refreshedPost = refreshedPosts.firstWhere(
+                  (p) => p.id == currentPost.id,
+                );
+                setState(() {
+                  currentPost = refreshedPost;
+                  isLiked = currentPost.isLikedByCurrentUser;
+                  likeCount = currentPost.likeCount;
+                  commentCount = currentPost.commentCount;
+                  comments = List.from(currentPost.comments);
+                });
+              } catch (e) {
+                print('Error refreshing post data: $e');
+              }
+            }
+
             return Dialog(
               backgroundColor: Colors.transparent,
               child: Container(
@@ -2676,7 +2715,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                             IconButton(
                               onPressed: () {
                                 Navigator.of(context).pop();
-                                _showEditPostDialog(post);
+                                _showEditPostDialog(currentPost);
                               },
                               icon: const Icon(Icons.edit, color: Colors.white),
                               tooltip: 'Uredi objavu',
@@ -2685,7 +2724,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                             IconButton(
                               onPressed: () {
                                 Navigator.of(context).pop();
-                                _showDeletePostDialog(post);
+                                _showDeletePostDialog(currentPost);
                               },
                               icon: const Icon(
                                 Icons.delete,
@@ -2720,14 +2759,14 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          post.createdByName,
+                                          currentPost.createdByName,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                           ),
                                         ),
                                         Text(
-                                          post.createdByRole,
+                                          currentPost.createdByTroopName ?? '',
                                           style: TextStyle(
                                             color: Colors.grey[600],
                                             fontSize: 14,
@@ -2737,7 +2776,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                     ),
                                   ),
                                   Text(
-                                    formatDate(post.createdAt),
+                                    formatDate(currentPost.createdAt),
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 12,
@@ -2747,31 +2786,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                               ),
                             ),
 
-                            if (post.content.isNotEmpty)
+                            if (currentPost.content.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                 ),
                                 child: Text(
-                                  post.content,
+                                  currentPost.content,
                                   style: const TextStyle(fontSize: 16),
                                 ),
                               ),
 
-                            if (post.images.isNotEmpty) ...[
+                            if (currentPost.images.isNotEmpty) ...[
                               const SizedBox(height: 16),
                               SizedBox(
                                 height: 300,
                                 child: PageView.builder(
                                   controller: pageController,
-                                  itemCount: post.images.length,
+                                  itemCount: currentPost.images.length,
                                   onPageChanged: (index) {
                                     setState(() {
                                       currentImageIndex = index;
                                     });
                                   },
                                   itemBuilder: (context, index) {
-                                    final image = post.images[index];
+                                    final image = currentPost.images[index];
                                     return Container(
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 8,
@@ -2810,13 +2849,13 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                   },
                                 ),
                               ),
-                              if (post.images.length > 1)
+                              if (currentPost.images.length > 1)
                                 Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(
-                                      post.images.length,
+                                      currentPost.images.length,
                                       (index) => Container(
                                         width: 8,
                                         height: 8,
@@ -2840,41 +2879,60 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                               child: Row(
                                 children: [
                                   IconButton(
-                                    onPressed: () {
-                                      // TODO: Implement like functionality
+                                    onPressed: () async {
+                                      if (isAdmin) return;
+                                      setState(() {
+                                        if (isLiked) {
+                                          isLiked = false;
+                                          likeCount--;
+                                        } else {
+                                          isLiked = true;
+                                          likeCount++;
+                                        }
+                                      });
+
+                                      await _onLikePost(
+                                        currentPost,
+                                        likeProvider: likeProvider,
+                                        postProvider: postProvider,
+                                      );
+                                      await refreshPostData();
                                     },
                                     icon: Icon(
-                                      post.isLikedByCurrentUser
+                                      isLiked
                                           ? Icons.favorite
                                           : Icons.favorite_border,
-                                      color: post.isLikedByCurrentUser
-                                          ? Colors.red
-                                          : Colors.grey,
+                                      color: isLiked ? Colors.red : Colors.grey,
                                     ),
                                   ),
-                                  Text(
-                                    '${post.likeCount}',
-                                    style: const TextStyle(fontSize: 16),
+                                  GestureDetector(
+                                    onTap: () => _showLikesDialog(currentPost),
+                                    child: Text(
+                                      '$likeCount',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.blue,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(width: 16),
                                   IconButton(
-                                    onPressed: () {
-                                      // TODO: Implement comment functionality
-                                    },
                                     icon: const Icon(
                                       Icons.comment_outlined,
                                       color: Colors.grey,
                                     ),
+                                    onPressed: null,
                                   ),
                                   Text(
-                                    '${post.commentCount}',
+                                    '$commentCount',
                                     style: const TextStyle(fontSize: 16),
                                   ),
                                 ],
                               ),
                             ),
 
-                            if (post.commentCount > 0) ...[
+                            if (comments.isNotEmpty) ...[
                               const Divider(),
                               const Padding(
                                 padding: EdgeInsets.all(16),
@@ -2886,91 +2944,54 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                   ),
                                 ),
                               ),
-                              // TODO: Load and display actual comments
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                 ),
                                 child: Column(
-                                  children: [
-                                    // Placeholder comment
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.person,
-                                            color: Colors.grey,
-                                          ),
+                                  children: comments
+                                      .map(
+                                        (comment) => _buildCommentItem(
+                                          comment,
+                                          refreshPostData,
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Text(
-                                                'Farisa Vojnović',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const Text(
-                                                'Dobra pagoda',
-                                                style: TextStyle(fontSize: 14),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      )
+                                      .toList(),
                                 ),
                               ),
                             ],
 
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 400,
-                                      ),
-                                      child: TextField(
-                                        maxLines: null,
-                                        textInputAction:
-                                            TextInputAction.newline,
-                                        decoration: InputDecoration(
-                                          hintText: 'Ostavi komentar...',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 8,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    onPressed: () {
-                                      // TODO: Implement comment submission
-                                    },
-                                    icon: const Icon(
-                                      Icons.send,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
+                            if (!isAdmin) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: _buildCommentInput(
+                                  currentPost,
+                                  commentController,
+                                  commentFocusNode,
+                                  (String content) {
+                                    setState(() {
+                                      commentCount++;
+                                      final optimisticComment = Comment(
+                                        id: DateTime.now()
+                                            .millisecondsSinceEpoch,
+                                        content: content,
+                                        createdAt: DateTime.now(),
+                                        postId: currentPost.id,
+                                        createdById: 0,
+                                        createdByName: 'You',
+                                        createdByTroopName: null,
+                                        createdByAvatarUrl: null,
+                                        canEdit: true,
+                                        canDelete: true,
+                                      );
+                                      comments.insert(0, optimisticComment);
+                                    });
+                                  },
+                                  refreshPostData,
+                                  commentProvider,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
@@ -3302,7 +3323,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 try {
                   await _postProvider.deletePost(post.id);
 
-                  // Refresh posts
                   await _loadPosts();
 
                   Navigator.of(context).pop();
@@ -3331,5 +3351,415 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         );
       },
     );
+  }
+
+  Widget _buildCommentItem(
+    Comment comment, [
+    Future<void> Function()? onRefresh,
+  ]) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.grey[300],
+            backgroundImage:
+                comment.createdByAvatarUrl != null &&
+                    comment.createdByAvatarUrl!.isNotEmpty
+                ? NetworkImage(comment.createdByAvatarUrl!)
+                : null,
+            child:
+                comment.createdByAvatarUrl == null ||
+                    comment.createdByAvatarUrl!.isEmpty
+                ? Text(
+                    comment.createdByName.isNotEmpty
+                        ? comment.createdByName[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      comment.createdByName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (comment.createdByTroopName != null &&
+                        comment.createdByTroopName!.isNotEmpty)
+                      Text(
+                        comment.createdByTroopName!,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    const Spacer(),
+                    Text(
+                      formatDate(comment.createdAt),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(comment.content, style: const TextStyle(fontSize: 14)),
+                if (comment.canEdit || comment.canDelete) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (comment.canEdit)
+                        TextButton(
+                          onPressed: () => _onEditComment(comment, onRefresh),
+                          child: const Text(
+                            'Uredi',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      if (comment.canEdit && comment.canDelete)
+                        const SizedBox(width: 8),
+                      if (comment.canDelete)
+                        TextButton(
+                          onPressed: () => _onDeleteComment(comment, onRefresh),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
+                          child: const Text(
+                            'Obriši',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onLikePost(
+    Post post, {
+    LikeProvider? likeProvider,
+    PostProvider? postProvider,
+  }) async {
+    try {
+      final likeProv = likeProvider ?? _likeProvider;
+      final postProv = postProvider ?? _postProvider;
+
+      if (post.isLikedByCurrentUser) {
+        await likeProv.unlikePost(post.id);
+      } else {
+        await likeProv.likePost(post.id);
+      }
+
+      await _loadPosts();
+
+      if (Navigator.of(context).canPop()) {
+        final refreshedPosts = await postProv.getByActivity(_activity!.id);
+        final refreshedPost = refreshedPosts.firstWhere((p) => p.id == post.id);
+        post = refreshedPost;
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  void _showLikesDialog(Post post) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Sviđanja (${post.likes.length})'),
+          content: Container(
+            width: 400,
+            child: post.likes.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Nema sviđanja za ovu objavu.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: post.likes.length,
+                    itemBuilder: (context, index) {
+                      final like = post.likes[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage:
+                              like.createdByAvatarUrl != null &&
+                                  like.createdByAvatarUrl!.isNotEmpty
+                              ? NetworkImage(like.createdByAvatarUrl!)
+                              : null,
+                          child:
+                              like.createdByAvatarUrl == null ||
+                                  like.createdByAvatarUrl!.isEmpty
+                              ? Text(
+                                  like.createdByName.isNotEmpty
+                                      ? like.createdByName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        title: Text(like.createdByName),
+                        subtitle:
+                            like.createdByTroopName != null &&
+                                like.createdByTroopName!.isNotEmpty
+                            ? Text(like.createdByTroopName!)
+                            : null,
+                        trailing: Text(
+                          formatDate(like.likedAt),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Zatvori'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCommentInput(
+    Post post,
+    TextEditingController commentController,
+    FocusNode commentFocusNode, [
+    Function(String)? onOptimisticUpdate,
+    Future<void> Function()? onRefreshPost,
+    CommentProvider? commentProvider,
+  ]) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: TextField(
+              controller: commentController,
+              focusNode: commentFocusNode,
+              maxLines: null,
+              textInputAction: TextInputAction.newline,
+              decoration: InputDecoration(
+                hintText: 'Ostavi komentar...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
+              onSubmitted: (value) async {
+                if (value.trim().isNotEmpty) {
+                  final content = value.trim();
+
+                  if (onOptimisticUpdate != null) {
+                    onOptimisticUpdate(content);
+                  }
+
+                  commentController.clear();
+
+                  await _submitComment(
+                    post,
+                    content,
+                    commentController,
+                    onOptimisticUpdate,
+                    onRefreshPost,
+                    commentProvider,
+                  );
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () async {
+            if (commentController.text.trim().isNotEmpty) {
+              final content = commentController.text.trim();
+
+              if (onOptimisticUpdate != null) {
+                onOptimisticUpdate(content);
+              }
+
+              await _submitComment(
+                post,
+                content,
+                commentController,
+                onOptimisticUpdate,
+                onRefreshPost,
+                commentProvider,
+              );
+            }
+          },
+          icon: const Icon(Icons.send, color: Colors.green),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submitComment(
+    Post post,
+    String content,
+    TextEditingController controller, [
+    Function(String)? onOptimisticUpdate,
+    Future<void> Function()? onRefreshPost,
+    CommentProvider? commentProvider,
+  ]) async {
+    if (onOptimisticUpdate != null) {
+      onOptimisticUpdate(content);
+    }
+
+    try {
+      final provider = commentProvider ?? _commentProvider;
+      await provider.createComment(content, post.id);
+
+      controller.clear();
+
+      if (onRefreshPost != null) {
+        await onRefreshPost();
+      } else {
+        await _loadPosts();
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  Future<void> _onEditComment(
+    Comment comment, [
+    Future<void> Function()? onRefresh,
+  ]) async {
+    final contentController = TextEditingController(text: comment.content);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Uredi komentar'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: contentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Komentar',
+                    hintText: 'Uredite svoj komentar...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Komentar je obavezan';
+                    }
+                    if (value.trim().length > 1000) {
+                      return 'Komentar može imati najviše 1000 karaktera';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  try {
+                    await _commentProvider.updateComment(
+                      comment.id,
+                      contentController.text.trim(),
+                    );
+
+                    await _loadPosts();
+
+                    if (onRefresh != null) {
+                      await onRefresh();
+                    }
+
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    showErrorSnackbar(context, e);
+                  }
+                }
+              },
+              child: const Text('Spremi'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _onDeleteComment(
+    Comment comment, [
+    Future<void> Function()? onRefresh,
+  ]) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Obriši komentar'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati komentar od ${comment.createdByName}? Ova akcija je nepovratna.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _commentProvider.deleteComment(comment.id);
+        await _loadPosts();
+
+        if (onRefresh != null) {
+          await onRefresh();
+        }
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 }

@@ -80,7 +80,9 @@ namespace ScoutTrack.Services.Services
                 .Include(p => p.CreatedBy)
                 .Include(p => p.Images)
                 .Include(p => p.Likes)
+                    .ThenInclude(l => l.CreatedBy)
                 .Include(p => p.Comments)
+                    .ThenInclude(c => c.CreatedBy)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (post == null) return null;
@@ -112,7 +114,7 @@ namespace ScoutTrack.Services.Services
 
             var currentUserId = int.Parse(user.FindFirst("UserId")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             post.IsLikedByCurrentUser = await _context.Likes
-                .AnyAsync(l => l.PostId == id && l.MemberId == currentUserId);
+                .AnyAsync(l => l.PostId == id && l.CreatedById == currentUserId);
 
             return post;
         }
@@ -124,7 +126,9 @@ namespace ScoutTrack.Services.Services
                 .Include(p => p.CreatedBy)
                 .Include(p => p.Images)
                 .Include(p => p.Likes)
+                    .ThenInclude(l => l.CreatedBy)
                 .Include(p => p.Comments)
+                    .ThenInclude(c => c.CreatedBy)
                 .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -151,7 +155,6 @@ namespace ScoutTrack.Services.Services
                 query = query.OrderByDescending(p => p.CreatedAt);
             }
 
-            // Apply pagination
             if (!search.RetrieveAll)
             {
                 var page = search.Page ?? 0;
@@ -161,6 +164,10 @@ namespace ScoutTrack.Services.Services
 
             var posts = await query.ToListAsync();
             var responses = posts.Select(MapToResponse).ToList();
+
+            // Set IsLikedByCurrentUser flag for each post
+            // Note: This would require the current user context, which is not available in this method
+            // The flag will be set when calling GetByIdForUserAsync or when posts are loaded with user context
 
             return new PagedResult<PostResponse>
             {
@@ -193,6 +200,33 @@ namespace ScoutTrack.Services.Services
         {
             search.ActivityId = activityId;
             return await GetAsync(search);
+        }
+
+        public async Task<PagedResult<PostResponse>> GetByActivityForUserAsync(int activityId, PostSearchObject search, ClaimsPrincipal user)
+        {
+            search.ActivityId = activityId;
+            var result = await GetAsync(search);
+            
+            var currentUserId = int.Parse(user.FindFirst("UserId")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            
+            foreach (var post in result.Items)
+            {
+                post.IsLikedByCurrentUser = await _context.Likes
+                    .AnyAsync(l => l.PostId == post.Id && l.CreatedById == currentUserId);
+                
+                foreach (var comment in post.Comments)
+                {
+                    comment.CanEdit = await _accessControlService.CanEditCommentAsync(user, comment.Id);
+                    comment.CanDelete = await _accessControlService.CanDeleteCommentAsync(user, comment.Id);
+                }
+                
+                foreach (var like in post.Likes)
+                {
+                    like.CanUnlike = await _accessControlService.CanUnlikePostAsync(user, like.PostId);
+                }
+            }
+            
+            return result;
         }
 
         public override async Task<PostResponse?> UpdateAsync(int id, PostUpsertRequest request)
@@ -250,14 +284,14 @@ namespace ScoutTrack.Services.Services
         public async Task<PostResponse> LikePostAsync(int postId, int userId)
         {
             var existingLike = await _context.Likes
-                .FirstOrDefaultAsync(l => l.PostId == postId && l.MemberId == userId);
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.CreatedById == userId);
 
             if (existingLike == null)
             {
                 var like = new Like
                 {
                     PostId = postId,
-                    MemberId = userId,
+                    CreatedById = userId,
                     LikedAt = DateTime.UtcNow
                 };
 
@@ -271,7 +305,7 @@ namespace ScoutTrack.Services.Services
         public async Task<PostResponse> UnlikePostAsync(int postId, int userId)
         {
             var existingLike = await _context.Likes
-                .FirstOrDefaultAsync(l => l.PostId == postId && l.MemberId == userId);
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.CreatedById == userId);
 
             if (existingLike != null)
             {
@@ -281,8 +315,6 @@ namespace ScoutTrack.Services.Services
 
             return await GetByIdAsync(postId);
         }
-
-
 
         protected override PostResponse MapToResponse(Post entity)
         {
@@ -296,7 +328,8 @@ namespace ScoutTrack.Services.Services
                 ActivityTitle = entity.Activity?.Title ?? "",
                 CreatedById = entity.CreatedById,
                 CreatedByName = GetUserName(entity.CreatedBy),
-                CreatedByRole = GetUserRole(entity.CreatedBy),
+                CreatedByTroopName = GetUserTroopName(entity.CreatedBy),
+                CreatedByAvatarUrl = GetUserAvatarUrl(entity.CreatedBy),
                 Images = entity.Images.Select(i => new PostImageResponse
                 {
                     Id = i.Id,
@@ -306,7 +339,29 @@ namespace ScoutTrack.Services.Services
                 }).ToList(),
                 LikeCount = entity.Likes.Count,
                 CommentCount = entity.Comments.Count,
-                IsLikedByCurrentUser = false
+                IsLikedByCurrentUser = false,
+                Likes = entity.Likes.Select(l => new LikeResponse
+                {
+                    Id = l.Id,
+                    LikedAt = l.LikedAt,
+                    PostId = l.PostId,
+                    CreatedById = l.CreatedById,
+                    CreatedByName = GetUserAccountName(l.CreatedBy),
+                    CreatedByTroopName = GetUserTroopName(l.CreatedBy),
+                    CreatedByAvatarUrl = GetUserAvatarUrl(l.CreatedBy)
+                }).ToList(),
+                Comments = entity.Comments.Select(c => new CommentResponse
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt,
+                    PostId = c.PostId,
+                    CreatedById = c.CreatedById,
+                    CreatedByName = GetUserAccountName(c.CreatedBy),
+                    CreatedByTroopName = GetUserTroopName(c.CreatedBy),
+                    CreatedByAvatarUrl = GetUserAvatarUrl(c.CreatedBy)
+                }).ToList()
             };
         }
 
@@ -324,6 +379,51 @@ namespace ScoutTrack.Services.Services
         private string GetUserRole(UserAccount user)
         {
             return user.Role.ToString();
+        }
+
+        private string GetUserAccountName(UserAccount userAccount)
+        {
+            if (userAccount == null) return "Unknown User";
+            
+            if (userAccount is Member member)
+                return $"{member.FirstName} {member.LastName}";
+            else if (userAccount is Troop troop)
+                return troop.Name;
+            else if (userAccount is Admin admin)
+                return admin.FullName;
+            else
+                return userAccount.Username;
+        }
+
+        private string? GetUserTroopName(UserAccount userAccount)
+        {
+            if (userAccount == null) return null;
+            
+            if (userAccount is Member member)
+            {
+                var troop = _context.Troops.FirstOrDefault(t => t.Id == member.TroopId);
+                return troop?.Name;
+            }
+            else if (userAccount is Troop troop)
+                return null;
+            else if (userAccount is Admin admin)
+                return null;
+            else
+                return null;
+        }
+
+        private string? GetUserAvatarUrl(UserAccount userAccount)
+        {
+            if (userAccount == null) return null;
+            
+            if (userAccount is Member member)
+                return member.ProfilePictureUrl;
+            else if (userAccount is Troop troop)
+                return troop.LogoUrl;
+            else if (userAccount is Admin admin)
+                return null;
+            else
+                return null;
         }
 
         private void DeleteImageFile(string imageUrl)

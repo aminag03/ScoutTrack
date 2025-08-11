@@ -98,62 +98,16 @@ class PostProvider extends BaseProvider<Post, dynamic> {
     }
   }
 
+  // Note: Like/unlike functionality is now handled by LikeProvider
+  // These methods are kept for backward compatibility but will be removed
+  @Deprecated('Use LikeProvider.likePost instead')
   Future<Post> likePost(int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId/like",
-    );
-
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return Post.fromJson(jsonDecode(response.body));
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Greška prilikom lajkanja objave.');
-      }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    throw UnimplementedError('Use LikeProvider.likePost instead');
   }
 
+  @Deprecated('Use LikeProvider.unlikePost instead')
   Future<Post> unlikePost(int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId/like",
-    );
-
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
-      final response = await http.delete(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return Post.fromJson(jsonDecode(response.body));
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['message'] ?? 'Greška prilikom uklanjanja lajka.',
-        );
-      }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    throw UnimplementedError('Use LikeProvider.unlikePost instead');
   }
 
   Future<String> uploadImage(File imageFile) async {
