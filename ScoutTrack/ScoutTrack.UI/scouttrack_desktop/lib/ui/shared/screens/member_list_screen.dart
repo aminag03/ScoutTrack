@@ -61,9 +61,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    _memberProvider = MemberProvider(authProvider);
-    _loadInitialData();
+
+    // Check if AuthProvider is available (user is still logged in)
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Only initialize providers if authProvider is valid
+      if (authProvider.isLoggedIn) {
+        _memberProvider = MemberProvider(authProvider);
+
+        // Load data only if we haven't loaded it yet and user is authenticated
+        if (_role == null) {
+          _loadInitialData();
+        }
+      }
+    } catch (e) {
+      // AuthProvider is not available (user logged out)
+      print('AuthProvider not available: $e');
+      return;
+    }
   }
 
   @override
@@ -83,35 +99,55 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final role = await authProvider.getUserRole();
-    final userId = await authProvider.getUserIdFromToken();
+    try {
+      // Check if we're still mounted and user is logged in
+      if (!mounted) return;
 
-    setState(() {
-      _role = role;
-      _loggedInUserId = userId;
-    });
-
-    final cityProvider = CityProvider(authProvider);
-    final troopProvider = TroopProvider(authProvider);
-    var filter = {"RetrieveAll": true};
-    final cityResult = await cityProvider.get(filter: filter);
-    final troopResult = await troopProvider.get(filter: filter);
-    setState(() {
-      _cities = cityResult.items ?? [];
-      _troops = troopResult.items ?? [];
-
-      if (widget.initialTroopId != null) {
-        final troopExists = _troops.any(
-          (troop) => troop.id == widget.initialTroopId,
-        );
-        if (troopExists) {
-          _selectedTroopId = widget.initialTroopId;
-          _showOnlyMyMembers = false;
-        }
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isLoggedIn) {
+        print('User not authenticated, skipping data load');
+        return;
       }
-    });
-    await _fetchMembers();
+
+      final role = await authProvider.getUserRole();
+      final userId = await authProvider.getUserIdFromToken();
+
+      // Check again if we're still mounted after async calls
+      if (!mounted) return;
+
+      setState(() {
+        _role = role;
+        _loggedInUserId = userId;
+      });
+
+      final cityProvider = CityProvider(authProvider);
+      final troopProvider = TroopProvider(authProvider);
+      var filter = {"RetrieveAll": true};
+      final cityResult = await cityProvider.get(filter: filter);
+      final troopResult = await troopProvider.get(filter: filter);
+
+      // Check again if we're still mounted after async calls
+      if (!mounted) return;
+
+      setState(() {
+        _cities = cityResult.items ?? [];
+        _troops = troopResult.items ?? [];
+
+        if (widget.initialTroopId != null) {
+          final troopExists = _troops.any(
+            (troop) => troop.id == widget.initialTroopId,
+          );
+          if (troopExists) {
+            _selectedTroopId = widget.initialTroopId;
+            _showOnlyMyMembers = false;
+          }
+        }
+      });
+      await _fetchMembers();
+    } catch (e) {
+      print('Error in _loadInitialData: $e');
+      // Don't rethrow - this might happen during logout
+    }
   }
 
   void _onSearchChanged() {

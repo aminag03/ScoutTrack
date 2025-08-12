@@ -368,9 +368,10 @@ namespace ScoutTrack.Services.Services
             var userId = _authService.GetUserId(user);
             var userRole = _authService.GetUserRole(user);
 
-            // Admin can edit any comment
-            if (userRole == "Admin") return true;
+            // Admin cannot edit comments (even their own)
+            if (userRole == "Admin") return false;
 
+            // Only the comment creator can edit their own comment
             if (comment.CreatedById == userId) return true;
 
             return false;

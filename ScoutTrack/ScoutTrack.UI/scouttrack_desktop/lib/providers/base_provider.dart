@@ -11,7 +11,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
 
   @protected
   final String endpoint;
-  
+
   final AuthProvider? authProvider;
 
   BaseProvider(this.authProvider, this.endpoint) {
@@ -116,24 +116,36 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   void handleHttpError(http.Response response) {
-    final responseBody = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+    final responseBody = response.body.isNotEmpty
+        ? jsonDecode(response.body)
+        : null;
 
     String errorMsg = '';
-    if (responseBody != null && responseBody is Map && responseBody['message'] != null) {
+    if (responseBody != null &&
+        responseBody is Map &&
+        responseBody['message'] != null) {
       errorMsg = responseBody['message'].toString().toLowerCase();
     } else {
       errorMsg = response.body.toLowerCase();
     }
 
     if (response.statusCode == 401) {
-      throw Exception('Greška: Niste autorizovani. Molimo prijavite se ponovo.');
+      throw Exception(
+        'Greška: Niste autorizovani. Molimo prijavite se ponovo.',
+      );
     } else if (response.statusCode == 403) {
       throw Exception('Greška: Nemate dozvolu za ovu akciju.');
     } else if (response.statusCode == 400) {
-      if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
-        throw Exception('Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.');
+      if (errorMsg.contains('referenc') ||
+          errorMsg.contains('foreign key') ||
+          errorMsg.contains('constraint')) {
+        throw Exception(
+          'Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.',
+        );
       }
-      throw Exception('Greška: Neispravan zahtjev. (${responseBody?['message'] ?? response.statusCode})');
+      throw Exception(
+        'Greška: Neispravan zahtjev. (${responseBody?['message'] ?? response.statusCode})',
+      );
     } else if (responseBody != null && responseBody['errors'] != null) {
       final errors = responseBody['errors'] as Map<String, dynamic>?;
       final userErrors = errors?['UserError'] as List<dynamic>?;
@@ -142,11 +154,19 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
         throw Exception('Greška: ${userErrors.join(', ')}');
       }
 
-      throw Exception('Greška: ${responseBody['message'] ?? response.statusCode}');
-    } else if (errorMsg.contains('referenc') || errorMsg.contains('foreign key') || errorMsg.contains('constraint')) {
-      throw Exception('Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.');
+      throw Exception(
+        'Greška: ${responseBody['message'] ?? response.statusCode}',
+      );
+    } else if (errorMsg.contains('referenc') ||
+        errorMsg.contains('foreign key') ||
+        errorMsg.contains('constraint')) {
+      throw Exception(
+        'Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.',
+      );
     } else {
-      throw Exception('Greška: Nepoznata greška. Status kod: ${response.statusCode}');
+      throw Exception(
+        'Greška: Nepoznata greška. Status kod: ${response.statusCode}',
+      );
     }
   }
 
@@ -162,7 +182,9 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     } else {
       String errorMsg = response.body;
       try {
-        final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+        final decoded = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : null;
         if (decoded != null && decoded is Map && decoded['message'] != null) {
           errorMsg = decoded['message'].toString().toLowerCase();
         } else {
@@ -172,7 +194,8 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
         errorMsg = response.body.toLowerCase();
       }
 
-      if (errorMsg.contains('username') && errorMsg.contains('already exists')) {
+      if (errorMsg.contains('username') &&
+          errorMsg.contains('already exists')) {
         throw Exception('Greška: Korisničko ime već postoji.');
       }
       if (errorMsg.contains('email') && errorMsg.contains('already exists')) {
@@ -188,20 +211,24 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   Future<Map<String, String>> createHeaders() async {
-    final headers = {
-      'Content-Type': 'application/json; charset=UTF-8',
-    };
+    final headers = {'Content-Type': 'application/json; charset=UTF-8'};
 
-    if (authProvider?.accessToken != null) {
+    // Only add Authorization header if user is properly authenticated
+    if (authProvider != null &&
+        authProvider!.isLoggedIn &&
+        authProvider!.accessToken != null) {
       headers['Authorization'] = 'Bearer ${authProvider!.accessToken}';
-    } else {
-      debugPrint('AuthProvider ili accessToken je null – ne dodajem Authorization header.');
     }
+    // Don't log debug messages during normal logout flow
 
     return headers;
   }
 
-  String getQueryString(Map params, {String prefix = '&', bool inRecursion = false}) {
+  String getQueryString(
+    Map params, {
+    String prefix = '&',
+    bool inRecursion = false,
+  }) {
     String query = '';
     params.forEach((key, value) {
       if (inRecursion) {
@@ -222,7 +249,11 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       } else if (value is List || value is Map) {
         if (value is List) value = value.asMap();
         value.forEach((k, v) {
-          query += getQueryString({k: v}, prefix: '$prefix$key', inRecursion: true);
+          query += getQueryString(
+            {k: v},
+            prefix: '$prefix$key',
+            inRecursion: true,
+          );
         });
       }
     });
@@ -234,18 +265,33 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       return await requestFn();
     } catch (e) {
       final message = e.toString();
-      final unauthorized = message.contains("Greška: Niste autorizovani.") || message.contains("Unauthorized");
+      final unauthorized =
+          message.contains("Greška: Niste autorizovani.") ||
+          message.contains("Unauthorized");
 
       if (unauthorized) {
-        if (authProvider == null) {
-          throw Exception("Greška: Niste autorizovani i AuthProvider nije dostupan.");
+        // Check if authProvider is available and user is still logged in
+        if (authProvider == null || !authProvider!.isLoggedIn) {
+          // User is logged out or AuthProvider is not available
+          // Don't try to refresh token, just throw a user-friendly error
+          throw Exception(
+            "Greška: Niste autorizovani. Molimo prijavite se ponovo.",
+          );
         }
 
-        final success = await authProvider!.refreshToken();
-        if (success) {
-          return await requestFn(); // Retry
-        } else {
-          throw Exception("Greška: Token nije moguće osvježiti.");
+        // Try to refresh the token
+        try {
+          final success = await authProvider!.refreshToken();
+          if (success) {
+            return await requestFn(); // Retry
+          } else {
+            throw Exception("Greška: Token nije moguće osvježiti.");
+          }
+        } catch (refreshError) {
+          // If refresh fails, throw a user-friendly error
+          throw Exception(
+            "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
+          );
         }
       } else {
         rethrow;

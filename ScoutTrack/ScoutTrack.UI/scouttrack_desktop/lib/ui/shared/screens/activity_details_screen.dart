@@ -83,7 +83,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     _tabController = TabController(length: 3, vsync: this);
     _mapController = MapController();
     _activity = widget.activity;
-    _loadInitialData();
+    // _loadInitialData() is now called from didChangeDependencies() after providers are initialized
   }
 
   @override
@@ -114,34 +114,71 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    _activityProvider = ActivityProvider(authProvider);
-    _activityRegistrationProvider = ActivityRegistrationProvider(authProvider);
-    _reviewProvider = ReviewProvider(authProvider);
-    _postProvider = PostProvider(authProvider);
-    _commentProvider = CommentProvider(authProvider);
-    _likeProvider = LikeProvider(authProvider);
+
+    // Check if AuthProvider is available (user is still logged in)
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Only initialize providers if authProvider is valid
+      if (authProvider.isLoggedIn) {
+        _activityProvider = ActivityProvider(authProvider);
+        _activityRegistrationProvider = ActivityRegistrationProvider(
+          authProvider,
+        );
+        _reviewProvider = ReviewProvider(authProvider);
+        _postProvider = PostProvider(authProvider);
+        _commentProvider = CommentProvider(authProvider);
+        _likeProvider = LikeProvider(authProvider);
+
+        // Load data only if we haven't loaded it yet and user is authenticated
+        if (_activity != null && _role == null) {
+          _loadInitialData();
+        }
+      }
+    } catch (e) {
+      // AuthProvider is not available (user logged out)
+      print('AuthProvider not available: $e');
+      return;
+    }
   }
 
   Future<void> _loadInitialData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final role = await authProvider.getUserRole();
-    final userId = await authProvider.getUserIdFromToken();
+    try {
+      // Check if we're still mounted and user is logged in
+      if (!mounted) return;
 
-    setState(() {
-      _role = role;
-      _loggedInUserId = userId;
-      _canStartOrFinish =
-          role == 'Admin' || (role == 'Troop' && userId == _activity?.troopId);
-      _canManageRegistrations =
-          role == 'Admin' || (role == 'Troop' && userId == _activity?.troopId);
-    });
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isLoggedIn) {
+        print('User not authenticated, skipping data load');
+        return;
+      }
 
-    await _loadEquipment();
-    await _loadRegistrations();
-    await _loadReviews();
-    await _loadPosts();
-    await _checkCanCreatePost();
+      final role = await authProvider.getUserRole();
+      final userId = await authProvider.getUserIdFromToken();
+
+      // Check again if we're still mounted after async calls
+      if (!mounted) return;
+
+      setState(() {
+        _role = role;
+        _loggedInUserId = userId;
+        _canStartOrFinish =
+            role == 'Admin' ||
+            (role == 'Troop' && userId == _activity?.troopId);
+        _canManageRegistrations =
+            role == 'Admin' ||
+            (role == 'Troop' && userId == _activity?.troopId);
+      });
+
+      await _loadEquipment();
+      await _loadRegistrations();
+      await _loadReviews();
+      await _loadPosts();
+      await _checkCanCreatePost();
+    } catch (e) {
+      print('Error in _loadInitialData: $e');
+      // Don't rethrow - this might happen during logout
+    }
   }
 
   Future<void> _refreshActivity() async {
@@ -157,17 +194,29 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   Future<void> _loadEquipment() async {
     try {
-      final activityEquipmentProvider = ActivityEquipmentProvider(
-        Provider.of<AuthProvider>(context, listen: false),
-      );
+      // Check if we're still mounted and user is logged in
+      if (!mounted) return;
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isLoggedIn) {
+        print('User not authenticated, skipping equipment load');
+        return;
+      }
+
+      final activityEquipmentProvider = ActivityEquipmentProvider(authProvider);
       final equipment = await activityEquipmentProvider.getByActivityId(
         _activity!.id,
       );
+
+      // Check again if we're still mounted after async call
+      if (!mounted) return;
+
       setState(() {
         _equipment = equipment;
       });
     } catch (e) {
       print('Error loading equipment: $e');
+      // Don't rethrow - this might happen during logout
     }
   }
 
@@ -2392,154 +2441,176 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Dodaj novu objavu'),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Podijeli svoje iskustvo i fotografije s ove aktivnosti.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        child: TextFormField(
-                          controller: contentController,
-                          decoration: const InputDecoration(
-                            labelText: 'Opis objave (opcionalno)',
-                            hintText: 'Napišite nešto o svom iskustvu...',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: null,
-                          textInputAction: TextInputAction.newline,
-                          validator: (value) {
-                            if (value != null && value.trim().length > 1000) {
-                              return 'Opis može imati najviše 1000 karaktera';
-                            }
-                            return null;
-                          },
+              content: Container(
+                constraints: const BoxConstraints(
+                  maxHeight: 600,
+                  maxWidth: 500,
+                ),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Podijeli svoje iskustvo i fotografije s ove aktivnosti.',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      Row(
-                        children: [
-                          const Icon(Icons.photo_library, color: Colors.green),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Fotografije',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (selectedImages.length < 10)
-                            TextButton.icon(
-                              onPressed: () async {
-                                final picker = ImagePicker();
-                                final pickedFile = await picker.pickImage(
-                                  source: ImageSource.gallery,
-                                );
-                                if (pickedFile != null) {
-                                  final bytes = await pickedFile.readAsBytes();
-                                  final compressedBytes =
-                                      await ImageUtils.compressImage(bytes);
-                                  final compressedFile = File(pickedFile.path);
-                                  await compressedFile.writeAsBytes(
-                                    compressedBytes,
-                                  );
-                                  setState(() {
-                                    selectedImages.add(compressedFile);
-                                  });
-                                }
-                              },
-                              icon: const Icon(Icons.add_photo_alternate),
-                              label: const Text('Dodaj'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      if (selectedImages.isNotEmpty) ...[
                         Container(
-                          height: 120,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: selectedImages.asMap().entries.map((
-                                entry,
-                              ) {
-                                final index = entry.key;
-                                final image = entry.value;
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  child: Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          image,
-                                          width: 120,
-                                          height: 120,
-                                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          child: TextFormField(
+                            controller: contentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Opis objave (opcionalno)',
+                              hintText: 'Napišite nešto o svom iskustvu...',
+                              border: OutlineInputBorder(),
+                            ),
+                            maxLines: null,
+                            textInputAction: TextInputAction.newline,
+                            validator: (value) {
+                              if (value != null && value.trim().length > 1000) {
+                                return 'Opis može imati najviše 1000 karaktera';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.photo_library,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Fotografije',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (selectedImages.length < 10)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final picker = ImagePicker();
+                                  final pickedFile = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                  );
+                                  if (pickedFile != null) {
+                                    final bytes = await pickedFile
+                                        .readAsBytes();
+                                    final compressedBytes =
+                                        await ImageUtils.compressImage(bytes);
+                                    final compressedFile = File(
+                                      pickedFile.path,
+                                    );
+                                    await compressedFile.writeAsBytes(
+                                      compressedBytes,
+                                    );
+                                    setState(() {
+                                      selectedImages.add(compressedFile);
+                                    });
+                                  }
+                                },
+                                icon: const Icon(Icons.add_photo_alternate),
+                                label: const Text('Dodaj'),
+                              )
+                            else
+                              Text(
+                                'Maksimalno 10 fotografija',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        if (selectedImages.isNotEmpty) ...[
+                          Container(
+                            height: 120,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: selectedImages.asMap().entries.map((
+                                  entry,
+                                ) {
+                                  final index = entry.key;
+                                  final image = entry.value;
+                                  return Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Image.file(
+                                            image,
+                                            width: 120,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              selectedImages.removeAt(index);
-                                            });
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 16,
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedImages.removeAt(index);
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${selectedImages.length}/10 fotografija',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                          const SizedBox(height: 8),
+                          Text(
+                            '${selectedImages.length}/10 fotografija',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 16),
+                        ],
 
-                      if (isUploading) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Učitavanje fotografija...',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
+                        if (isUploading) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Učitavanje fotografija...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -2638,8 +2709,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       );
     }
 
-    Post currentPost =
-        initialPost;
+    Post currentPost = initialPost;
 
     showDialog(
       context: context,
@@ -2799,56 +2869,151 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
                             if (currentPost.images.isNotEmpty) ...[
                               const SizedBox(height: 16),
-                              SizedBox(
-                                height: 300,
-                                child: PageView.builder(
-                                  controller: pageController,
-                                  itemCount: currentPost.images.length,
-                                  onPageChanged: (index) {
-                                    setState(() {
-                                      currentImageIndex = index;
-                                    });
-                                  },
-                                  itemBuilder: (context, index) {
-                                    final image = currentPost.images[index];
-                                    return Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.1,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
+                              Stack(
+                                children: [
+                                  SizedBox(
+                                    height: 300,
+                                    child: PageView.builder(
+                                      controller: pageController,
+                                      itemCount: currentPost.images.length,
+                                      onPageChanged: (index) {
+                                        setState(() {
+                                          currentImageIndex = index;
+                                        });
+                                      },
+                                      itemBuilder: (context, index) {
+                                        final image = currentPost.images[index];
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 8,
                                           ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          image.imageUrl,
-                                          fit: BoxFit.contain,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                                return Container(
-                                                  color: Colors.grey[300],
-                                                  child: const Icon(
-                                                    Icons.image_not_supported,
-                                                    size: 64,
-                                                    color: Colors.grey,
-                                                  ),
-                                                );
-                                              },
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Image.network(
+                                              image.imageUrl,
+                                              fit: BoxFit.contain,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Container(
+                                                      color: Colors.grey[300],
+                                                      child: const Icon(
+                                                        Icons
+                                                            .image_not_supported,
+                                                        size: 64,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    );
+                                                  },
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+
+                                  // Navigation arrows - only show if there are multiple images
+                                  if (currentPost.images.length > 1) ...[
+                                    // Left arrow
+                                    Positioned(
+                                      left: 8,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Center(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(
+                                              0.6,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: IconButton(
+                                            onPressed: currentImageIndex > 0
+                                                ? () {
+                                                    pageController.previousPage(
+                                                      duration: const Duration(
+                                                        milliseconds: 300,
+                                                      ),
+                                                      curve: Curves.easeInOut,
+                                                    );
+                                                  }
+                                                : null,
+                                            icon: const Icon(
+                                              Icons.chevron_left,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
+                                            style: IconButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+
+                                    // Right arrow
+                                    Positioned(
+                                      right: 8,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Center(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(
+                                              0.6,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: IconButton(
+                                            onPressed:
+                                                currentImageIndex <
+                                                    currentPost.images.length -
+                                                        1
+                                                ? () {
+                                                    pageController.nextPage(
+                                                      duration: const Duration(
+                                                        milliseconds: 300,
+                                                      ),
+                                                      curve: Curves.easeInOut,
+                                                    );
+                                                  }
+                                                : null,
+                                            icon: const Icon(
+                                              Icons.chevron_right,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
+                                            style: IconButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
+
+                              // Dots indicator
                               if (currentPost.images.length > 1)
                                 Padding(
                                   padding: const EdgeInsets.all(16),
@@ -3024,220 +3189,245 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             return AlertDialog(
               title: const Text('Uredi objavu'),
               content: Container(
-                width: 500,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Uredite sadržaj i fotografije objave.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: TextFormField(
-                        controller: contentController,
-                        decoration: const InputDecoration(
-                          labelText: 'Opis objave (opciono)',
-                          hintText: 'Napišite nešto o svojem iskustvu...',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: null,
-                        textInputAction: TextInputAction.newline,
-                        validator: (value) {
-                          if (value != null && value.trim().length > 1000) {
-                            return 'Opis može imati najviše 1000 karaktera';
-                          }
-                          return null;
-                        },
+                constraints: const BoxConstraints(
+                  maxHeight: 600,
+                  maxWidth: 500,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Uredite sadržaj i fotografije objave.',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    if (existingImageUrls.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        child: TextFormField(
+                          controller: contentController,
+                          decoration: const InputDecoration(
+                            labelText: 'Opis objave (opciono)',
+                            hintText: 'Napišite nešto o svojem iskustvu...',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: null,
+                          textInputAction: TextInputAction.newline,
+                          validator: (value) {
+                            if (value != null && value.trim().length > 1000) {
+                              return 'Opis može imati najviše 1000 karaktera';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (existingImageUrls.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.photo_library,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Postojeće fotografije',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 120,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: existingImageUrls.asMap().entries.map((
+                                entry,
+                              ) {
+                                final index = entry.key;
+                                final imageUrl = entry.value;
+                                return Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          imageUrl,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              existingImageUrls.removeAt(index);
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       Row(
                         children: [
                           const Icon(Icons.photo_library, color: Colors.green),
                           const SizedBox(width: 8),
                           const Text(
-                            'Postojeće fotografije',
+                            'Nove fotografije',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const Spacer(),
+                          if (existingImageUrls.length + selectedImages.length <
+                              10)
+                            TextButton.icon(
+                              onPressed: () async {
+                                final picker = ImagePicker();
+                                final pickedFile = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                );
+                                if (pickedFile != null) {
+                                  final bytes = await pickedFile.readAsBytes();
+                                  final compressedBytes =
+                                      await ImageUtils.compressImage(bytes);
+                                  final compressedFile = File(pickedFile.path);
+                                  await compressedFile.writeAsBytes(
+                                    compressedBytes,
+                                  );
+                                  setState(() {
+                                    selectedImages.add(compressedFile);
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.add_photo_alternate),
+                              label: const Text('Dodaj'),
+                            )
+                          else
+                            Text(
+                              'Maksimalno 10 fotografija',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        height: 120,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: existingImageUrls.asMap().entries.map((
-                              entry,
-                            ) {
-                              final index = entry.key;
-                              final imageUrl = entry.value;
-                              return Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                child: Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        imageUrl,
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover,
+
+                      if (selectedImages.isNotEmpty) ...[
+                        Container(
+                          height: 120,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: selectedImages.asMap().entries.map((
+                                entry,
+                              ) {
+                                final index = entry.key;
+                                final image = entry.value;
+                                return Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          image,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
-                                    ),
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            existingImageUrls.removeAt(index);
-                                          });
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 16,
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              selectedImages.removeAt(index);
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    Row(
-                      children: [
-                        const Icon(Icons.photo_library, color: Colors.green),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Nove fotografije',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (selectedImages.length < 10)
-                          TextButton.icon(
-                            onPressed: () async {
-                              final picker = ImagePicker();
-                              final pickedFile = await picker.pickImage(
-                                source: ImageSource.gallery,
-                              );
-                              if (pickedFile != null) {
-                                final bytes = await pickedFile.readAsBytes();
-                                final compressedBytes =
-                                    await ImageUtils.compressImage(bytes);
-                                final compressedFile = File(pickedFile.path);
-                                await compressedFile.writeAsBytes(
-                                  compressedBytes,
+                                    ],
+                                  ),
                                 );
-                                setState(() {
-                                  selectedImages.add(compressedFile);
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.add_photo_alternate),
-                            label: const Text('Dodaj'),
+                              }).toList(),
+                            ),
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${existingImageUrls.length + selectedImages.length}/10 fotografija',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        if (existingImageUrls.isNotEmpty)
+                          Text(
+                            '(${existingImageUrls.length} postojećih + ${selectedImages.length} novih)',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        const SizedBox(height: 16),
                       ],
-                    ),
-                    const SizedBox(height: 8),
 
-                    if (selectedImages.isNotEmpty) ...[
-                      Container(
-                        height: 120,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: selectedImages.asMap().entries.map((
-                              entry,
-                            ) {
-                              final index = entry.key;
-                              final image = entry.value;
-                              return Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                child: Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.file(
-                                        image,
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            selectedImages.removeAt(index);
-                                          });
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${selectedImages.length}/10 fotografija',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      if (isUploading) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 8),
+                        const Text('Učitavanje slika...'),
+                        const SizedBox(height: 16),
+                      ],
                     ],
-
-                    if (isUploading) ...[
-                      const LinearProgressIndicator(),
-                      const SizedBox(height: 8),
-                      const Text('Učitavanje slika...'),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
+                  ),
                 ),
               ),
               actions: [
@@ -3249,6 +3439,20 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   onPressed: isUploading
                       ? null
                       : () async {
+                          // Check if there are any images left
+                          if (existingImageUrls.isEmpty &&
+                              selectedImages.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Objava mora imati najmanje jednu fotografiju.',
+                                ),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
                           setState(() {
                             isUploading = true;
                           });

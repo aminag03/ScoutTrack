@@ -40,7 +40,7 @@ class PermissionUtils {
   static bool canEditPost(String? userRole, int? userId, Post post) {
     if (userRole == null || userId == null) return false;
 
-    if (userRole == 'Admin') return false;
+    if (userRole == 'Admin') return true;
 
     return post.createdById == userId;
   }
