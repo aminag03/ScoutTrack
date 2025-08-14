@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddTransient<IBadgeService, BadgeService>();
+builder.Services.AddTransient<IBadgeRequirementService, BadgeRequirementService>();
 builder.Services.AddTransient<ICityService, CityService>();
 builder.Services.AddTransient<IAdminService, AdminService>();
 builder.Services.AddTransient<ITroopService, TroopService>();

@@ -6,6 +6,7 @@ import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
@@ -28,6 +29,8 @@ class _CityListScreenState extends State<CityListScreen> {
 
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
 
   late CityProvider _cityProvider;
 
@@ -54,6 +57,8 @@ class _CityListScreenState extends State<CityListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -171,7 +176,16 @@ class _CityListScreenState extends State<CityListScreen> {
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            _buildPaginationControls(),
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: PaginationControls(
+                currentPage: currentPage,
+                totalPages: totalPages,
+                totalCount: _cities?.totalCount ?? 0,
+                onPageChanged: (page) => _fetchCities(page: page),
+              ),
+            ),
           ],
         ),
       ),
@@ -203,150 +217,93 @@ class _CityListScreenState extends State<CityListScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 900),
-          child: DataTable(
-            headingRowColor: MaterialStateColor.resolveWith(
-              (states) => Colors.grey.shade100,
-            ),
-            columnSpacing: 32,
-            columns: const [
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('NAZIV'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME KREIRANJA'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME IZMJENE'),
-                ),
-              ),
-              DataColumn(label: Text('')),
-              DataColumn(label: Text('')),
-            ],
-            rows: _cities!.items!.map((city) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(city.name),
-                    ),
+      child: Scrollbar(
+        controller: _verticalScrollController,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _verticalScrollController,
+          child: Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 900),
+                child: DataTable(
+                  headingRowColor: MaterialStateColor.resolveWith(
+                    (states) => Colors.grey.shade100,
                   ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(formatDateTime(city.createdAt)),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        city.updatedAt != null
-                            ? formatDateTime(city.updatedAt!)
-                            : '-',
+                  columnSpacing: 32,
+                  columns: const [
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('NAZIV'),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Uredi',
-                      onPressed: () => _onEditCity(city),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME KREIRANJA'),
+                      ),
                     ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Obriši',
-                      onPressed: () => _onDeleteCity(city),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME IZMJENE'),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls() {
-    int maxPageButtons = 5;
-    int safeTotalPages = totalPages > 0 ? totalPages : 1;
-    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
-      1,
-      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
-    );
-    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
-    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
-
-    bool hasResults = (_cities?.totalCount ?? 0) > 0;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchCities(page: 1)
-                : null,
-          ),
-
-          TextButton(
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchCities(page: safeCurrentPage - 1)
-                : null,
-            child: const Text('Prethodna'),
-          ),
-
-          ...pageNumbers.map(
-            (page) => TextButton(
-              onPressed: hasResults && page != safeCurrentPage
-                  ? () => _fetchCities(page: page)
-                  : null,
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontWeight: page == safeCurrentPage
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
+                    DataColumn(label: Text('')),
+                    DataColumn(label: Text('')),
+                  ],
+                  rows: _cities!.items!.map((city) {
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(city.name),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(formatDateTime(city.createdAt)),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              city.updatedAt != null
+                                  ? formatDateTime(city.updatedAt!)
+                                  : '-',
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            tooltip: 'Uredi',
+                            onPressed: () => _onEditCity(city),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            tooltip: 'Obriši',
+                            onPressed: () => _onDeleteCity(city),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
           ),
-
-          TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchCities(page: safeCurrentPage + 1)
-                : null,
-            child: const Text('Sljedeća'),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchCities(page: safeTotalPages)
-                : null,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -587,6 +544,8 @@ class _CityListScreenState extends State<CityListScreen> {
                                         ),
                                       ),
                                     );
+                                    // For edit, stay on current page
+                                    await _fetchCities(page: currentPage);
                                   } else {
                                     await _cityProvider.insert(requestBody);
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -594,13 +553,13 @@ class _CityListScreenState extends State<CityListScreen> {
                                         content: Text('Grad je dodan.'),
                                       ),
                                     );
+                                    // After adding a new city, go to the last page to show it
+                                    final newTotalCount =
+                                        (_cities?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchCities(page: newTotalPages);
                                   }
-                                  // After adding a new city, go to the last page to show it
-                                  final newTotalCount =
-                                      (_cities?.totalCount ?? 0) + 1;
-                                  final newTotalPages =
-                                      (newTotalCount / pageSize).ceil();
-                                  await _fetchCities(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

@@ -1157,6 +1157,8 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                         ),
                                       ),
                                     );
+                                    // For edit, stay on current page
+                                    await _fetchTroops(page: currentPage);
                                   } else {
                                     final createdTroop = await _troopProvider
                                         .insert(requestBody);
@@ -1174,14 +1176,13 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                         content: Text('Odred je dodan.'),
                                       ),
                                     );
+                                    // After adding a new troop, go to the last page to show it
+                                    final newTotalCount =
+                                        (_troops?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchTroops(page: newTotalPages);
                                   }
-
-                                  // After adding a new troop, go to the last page to show it
-                                  final newTotalCount =
-                                      (_troops?.totalCount ?? 0) + 1;
-                                  final newTotalPages =
-                                      (newTotalCount / pageSize).ceil();
-                                  await _fetchTroops(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

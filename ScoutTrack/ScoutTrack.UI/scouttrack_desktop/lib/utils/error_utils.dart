@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 String formatErrorMessage(Object error) {
+  if (error is String) {
+    return error;
+  }
   final message = error.toString();
   if (message.startsWith('Exception:')) {
     return message.replaceFirst('Exception: ', '');

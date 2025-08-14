@@ -1154,6 +1154,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                         ),
                                       ),
                                     );
+                                    // For edit, stay on current page
+                                    await _fetchMembers(page: currentPage);
                                   } else {
                                     await _memberProvider.insert(requestBody);
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1161,13 +1163,13 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                         content: Text('Član je dodan.'),
                                       ),
                                     );
+                                    // After adding a new member, go to the last page to show it
+                                    final newTotalCount =
+                                        (_members?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchMembers(page: newTotalPages);
                                   }
-                                  // After adding a new member, go to the last page to show it
-                                  final newTotalCount =
-                                      (_members?.totalCount ?? 0) + 1;
-                                  final newTotalPages =
-                                      (newTotalCount / pageSize).ceil();
-                                  await _fetchMembers(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

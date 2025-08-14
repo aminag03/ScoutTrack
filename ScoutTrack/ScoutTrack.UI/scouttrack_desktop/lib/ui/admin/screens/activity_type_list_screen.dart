@@ -6,6 +6,7 @@ import 'package:scouttrack_desktop/models/activity_type.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 
@@ -24,6 +25,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
 
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
 
   late ActivityTypeProvider _activityTypeProvider;
 
@@ -50,6 +53,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -167,7 +172,13 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
-            _buildPaginationControls(),
+            const SizedBox(height: 24),
+            PaginationControls(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              totalCount: _activityTypes?.totalCount ?? 0,
+              onPageChanged: (page) => _fetchActivityTypes(page: page),
+            ),
           ],
         ),
       ),
@@ -201,164 +212,112 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 900),
-          child: DataTable(
-            headingRowColor: MaterialStateColor.resolveWith(
-              (states) => Colors.grey.shade100,
+      child: Scrollbar(
+        controller: _verticalScrollController,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _verticalScrollController,
+          child: Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 900),
+                child: DataTable(
+                  headingRowColor: MaterialStateColor.resolveWith(
+                    (states) => Colors.grey.shade100,
+                  ),
+                  columnSpacing: 32,
+                  columns: const [
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('NAZIV'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('OPIS'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME KREIRANJA'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME IZMJENE'),
+                      ),
+                    ),
+                    DataColumn(label: Text('')),
+                    DataColumn(label: Text('')),
+                  ],
+                  rows: _activityTypes!.items!.map((activityType) {
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(activityType.name),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              activityType.description.isNotEmpty
+                                  ? activityType.description
+                                  : '-',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(formatDateTime(activityType.createdAt)),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              activityType.updatedAt != null
+                                  ? formatDateTime(activityType.updatedAt!)
+                                  : '-',
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            tooltip: 'Uredi',
+                            onPressed: () => _onEditActivityType(activityType),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            tooltip: 'Obriši',
+                            onPressed: () =>
+                                _onDeleteActivityType(activityType),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
-            columnSpacing: 32,
-            columns: const [
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('NAZIV'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('OPIS'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME KREIRANJA'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME IZMJENE'),
-                ),
-              ),
-              DataColumn(label: Text('')),
-              DataColumn(label: Text('')),
-            ],
-            rows: _activityTypes!.items!.map((activityType) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(activityType.name),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        activityType.description.isNotEmpty
-                            ? activityType.description
-                            : '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(formatDateTime(activityType.createdAt)),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        activityType.updatedAt != null
-                            ? formatDateTime(activityType.updatedAt!)
-                            : '-',
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Uredi',
-                      onPressed: () => _onEditActivityType(activityType),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Obriši',
-                      onPressed: () => _onDeleteActivityType(activityType),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls() {
-    int maxPageButtons = 5;
-    int safeTotalPages = totalPages > 0 ? totalPages : 1;
-    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
-      1,
-      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
-    );
-    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
-    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
-
-    bool hasResults = (_activityTypes?.totalCount ?? 0) > 0;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchActivityTypes(page: 1)
-                : null,
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchActivityTypes(page: safeCurrentPage - 1)
-                : null,
-            child: const Text('Prethodna'),
-          ),
-          ...pageNumbers.map(
-            (page) => TextButton(
-              onPressed: hasResults && page != safeCurrentPage
-                  ? () => _fetchActivityTypes(page: page)
-                  : null,
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontWeight: page == safeCurrentPage
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
-                ),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchActivityTypes(page: safeCurrentPage + 1)
-                : null,
-            child: const Text('Sljedeća'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchActivityTypes(page: safeTotalPages)
-                : null,
-          ),
-        ],
       ),
     );
   }
@@ -396,12 +355,10 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
       try {
         await _activityTypeProvider.delete(activityType.id);
 
-        // Check if we're on the last page and it's the last item
         final currentItemsOnPage = _activityTypes?.items?.length ?? 0;
         final newTotalCount = (_activityTypes?.totalCount ?? 0) - 1;
         final newTotalPages = (newTotalCount / pageSize).ceil();
 
-        // If we're on the last page and deleting the last item, go to previous page
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchActivityTypes(page: currentPage - 1);
         } else {
@@ -463,7 +420,9 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                       children: [
                         TextFormField(
                           controller: nameController,
-                          decoration: const InputDecoration(labelText: 'Naziv'),
+                          decoration: const InputDecoration(
+                            labelText: 'Naziv *',
+                          ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Naziv je obavezan.';
@@ -536,7 +495,6 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                                   ),
                                 );
                               }
-                              // After adding a new activity type, go to the last page to show it
                               final newTotalCount =
                                   (_activityTypes?.totalCount ?? 0) + 1;
                               final newTotalPages = (newTotalCount / pageSize)

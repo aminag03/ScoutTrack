@@ -9,6 +9,8 @@ import 'providers/equipment_provider.dart';
 import 'providers/activity_type_provider.dart';
 import 'providers/activity_registration_provider.dart';
 import 'providers/review_provider.dart';
+import 'providers/badge_provider.dart';
+import 'providers/badge_requirement_provider.dart';
 
 void main() {
   runApp(
@@ -52,6 +54,16 @@ void main() {
           create: (context) =>
               ReviewProvider(Provider.of<AuthProvider>(context, listen: false)),
           update: (_, auth, __) => ReviewProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, BadgeProvider>(
+          create: (context) =>
+              BadgeProvider(Provider.of<AuthProvider>(context, listen: false)),
+          update: (_, auth, __) => BadgeProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, BadgeRequirementProvider>(
+          create: (context) =>
+              BadgeRequirementProvider(Provider.of<AuthProvider>(context, listen: false)),
+          update: (_, auth, __) => BadgeRequirementProvider(auth),
         ),
       ],
       child: const MyApp(),

@@ -1381,6 +1381,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         ),
                                       ),
                                     );
+                                    // For edit, stay on current page
+                                    await _fetchActivities(page: currentPage);
                                   } else {
                                     final newActivity = await _activityProvider
                                         .insert(requestBody);
@@ -1402,12 +1404,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         content: Text('Aktivnost je dodana.'),
                                       ),
                                     );
+                                    // After adding a new activity, go to the last page to show it
+                                    final newTotalCount =
+                                        (_activities?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchActivities(page: newTotalPages);
                                   }
-                                  final newTotalCount =
-                                      (_activities?.totalCount ?? 0) + 1;
-                                  final newTotalPages =
-                                      (newTotalCount / pageSize).ceil();
-                                  await _fetchActivities(page: newTotalPages);
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   showErrorSnackbar(context, e);

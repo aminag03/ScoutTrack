@@ -7,6 +7,7 @@ import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/equipment_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 
@@ -27,6 +28,8 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
   Timer? _debounce;
   bool _showOnlyGlobal = false;
   bool _showOnlyLocal = false;
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
 
   late EquipmentProvider _equipmentProvider;
   late TroopProvider _troopProvider;
@@ -56,6 +59,8 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -242,10 +247,15 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
-            const SizedBox(height: 8),
-            _buildPaginationControls(),
+            const SizedBox(height: 16), // Reduced from 24 to 16
+            PaginationControls(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              totalCount: _equipment?.totalCount ?? 0,
+              onPageChanged: (page) => _fetchEquipment(page: page),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -279,232 +289,180 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 1200),
-          child: DataTable(
-            headingRowColor: MaterialStateColor.resolveWith(
-              (states) => Colors.grey.shade100,
-            ),
-            columnSpacing: 32,
-            columns: const [
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('NAZIV'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('OPIS'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('STATUS'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('KREIRAO ODRED'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME KREIRANJA'),
-                ),
-              ),
-              DataColumn(
-                label: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('VRIJEME IZMJENE'),
-                ),
-              ),
-              DataColumn(label: Text('')),
-              DataColumn(label: Text('')),
-              DataColumn(label: Text('')),
-            ],
-            rows: _equipment!.items!.map((equipment) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(equipment.name),
-                    ),
+      child: Scrollbar(
+        controller: _verticalScrollController,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _verticalScrollController,
+          child: Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1200),
+                child: DataTable(
+                  headingRowColor: MaterialStateColor.resolveWith(
+                    (states) => Colors.grey.shade100,
                   ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Tooltip(
-                        message: equipment.description.isNotEmpty
-                            ? equipment.description
-                            : 'Nema opisa',
-                        child: Text(
-                          equipment.description.isNotEmpty
-                              ? (equipment.description.length > 50
-                                    ? '${equipment.description.substring(0, 50)}...'
-                                    : equipment.description)
-                              : '-',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  columnSpacing: 32,
+                  dataRowHeight: 48,
+                  headingRowHeight: 48,
+                  columns: const [
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('NAZIV'),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: equipment.isGlobal
-                              ? Colors.green
-                              : Colors.orange,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          equipment.isGlobal ? 'Globalna' : 'Lokalna',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('OPIS'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('STATUS'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('KREIRAO ODRED'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME KREIRANJA'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('VRIJEME IZMJENE'),
+                      ),
+                    ),
+                    DataColumn(label: Text('')),
+                    DataColumn(label: Text('')),
+                    DataColumn(label: Text('')),
+                  ],
+                  rows: _equipment!.items!.map((equipment) {
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(equipment.name),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        equipment.createdByTroopId != null
-                            ? _troopNames[equipment.createdByTroopId] ??
-                                  'Nepoznat odred'
-                            : '-',
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(formatDateTime(equipment.createdAt)),
-                    ),
-                  ),
-                  DataCell(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        equipment.updatedAt != null
-                            ? formatDateTime(equipment.updatedAt!)
-                            : '-',
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Uredi',
-                      onPressed: () => _onEditEquipment(equipment),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Obriši',
-                      onPressed: () => _onDeleteEquipment(equipment),
-                    ),
-                  ),
-                  DataCell(
-                    !equipment.isGlobal
-                        ? IconButton(
-                            icon: const Icon(Icons.public, color: Colors.green),
-                            tooltip: 'Učini globalnom',
-                            onPressed: () => _onMakeGlobal(equipment),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls() {
-    int maxPageButtons = 5;
-    int safeTotalPages = totalPages > 0 ? totalPages : 1;
-    int safeCurrentPage = currentPage > 0 ? currentPage : 1;
-
-    int startPage = (safeCurrentPage - (maxPageButtons ~/ 2)).clamp(
-      1,
-      (safeTotalPages - maxPageButtons + 1).clamp(1, safeTotalPages),
-    );
-    int endPage = (startPage + maxPageButtons - 1).clamp(1, safeTotalPages);
-    List<int> pageNumbers = [for (int i = startPage; i <= endPage; i++) i];
-
-    bool hasResults = (_equipment?.totalCount ?? 0) > 0;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchEquipment(page: 1)
-                : null,
-          ),
-
-          TextButton(
-            onPressed: hasResults && safeCurrentPage > 1
-                ? () => _fetchEquipment(page: safeCurrentPage - 1)
-                : null,
-            child: const Text('Prethodna'),
-          ),
-
-          ...pageNumbers.map(
-            (page) => TextButton(
-              onPressed: hasResults && page != safeCurrentPage
-                  ? () => _fetchEquipment(page: page)
-                  : null,
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontWeight: page == safeCurrentPage
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: page == safeCurrentPage ? Colors.blue : Colors.black,
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Tooltip(
+                              message: equipment.description.isNotEmpty
+                                  ? equipment.description
+                                  : 'Nema opisa',
+                              child: Text(
+                                equipment.description.isNotEmpty
+                                    ? (equipment.description.length > 50
+                                          ? '${equipment.description.substring(0, 50)}...'
+                                          : equipment.description)
+                                    : '-',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: equipment.isGlobal
+                                    ? Colors.green
+                                    : Colors.orange,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                equipment.isGlobal ? 'Globalna' : 'Lokalna',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              equipment.createdByTroopId != null
+                                  ? _troopNames[equipment.createdByTroopId] ??
+                                        'Nepoznat odred'
+                                  : '-',
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(formatDateTime(equipment.createdAt)),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              equipment.updatedAt != null
+                                  ? formatDateTime(equipment.updatedAt!)
+                                  : '-',
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            tooltip: 'Uredi',
+                            onPressed: () => _onEditEquipment(equipment),
+                          ),
+                        ),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            tooltip: 'Obriši',
+                            onPressed: () => _onDeleteEquipment(equipment),
+                          ),
+                        ),
+                        DataCell(
+                          !equipment.isGlobal
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.public,
+                                    color: Colors.green,
+                                  ),
+                                  tooltip: 'Učini globalnom',
+                                  onPressed: () => _onMakeGlobal(equipment),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
           ),
-
-          TextButton(
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchEquipment(page: safeCurrentPage + 1)
-                : null,
-            child: const Text('Sljedeća'),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: hasResults && safeCurrentPage < safeTotalPages
-                ? () => _fetchEquipment(page: safeTotalPages)
-                : null,
-          ),
-        ],
+        ),
       ),
     );
   }

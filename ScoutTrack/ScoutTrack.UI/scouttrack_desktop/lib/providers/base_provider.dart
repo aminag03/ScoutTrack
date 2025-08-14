@@ -196,30 +196,31 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
 
       if (errorMsg.contains('username') &&
           errorMsg.contains('already exists')) {
-        throw Exception('Greška: Korisničko ime već postoji.');
+        throw Exception('Korisničko ime već postoji.');
       }
       if (errorMsg.contains('email') && errorMsg.contains('already exists')) {
-        throw Exception('Greška: Email već postoji.');
+        throw Exception('Email već postoji.');
       }
       if (errorMsg.contains('name') && errorMsg.contains('already exists')) {
-        throw Exception('Greška: Naziv već postoji.');
+        throw Exception('Naziv već postoji.');
+      }
+      if (errorMsg.contains('description') &&
+          errorMsg.contains('already exists')) {
+        throw Exception('Opis već postoji.');
       }
 
-      print(response.body);
-      throw Exception("Greška: Došlo je do problema. Pokušajte ponovo.");
+      throw Exception('Došlo je do problema. Pokušajte ponovo.');
     }
   }
 
   Future<Map<String, String>> createHeaders() async {
     final headers = {'Content-Type': 'application/json; charset=UTF-8'};
 
-    // Only add Authorization header if user is properly authenticated
     if (authProvider != null &&
         authProvider!.isLoggedIn &&
         authProvider!.accessToken != null) {
       headers['Authorization'] = 'Bearer ${authProvider!.accessToken}';
     }
-    // Don't log debug messages during normal logout flow
 
     return headers;
   }
@@ -267,28 +268,24 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       final message = e.toString();
       final unauthorized =
           message.contains("Greška: Niste autorizovani.") ||
-          message.contains("Unauthorized");
+          message.contains("Unauthorized") ||
+          message.contains("401");
 
       if (unauthorized) {
-        // Check if authProvider is available and user is still logged in
         if (authProvider == null || !authProvider!.isLoggedIn) {
-          // User is logged out or AuthProvider is not available
-          // Don't try to refresh token, just throw a user-friendly error
           throw Exception(
             "Greška: Niste autorizovani. Molimo prijavite se ponovo.",
           );
         }
 
-        // Try to refresh the token
         try {
           final success = await authProvider!.refreshToken();
           if (success) {
-            return await requestFn(); // Retry
+            return await requestFn();
           } else {
             throw Exception("Greška: Token nije moguće osvježiti.");
           }
         } catch (refreshError) {
-          // If refresh fails, throw a user-friendly error
           throw Exception(
             "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
           );

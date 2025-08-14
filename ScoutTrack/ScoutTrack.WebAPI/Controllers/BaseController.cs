@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Interfaces;
+using System;
 
 namespace ScoutTrack.WebAPI.Controllers
 {
