@@ -170,6 +170,30 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            // Results count
+            if (_activityTypes != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Prikazano ${_activityTypes!.items?.length ?? 0} od ukupno ${_activityTypes!.totalCount ?? 0} tipova aktivnosti',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
             const SizedBox(height: 24),

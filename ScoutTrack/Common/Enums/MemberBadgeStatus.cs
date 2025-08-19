@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Common.Enums
 {
-    public enum BadgeStatus
+    public enum MemberBadgeStatus
     {
-        NotStarted,
-        InProgress,
-        Completed
+        InProgress = 0,
+        Completed = 1
     }
 }

@@ -11,6 +11,8 @@ import 'providers/activity_registration_provider.dart';
 import 'providers/review_provider.dart';
 import 'providers/badge_provider.dart';
 import 'providers/badge_requirement_provider.dart';
+import 'providers/member_badge_provider.dart';
+import 'providers/member_badge_progress_provider.dart';
 
 void main() {
   runApp(
@@ -61,9 +63,22 @@ void main() {
           update: (_, auth, __) => BadgeProvider(auth),
         ),
         ChangeNotifierProxyProvider<AuthProvider, BadgeRequirementProvider>(
-          create: (context) =>
-              BadgeRequirementProvider(Provider.of<AuthProvider>(context, listen: false)),
+          create: (context) => BadgeRequirementProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
           update: (_, auth, __) => BadgeRequirementProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, MemberBadgeProvider>(
+          create: (context) => MemberBadgeProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (_, auth, __) => MemberBadgeProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, MemberBadgeProgressProvider>(
+          create: (context) => MemberBadgeProgressProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (_, auth, __) => MemberBadgeProgressProvider(auth),
         ),
       ],
       child: const MyApp(),

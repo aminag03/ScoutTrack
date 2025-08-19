@@ -271,14 +271,39 @@ namespace ScoutTrack.Services.Services
 
         protected override async Task BeforeDelete(Post entity)
         {
+            var likes = await _context.Likes
+                .Where(l => l.PostId == entity.Id)
+                .ToListAsync();
+            
+            if (likes.Any())
+            {
+                _context.Likes.RemoveRange(likes);
+            }
+
+            var comments = await _context.Comments
+                .Where(c => c.PostId == entity.Id)
+                .ToListAsync();
+            
+            if (comments.Any())
+            {
+                _context.Comments.RemoveRange(comments);
+            }
+
             await _context.Entry(entity)
                 .Collection(p => p.Images)
                 .LoadAsync();
 
-            foreach (var image in entity.Images)
+            if (entity.Images.Any())
             {
-                DeleteImageFile(image.ImageUrl);
+                foreach (var image in entity.Images)
+                {
+                    DeleteImageFile(image.ImageUrl);
+                }
+                
+                _context.PostImages.RemoveRange(entity.Images);
             }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<PostResponse> LikePostAsync(int postId, int userId)
@@ -374,11 +399,6 @@ namespace ScoutTrack.Services.Services
             if (user is Admin admin)
                 return admin.FullName;
             return "Unknown User";
-        }
-
-        private string GetUserRole(UserAccount user)
-        {
-            return user.Role.ToString();
         }
 
         private string GetUserAccountName(UserAccount userAccount)

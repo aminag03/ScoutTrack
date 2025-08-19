@@ -10,6 +10,9 @@ class Badge {
   final String description;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final int? totalMemberBadges;
+  final int? completedMemberBadges;
+  final int? inProgressMemberBadges;
 
   Badge({
     required this.id,
@@ -18,10 +21,12 @@ class Badge {
     required this.description,
     required this.createdAt,
     this.updatedAt,
+    this.totalMemberBadges = 0,
+    this.completedMemberBadges = 0,
+    this.inProgressMemberBadges = 0,
   });
 
-  factory Badge.fromJson(Map<String, dynamic> json) =>
-      _$BadgeFromJson(json);
+  factory Badge.fromJson(Map<String, dynamic> json) => _$BadgeFromJson(json);
 
   Map<String, dynamic> toJson() => _$BadgeToJson(this);
 }

@@ -110,23 +110,44 @@ namespace ScoutTrack.Services
 
         protected override async Task BeforeInsert(BadgeRequirement entity, BadgeRequirementUpsertRequest request)
         {
-            // Check if badge exists
             if (!await _context.Badges.AnyAsync(b => b.Id == request.BadgeId))
                 throw new UserException("Badge with this ID does not exist.");
 
-            // Check if requirement with same description already exists for this badge
             if (await _context.BadgeRequirements.AnyAsync(br => br.BadgeId == request.BadgeId && br.Description == request.Description))
                 throw new UserException("Requirement with this description already exists for this badge.");
 
-            // Check if badge already has maximum number of requirements (20)
             var currentRequirementCount = await _context.BadgeRequirements.CountAsync(br => br.BadgeId == request.BadgeId);
             if (currentRequirementCount >= 20)
                 throw new UserException("Badge already has maximum number of requirements (20). Cannot add more requirements.");
         }
 
+        public override async Task<BadgeRequirementResponse> CreateAsync(BadgeRequirementUpsertRequest request)
+        {
+            var response = await base.CreateAsync(request);
+            
+            var memberBadges = await _context.MemberBadges
+                .Where(mb => mb.BadgeId == request.BadgeId)
+                .ToListAsync();
+
+            var progressRecords = memberBadges.Select(mb => new MemberBadgeProgress
+            {
+                MemberBadgeId = mb.Id,
+                RequirementId = response.Id,
+                IsCompleted = false,
+                CompletedAt = null
+            }).ToList();
+
+            if (progressRecords.Any())
+            {
+                _context.MemberBadgeProgresses.AddRange(progressRecords);
+                await _context.SaveChangesAsync();
+            }
+
+            return response;
+        }
+
         protected override async Task BeforeUpdate(BadgeRequirement entity, BadgeRequirementUpsertRequest request)
         {
-            // Check if badge exists
             if (!await _context.Badges.AnyAsync(b => b.Id == request.BadgeId))
                 throw new UserException("Badge with this ID does not exist.");
 

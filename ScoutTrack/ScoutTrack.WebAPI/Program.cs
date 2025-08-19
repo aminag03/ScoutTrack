@@ -34,6 +34,8 @@ builder.Services.AddTransient<IReviewService, ReviewService>();
 builder.Services.AddTransient<IPostService, PostService>();
 builder.Services.AddTransient<ICommentService, CommentService>();
 builder.Services.AddTransient<ILikeService, LikeService>();
+builder.Services.AddTransient<IMemberBadgeService, MemberBadgeService>();
+builder.Services.AddTransient<IMemberBadgeProgressService, MemberBadgeProgressService>();
 
 // Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();

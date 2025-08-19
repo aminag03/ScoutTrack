@@ -67,6 +67,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
   Future<void> _loadInitialData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = await authProvider.getUserRole();
+    if (!mounted) return;
     setState(() {
       _role = role;
     });
@@ -80,6 +81,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       setState(() {
         currentPage = 1;
       });
@@ -89,6 +91,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
 
   Future<void> _fetchEquipment({int? page}) async {
     if (_loading) return;
+    if (!mounted) return;
 
     setState(() {
       _loading = true;
@@ -107,6 +110,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
 
       var result = await _equipmentProvider.get(filter: filter);
 
+      if (!mounted) return;
       setState(() {
         _equipment = result;
         currentPage = page ?? currentPage;
@@ -116,11 +120,13 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
         if (currentPage < 1) currentPage = 1;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _equipment = null;
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -131,6 +137,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
     try {
       // Get all troops to build a map of troop IDs to names
       var troops = await _troopProvider.get();
+      if (!mounted) return;
       if (troops.items != null) {
         setState(() {
           _troopNames = {for (var troop in troops.items!) troop.id: troop.name};
@@ -247,6 +254,38 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            // Results count
+            if (_equipment != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Prikazano ${_equipment!.items?.length ?? 0} od ukupno ${_equipment!.totalCount ?? 0} opreme',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 16), // Reduced from 24 to 16
             PaginationControls(

@@ -7,5 +7,6 @@ namespace ScoutTrack.Model.SearchObjects
     public class BadgeSearchObject : BaseSearchObject
     {
         public string Name { get; set; } = string.Empty;
+        public int? TroopId { get; set; }
     }
 }

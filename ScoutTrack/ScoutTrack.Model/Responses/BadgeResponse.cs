@@ -12,5 +12,8 @@ namespace ScoutTrack.Model.Responses
         public string Description { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public int TotalMemberBadges { get; set; }
+        public int CompletedMemberBadges { get; set; }
+        public int InProgressMemberBadges { get; set; }
     }
 }

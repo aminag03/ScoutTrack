@@ -92,6 +92,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     final role = await authProvider.getUserRole();
     final userId = await authProvider.getUserIdFromToken();
 
+    if (!mounted) return;
     setState(() {
       _role = role;
       _loggedInUserId = userId;
@@ -105,6 +106,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       final activityTypeResult = await activityTypeProvider.get(filter: filter);
       final troopResult = await troopProvider.get(filter: filter);
       final equipmentResult = await equipmentProvider.get(filter: filter);
+
+      if (!mounted) return;
       setState(() {
         _activityTypes = activityTypeResult.items ?? [];
         _troops = troopResult.items ?? [];
@@ -120,8 +123,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           }
         }
       });
+
+      if (!mounted) return;
       await _fetchActivities();
     } catch (e) {
+      if (!mounted) return;
       // Handle authentication errors gracefully
       if (e.toString().contains("Token nije moguće osvježiti") ||
           e.toString().contains("Niste autorizovani")) {
@@ -142,6 +148,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       setState(() {
         currentPage = 1;
       });
@@ -151,6 +158,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
   Future<void> _fetchActivities({int? page}) async {
     if (_loading) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -183,6 +191,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
       var result = await _activityProvider.get(filter: filter);
 
+      if (!mounted) return;
       setState(() {
         _activities = result;
         currentPage = page ?? currentPage;
@@ -192,11 +201,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         if (currentPage < 1) currentPage = 1;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _activities = null;
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -250,6 +261,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   Checkbox(
                     value: _showOnlyMyActivities,
                     onChanged: (value) {
+                      if (!mounted) return;
                       setState(() {
                         _showOnlyMyActivities = value ?? false;
                         if (_showOnlyMyActivities) {
@@ -270,6 +282,30 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               ),
             ],
             const SizedBox(height: 8),
+            // Results count
+            if (_activities != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Prikazano ${_activities!.items?.length ?? 0} od ukupno ${_activities!.totalCount ?? 0} aktivnosti',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
             Expanded(
               child: Column(
                 children: [

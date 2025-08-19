@@ -79,12 +79,14 @@ class _TroopListScreenState extends State<TroopListScreen> {
   Future<void> _loadInitialData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = await authProvider.getUserRole();
+    if (!mounted) return;
     setState(() {
       _role = role;
     });
     final cityProvider = CityProvider(authProvider);
     var filter = {"RetrieveAll": true};
     final cityResult = await cityProvider.get(filter: filter);
+    if (!mounted) return;
     setState(() {
       _cities = cityResult.items ?? [];
     });
@@ -94,6 +96,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       setState(() {
         currentPage = 1;
       });
@@ -103,6 +106,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
 
   Future<void> _fetchTroops({int? page}) async {
     if (_loading) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -118,6 +122,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
       };
       var result = await _troopProvider.get(filter: filter);
 
+      if (!mounted) return;
       setState(() {
         _troops = result;
         currentPage = page ?? currentPage;
@@ -127,11 +132,13 @@ class _TroopListScreenState extends State<TroopListScreen> {
         if (currentPage < 1) currentPage = 1;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _troops = null;
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -295,6 +302,30 @@ class _TroopListScreenState extends State<TroopListScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 16),
+            // Results count
+            if (_troops != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Prikazano ${_troops!.items?.length ?? 0} od ukupno ${_troops!.totalCount ?? 0} odreda',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),

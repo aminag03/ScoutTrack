@@ -15,6 +15,10 @@ Badge _$BadgeFromJson(Map<String, dynamic> json) => Badge(
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
+  totalMemberBadges: (json['totalMemberBadges'] as num?)?.toInt() ?? 0,
+  completedMemberBadges: (json['completedMemberBadges'] as num?)?.toInt() ?? 0,
+  inProgressMemberBadges:
+      (json['inProgressMemberBadges'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$BadgeToJson(Badge instance) => <String, dynamic>{
@@ -24,4 +28,7 @@ Map<String, dynamic> _$BadgeToJson(Badge instance) => <String, dynamic>{
   'description': instance.description,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
+  'totalMemberBadges': instance.totalMemberBadges,
+  'completedMemberBadges': instance.completedMemberBadges,
+  'inProgressMemberBadges': instance.inProgressMemberBadges,
 };

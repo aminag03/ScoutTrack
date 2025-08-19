@@ -22,7 +22,9 @@ namespace ScoutTrack.Services.Database.Entities
         public int BadgeId { get; set; }
         public Badge Badge { get; set; } = null!;
 
-        public BadgeStatus Status { get; set; }
+        public MemberBadgeStatus Status { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
     }
 }

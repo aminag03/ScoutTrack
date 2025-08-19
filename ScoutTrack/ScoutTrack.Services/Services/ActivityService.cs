@@ -170,7 +170,7 @@ namespace ScoutTrack.Services
             // return await base.CreateAsync(request);
         }
 
-        public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpsertRequest request)
+        public override async Task<ActivityResponse?> UpdateAsync(int id, ActivityUpsertRequest request)
         {
             var entity = await _context.Activities.FindAsync(id);
             if (entity == null)
@@ -182,7 +182,6 @@ namespace ScoutTrack.Services
             await BeforeUpdate(entity, request);
 
             return await baseState.UpdateAsync(id, request);
-;
             // return await base.UpdateAsync(id, request);
         }
 
@@ -206,6 +205,70 @@ namespace ScoutTrack.Services
 
         protected override async Task BeforeDelete(Activity entity)
         {
+            var posts = await _context.Posts
+                .Include(p => p.Images)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
+                .Where(p => p.ActivityId == entity.Id)
+                .ToListAsync();
+            
+            if (posts.Any())
+            {
+                foreach (var post in posts)
+                {
+                    if (post.Likes.Any())
+                    {
+                        _context.Likes.RemoveRange(post.Likes);
+                    }
+                    
+                    if (post.Comments.Any())
+                    {
+                        _context.Comments.RemoveRange(post.Comments);
+                    }
+                    
+                    if (post.Images.Any())
+                    {
+                        foreach (var image in post.Images)
+                        {
+                            try
+                            {
+                                var uri = new Uri(image.ImageUrl);
+                                var relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                                var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+
+                                if (File.Exists(fullPath))
+                                    File.Delete(fullPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Error while deleting post image file: {imageUrl}", image.ImageUrl);
+                            }
+                        }
+                        _context.PostImages.RemoveRange(post.Images);
+                    }
+                    
+                    _context.Posts.Remove(post);
+                }
+            }
+
+            var registrations = await _context.ActivityRegistrations
+                .Where(ar => ar.ActivityId == entity.Id)
+                .ToListAsync();
+            
+            if (registrations.Any())
+            {
+                _context.ActivityRegistrations.RemoveRange(registrations);
+            }
+
+            var reviews = await _context.Reviews
+                .Where(r => r.ActivityId == entity.Id)
+                .ToListAsync();
+
+            if (reviews.Any())
+            {
+                _context.Reviews.RemoveRange(reviews);
+            }
+
             if (!string.IsNullOrWhiteSpace(entity.ImagePath))
             {
                 try
@@ -222,6 +285,8 @@ namespace ScoutTrack.Services
                     _logger.LogWarning(ex, "Error while deleting activity image from file system.");
                 }
             }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<ActivityResponse> ActivateAsync(int id)

@@ -3072,12 +3072,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                   ),
                                   GestureDetector(
                                     onTap: () => _showLikesDialog(currentPost),
-                                    child: Text(
-                                      '$likeCount',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.blue,
-                                        decoration: TextDecoration.underline,
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.blue.shade200,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '$likeCount',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.blue.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),

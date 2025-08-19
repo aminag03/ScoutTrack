@@ -3,12 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/models/badge.dart';
 import 'package:scouttrack_desktop/models/badge_requirement.dart';
+import 'package:scouttrack_desktop/models/member_badge.dart';
+import 'package:scouttrack_desktop/models/member_badge_progress.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/badge_requirement_provider.dart';
+import 'package:scouttrack_desktop/providers/member_badge_provider.dart';
+import 'package:scouttrack_desktop/providers/member_badge_progress_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
-
-import 'dart:convert';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/models/member.dart';
+import 'package:scouttrack_desktop/providers/member_provider.dart';
+import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/member_details_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/member_badge_list_screen.dart';
 
 class BadgeDetailsScreen extends StatefulWidget {
   final Badge badge;
@@ -28,22 +35,36 @@ class BadgeDetailsScreen extends StatefulWidget {
 
 class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
   List<BadgeRequirement> _requirements = [];
+  List<MemberBadge> _completedMembers = [];
+  List<MemberBadge> _inProgressMembers = [];
   bool _loadingRequirements = false;
+  bool _loadingMembers = false;
+  Map<int, String> _memberTroopNames = {}; // Map memberId to troop name
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _completedMembersScrollController = ScrollController();
+  final ScrollController _inProgressMembersScrollController =
+      ScrollController();
 
   late BadgeRequirementProvider _badgeRequirementProvider;
+  late MemberBadgeProvider _memberBadgeProvider;
+  late TroopProvider _troopProvider;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _badgeRequirementProvider = BadgeRequirementProvider(authProvider);
+    _memberBadgeProvider = MemberBadgeProvider(authProvider);
+    _troopProvider = TroopProvider(authProvider);
     _loadRequirements();
+    _loadMembers();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _completedMembersScrollController.dispose();
+    _inProgressMembersScrollController.dispose();
     super.dispose();
   }
 
@@ -56,7 +77,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
       final filter = {
         'BadgeId': widget.badge.id,
         'Page': 0,
-        'PageSize': 100, // Load more requirements at once
+        'PageSize': 20,
         'IncludeTotalCount': false,
       };
 
@@ -70,11 +91,95 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
     }
   }
 
+  Future<void> _loadMembers() async {
+    setState(() {
+      _loadingMembers = true;
+    });
+
+    try {
+      if (widget.role == 'Troop') {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final troopId = await authProvider.getUserIdFromToken() ?? 0;
+
+        // Load completed members (status = 1 for Completed)
+        final completedMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatusAndTroop(widget.badge.id, 1, troopId);
+
+        // Load in-progress members (status = 0 for InProgress)
+        final inProgressMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatusAndTroop(widget.badge.id, 0, troopId);
+
+        setState(() {
+          _completedMembers = completedMembers;
+          _inProgressMembers = inProgressMembers;
+          _loadingMembers = false;
+        });
+      } else {
+        // Get all members who already have this badge
+        final completedMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatus(widget.badge.id, 1);
+
+        final inProgressMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatus(widget.badge.id, 0);
+
+        setState(() {
+          _completedMembers = completedMembers;
+          _inProgressMembers = inProgressMembers;
+          _loadingMembers = false;
+        });
+      }
+
+      // Load troop names for admin users
+      if (widget.role == 'Admin') {
+        await _loadMemberTroopNames();
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+      setState(() {
+        _loadingMembers = false;
+      });
+    }
+  }
+
+  Future<void> _loadMemberTroopNames() async {
+    try {
+      // Get all troops
+      final filter = {'RetrieveAll': true};
+      final troopResult = await _troopProvider.get(filter: filter);
+
+      if (!mounted) return;
+
+      // Get all members to build troop relationships
+      final memberProvider = MemberProvider(_memberBadgeProvider.authProvider);
+      final memberFilter = {'RetrieveAll': true};
+      final memberResult = await memberProvider.get(filter: memberFilter);
+
+      if (!mounted) return;
+
+      final memberTroopNames = <int, String>{};
+
+      for (final member in memberResult.items ?? []) {
+        final troop = troopResult.items?.firstWhere(
+          (troop) => troop.id == member.troopId,
+        );
+        if (troop != null) {
+          memberTroopNames[member.id] = troop.name;
+        }
+      }
+
+      setState(() {
+        _memberTroopNames = memberTroopNames;
+      });
+    } catch (e) {
+      print('Error loading member troop names: $e');
+    }
+  }
+
   void _showAddRequirementDialog() {
     if (_requirements.length >= 20) {
       showErrorSnackbar(
         context,
-        'Dostignut je maksimalan broj zahtjeva (20). Nije moguće dodati nove zahtjeve.',
+        'Dostignut je maksimalan broj uslova (20). Nije moguće dodati nove uslove.',
       );
       return;
     }
@@ -105,7 +210,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Potvrda brisanja'),
         content: Text(
-          'Jeste li sigurni da želite obrisati zahtjev "${requirement.description}"?',
+          'Jeste li sigurni da želite obrisati uslov "${requirement.description}"?',
         ),
         actions: [
           TextButton(
@@ -127,13 +232,59 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
         _loadRequirements();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Zahtjev je uspješno obrisan')),
+            const SnackBar(content: Text('Uslov je uspješno obrisan')),
           );
         }
       } catch (e) {
         showErrorSnackbar(context, e);
       }
     }
+  }
+
+  void _showMemberBadgeProgressDialog(MemberBadge memberBadge) {
+    showDialog(
+      context: context,
+      builder: (context) => MemberBadgeProgressDialog(
+        memberBadge: memberBadge,
+        badge: widget.badge,
+        role: widget.role,
+        loggedInUserId: widget.loggedInUserId,
+        onProgressUpdated: _loadMembers,
+      ),
+    );
+  }
+
+  void _showCreateMemberBadgeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => CreateMemberBadgeDialog(
+        badge: widget.badge,
+        role: widget.role,
+        onMemberBadgeCreated: _loadMembers,
+      ),
+    );
+  }
+
+  void _showAllCompletedMembers() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MemberBadgeListScreen(
+          badgeId: widget.badge.id,
+          initialStatus: 1, // Completed
+        ),
+      ),
+    );
+  }
+
+  void _showAllInProgressMembers() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MemberBadgeListScreen(
+          badgeId: widget.badge.id,
+          initialStatus: 0, // InProgress
+        ),
+      ),
+    );
   }
 
   @override
@@ -149,7 +300,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 2,
+                flex: 1,
                 child: Card(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -219,7 +370,6 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
 
                             const SizedBox(width: 24),
 
-                            // Badge details
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,7 +417,6 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
 
                         const SizedBox(height: 32),
 
-                        // Requirements section
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -275,7 +424,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Zahtjevi za vještarstvo:',
+                                  'Uslovi za vještarstvo:',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -304,14 +453,13 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                                     ? null
                                     : _showAddRequirementDialog,
                                 icon: const Icon(Icons.add),
-                                label: const Text('Dodaj zahtjev'),
+                                label: const Text('Dodaj uslov'),
                               ),
                           ],
                         ),
 
                         const SizedBox(height: 16),
 
-                        // Warning when limit reached
                         if (_requirements.length >= 20)
                           Container(
                             padding: const EdgeInsets.all(8),
@@ -330,7 +478,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    'Dostignut je maksimalan broj zahtjeva (20). Nije moguće dodati nove zahtjeve.',
+                                    'Dostignut je maksimalan broj uslova (20). Nije moguće dodati nove uslove.',
                                     style: TextStyle(
                                       color: Colors.orange.shade700,
                                       fontSize: 12,
@@ -363,7 +511,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    'Približavate se maksimalnom broju zahtjeva. Preostalo: ${20 - _requirements.length} zahtjeva.',
+                                    'Približavate se maksimalnom broju uslova. Preostalo: ${20 - _requirements.length} uslova.',
                                     style: TextStyle(
                                       color: Colors.blue.shade700,
                                       fontSize: 12,
@@ -378,7 +526,6 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                             _requirements.length < 20)
                           const SizedBox(height: 8),
 
-                        // Requirements list
                         if (_loadingRequirements)
                           const Center(child: CircularProgressIndicator())
                         else if (_requirements.isEmpty)
@@ -390,7 +537,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
-                              'Nema definiranih zahtjeva za ovo vještarstvo.',
+                              'Nema definisanih uslova za ovo vještarstvo.',
                               style: TextStyle(color: Colors.grey),
                             ),
                           )
@@ -409,10 +556,8 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                                     ),
                                     child: Scrollbar(
                                       controller: _scrollController,
-                                      thumbVisibility:
-                                          true,
-                                      thickness:
-                                          6,
+                                      thumbVisibility: true,
+                                      thickness: 6,
                                       radius: const Radius.circular(3),
                                       child: ListView.builder(
                                         controller: _scrollController,
@@ -490,122 +635,310 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Završili',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Završili',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            if (widget.role == 'Troop') ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.group,
+                                      color: Colors.blue.shade700,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Vaši članovi',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Prikaži sve',
-                          style: TextStyle(
-                            color: Colors.blue.shade600,
-                            decoration: TextDecoration.underline,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _showAllCompletedMembers(),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Text(
+                                  'Prikaži više',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
                         Expanded(
-                          child: GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                ),
-                            itemCount: 8,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: Colors.grey.shade400,
-                                      child: const Icon(
-                                        Icons.person,
-                                        color: Colors.white,
+                          child: _loadingMembers
+                              ? const Center(child: CircularProgressIndicator())
+                              : _completedMembers.isEmpty
+                              ? Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Nema članova koji su završili ovo vještarstvo.',
+                                    style: TextStyle(color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : _completedMembers.length > 4
+                              ? Scrollbar(
+                                  controller: _completedMembersScrollController,
+                                  thumbVisibility: true,
+                                  thickness: 6,
+                                  radius: const Radius.circular(3),
+                                  child: GridView.builder(
+                                    controller:
+                                        _completedMembersScrollController,
+                                    primary: false,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 4,
+                                          childAspectRatio: 1,
+                                          crossAxisSpacing: 8,
+                                          mainAxisSpacing: 8,
+                                        ),
+                                    itemCount: _completedMembers.length,
+                                    itemBuilder: (context, index) {
+                                      final member = _completedMembers[index];
+                                      return HoverableMemberCard(
+                                        member: member,
+                                        onTap: () =>
+                                            _showMemberBadgeProgressDialog(
+                                              member,
+                                            ),
+                                        role: widget.role,
+                                        troopName:
+                                            _memberTroopNames[member.memberId],
+                                      );
+                                    },
+                                  ),
+                                )
+                              : GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 4,
+                                        childAspectRatio: 1,
+                                        crossAxisSpacing: 8,
+                                        mainAxisSpacing: 8,
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Amina Gutošić',
-                                      style: const TextStyle(fontSize: 12),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
+                                  itemCount: _completedMembers.length,
+                                  itemBuilder: (context, index) {
+                                    final member = _completedMembers[index];
+                                    return HoverableMemberCard(
+                                      member: member,
+                                      onTap: () =>
+                                          _showMemberBadgeProgressDialog(
+                                            member,
+                                          ),
+                                      role: widget.role,
+                                      troopName:
+                                          _memberTroopNames[member.memberId],
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
                         ),
 
                         const SizedBox(height: 24),
 
-                        Text(
-                          'U toku',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'U toku',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            if (widget.role == 'Troop') ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.group,
+                                      color: Colors.blue.shade700,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Vaši članovi',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Prikaži sve',
-                          style: TextStyle(
-                            color: Colors.blue.shade600,
-                            decoration: TextDecoration.underline,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _showAllInProgressMembers(),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Text(
+                                  'Prikaži više',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (widget.role != 'Member')
+                              TextButton.icon(
+                                onPressed: _showCreateMemberBadgeDialog,
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Dodaj člana'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.green,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
                         Expanded(
-                          child: GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                ),
-                            itemCount: 8,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: Colors.grey.shade400,
-                                      child: const Icon(
-                                        Icons.person,
-                                        color: Colors.white,
+                          child: _loadingMembers
+                              ? const Center(child: CircularProgressIndicator())
+                              : _inProgressMembers.isEmpty
+                              ? Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Nema članova koji rade na ovom vještarstvu.',
+                                    style: TextStyle(color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : _inProgressMembers.length > 4
+                              ? Scrollbar(
+                                  controller:
+                                      _inProgressMembersScrollController,
+                                  thumbVisibility: true,
+                                  thickness: 6,
+                                  radius: const Radius.circular(3),
+                                  child: GridView.builder(
+                                    controller:
+                                        _inProgressMembersScrollController,
+                                    primary: false,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 4,
+                                          childAspectRatio: 1,
+                                          crossAxisSpacing: 8,
+                                          mainAxisSpacing: 8,
+                                        ),
+                                    itemCount: _inProgressMembers.length,
+                                    itemBuilder: (context, index) {
+                                      final member = _inProgressMembers[index];
+                                      return HoverableMemberCard(
+                                        member: member,
+                                        onTap: () =>
+                                            _showMemberBadgeProgressDialog(
+                                              member,
+                                            ),
+                                        role: widget.role,
+                                        troopName:
+                                            _memberTroopNames[member.memberId],
+                                      );
+                                    },
+                                  ),
+                                )
+                              : GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 4,
+                                        childAspectRatio: 1,
+                                        crossAxisSpacing: 8,
+                                        mainAxisSpacing: 8,
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Amina Gutošić',
-                                      style: const TextStyle(fontSize: 12),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
+                                  itemCount: _inProgressMembers.length,
+                                  itemBuilder: (context, index) {
+                                    final member = _inProgressMembers[index];
+                                    return HoverableMemberCard(
+                                      member: member,
+                                      onTap: () =>
+                                          _showMemberBadgeProgressDialog(
+                                            member,
+                                          ),
+                                      role: widget.role,
+                                      troopName:
+                                          _memberTroopNames[member.memberId],
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
                         ),
                       ],
                     ),
@@ -678,7 +1011,7 @@ class _BadgeRequirementFormDialogState
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Zahtjev je uspješno kreiran')),
+            const SnackBar(content: Text('Uslov je uspješno kreiran')),
           );
         }
       } else {
@@ -689,7 +1022,7 @@ class _BadgeRequirementFormDialogState
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Zahtjev je uspješno ažuriran')),
+            const SnackBar(content: Text('Uslov je uspješno ažuriran')),
           );
         }
       }
@@ -711,7 +1044,7 @@ class _BadgeRequirementFormDialogState
     final isEditing = widget.requirement != null;
 
     return AlertDialog(
-      title: Text(isEditing ? 'Uredi zahtjev' : 'Dodaj novi zahtjev'),
+      title: Text(isEditing ? 'Uredi uslov' : 'Dodaj novi uslov'),
       content: SizedBox(
         width: 500,
         child: Form(
@@ -738,7 +1071,7 @@ class _BadgeRequirementFormDialogState
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
-                  labelText: 'Opis zahtjeva *',
+                  labelText: 'Opis uslova *',
                   border: OutlineInputBorder(),
                   helperText: 'Maksimalno 500 znakova',
                 ),
@@ -759,7 +1092,6 @@ class _BadgeRequirementFormDialogState
                 },
               ),
 
-              // Character counter
               Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
@@ -791,7 +1123,7 @@ class _BadgeRequirementFormDialogState
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Maksimalan broj zahtjeva po vještarstvu je 20.',
+                          'Maksimalan broj uslova po vještarstvu je 20.',
                           style: TextStyle(
                             color: Colors.blue.shade700,
                             fontSize: 14,
@@ -822,6 +1154,904 @@ class _BadgeRequirementFormDialogState
               : Text(isEditing ? 'Ažuriraj' : 'Kreiraj'),
         ),
       ],
+    );
+  }
+}
+
+class MemberBadgeProgressDialog extends StatefulWidget {
+  final MemberBadge memberBadge;
+  final Badge badge;
+  final String role;
+  final int loggedInUserId;
+  final VoidCallback onProgressUpdated;
+
+  const MemberBadgeProgressDialog({
+    super.key,
+    required this.memberBadge,
+    required this.badge,
+    required this.role,
+    required this.loggedInUserId,
+    required this.onProgressUpdated,
+  });
+
+  @override
+  State<MemberBadgeProgressDialog> createState() =>
+      _MemberBadgeProgressDialogState();
+}
+
+class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
+  List<MemberBadgeProgress> _progressList = [];
+  bool _loading = false;
+  bool _updating = false;
+
+  late MemberBadgeProgressProvider _progressProvider;
+  late MemberBadgeProvider _memberBadgeProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _progressProvider = MemberBadgeProgressProvider(authProvider);
+    _memberBadgeProvider = MemberBadgeProvider(authProvider);
+    _loadProgress();
+  }
+
+  void _navigateToMemberProfile(BuildContext context) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Učitavanje podataka o članu...'),
+            ],
+          ),
+        ),
+      );
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = MemberProvider(authProvider);
+      final member = await memberProvider.getById(widget.memberBadge.memberId);
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (context.mounted && member != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MemberDetailsScreen(
+              member: member,
+              role: widget.role,
+              loggedInUserId: widget.loggedInUserId,
+              selectedMenu: 'Članovi',
+            ),
+          ),
+        );
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Greška: Nije moguće učitati podatke o članu "${widget.memberBadge.memberFullName}"',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error
+      if (context.mounted) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _loadProgress() async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final progress = await _progressProvider.getByMemberBadgeId(
+        widget.memberBadge.id,
+      );
+      setState(() {
+        _progressList = progress;
+        _loading = false;
+      });
+    } catch (e) {
+      showErrorSnackbar(context, e);
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _updateProgressCompletion(
+    MemberBadgeProgress progress,
+    bool isCompleted,
+  ) async {
+    setState(() {
+      _updating = true;
+    });
+
+    try {
+      await _progressProvider.updateCompletion(progress.id, isCompleted);
+
+      setState(() {
+        final index = _progressList.indexWhere((p) => p.id == progress.id);
+        if (index != -1) {
+          _progressList[index] = MemberBadgeProgress(
+            id: progress.id,
+            memberBadgeId: progress.memberBadgeId,
+            requirementId: progress.requirementId,
+            requirementDescription: progress.requirementDescription,
+            isCompleted: isCompleted,
+            completedAt: isCompleted ? DateTime.now() : null,
+            createdAt: progress.createdAt,
+          );
+        }
+        _updating = false;
+      });
+    } catch (e) {
+      showErrorSnackbar(context, e);
+      setState(() {
+        _updating = false;
+      });
+    }
+  }
+
+  Future<void> _completeBadge() async {
+    try {
+      await _memberBadgeProvider.completeMemberBadge(widget.memberBadge.id);
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onProgressUpdated();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vještarstvo je uspješno dodijeljeno')),
+        );
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  Future<void> _revertBadgeToInProgress() async {
+    try {
+      final request = {
+        'memberId': widget.memberBadge.memberId,
+        'badgeId': widget.memberBadge.badgeId,
+        'status': 0, // InProgress
+        'completedAt': null as DateTime?,
+      };
+
+      await _memberBadgeProvider.update(widget.memberBadge.id, request);
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onProgressUpdated();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vještarstvo je vraćeno u status "U toku"'),
+          ),
+        );
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  Future<void> _deleteMemberBadge() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Potvrda brisanja'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati člana "${widget.memberBadge.memberFullName}" iz vještarstva "${widget.badge.name}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _memberBadgeProvider.delete(widget.memberBadge.id);
+        if (mounted) {
+          Navigator.of(context).pop();
+          widget.onProgressUpdated();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Član je uspješno obrisan iz vještarstva'),
+            ),
+          );
+        }
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _syncProgressInDialog() async {
+    try {
+      if (widget.role == 'Troop') {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final troopId = await authProvider.getUserIdFromToken() ?? 0;
+        await _memberBadgeProvider.syncProgressRecordsForBadgeAndTroop(
+          widget.badge.id,
+          troopId,
+        );
+      } else {
+        await _memberBadgeProvider.syncProgressRecordsForBadge(widget.badge.id);
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onProgressUpdated();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Napredak je uspješno sinhronizovan')),
+        );
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  bool get _allRequirementsCompleted {
+    return _progressList.every((progress) => progress.isCompleted);
+  }
+
+  bool get _hasProgressRecords {
+    return _progressList.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: 600,
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: Colors.grey.shade400,
+                  backgroundImage:
+                      widget.memberBadge.memberProfilePictureUrl.isNotEmpty
+                      ? NetworkImage(widget.memberBadge.memberProfilePictureUrl)
+                      : null,
+                  child: widget.memberBadge.memberProfilePictureUrl.isEmpty
+                      ? const Icon(Icons.person, color: Colors.white, size: 30)
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _navigateToMemberProfile(context),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.memberBadge.memberFullName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.blue,
+                                decorationThickness: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.open_in_new,
+                              color: Colors.blue,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Uslovi za vještarstvo:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (!_hasProgressRecords)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.yellow.shade100,
+                  border: Border.all(color: Colors.yellow.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.yellow.shade700,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Nema zapisanog napretka za ovo vještarstvo. Kliknite "Sinhronizuj napredak" za ažuriranje.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.yellow.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (widget.role == 'Admin' || widget.role == 'Troop') ...[
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _syncProgressInDialog,
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Sinhronizuj napredak'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _progressList.length,
+                  itemBuilder: (context, index) {
+                    final progress = _progressList[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text(
+                          progress.requirementDescription,
+                          style: TextStyle(
+                            decoration: progress.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: progress.isCompleted
+                                ? Colors.grey.shade600
+                                : null,
+                          ),
+                        ),
+                        leading: Checkbox(
+                          value: progress.isCompleted,
+                          onChanged: _updating
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    _updateProgressCompletion(progress, value);
+                                  }
+                                },
+                        ),
+                        trailing:
+                            progress.isCompleted && progress.completedAt != null
+                            ? Text(
+                                'Završeno: ${formatDateTime(progress.completedAt!)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade700,
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 24),
+            if (_allRequirementsCompleted &&
+                widget.role != 'Member' &&
+                widget.memberBadge.status != 1)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _updating ? null : _completeBadge,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _updating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Dodijeli vještarstvo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            if (widget.memberBadge.status == 1 && widget.role != 'Member')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _updating ? null : _revertBadgeToInProgress,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _updating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Ukloni vještarstvo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            if (widget.memberBadge.status == 0 && widget.role != 'Member')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _updating ? null : _deleteMemberBadge,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _updating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Obriši vještarstvo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Zatvori'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CreateMemberBadgeDialog extends StatefulWidget {
+  final Badge badge;
+  final String role;
+  final VoidCallback onMemberBadgeCreated;
+
+  const CreateMemberBadgeDialog({
+    super.key,
+    required this.badge,
+    required this.role,
+    required this.onMemberBadgeCreated,
+  });
+
+  @override
+  State<CreateMemberBadgeDialog> createState() =>
+      _CreateMemberBadgeDialogState();
+}
+
+class _CreateMemberBadgeDialogState extends State<CreateMemberBadgeDialog> {
+  List<Member> _members = [];
+  bool _loading = false;
+  bool _creating = false;
+  Member? _selectedMember;
+
+  late MemberProvider _memberProvider;
+  late MemberBadgeProvider _memberBadgeProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _memberProvider = MemberProvider(authProvider);
+    _memberBadgeProvider = MemberBadgeProvider(authProvider);
+    _loadMembers();
+  }
+
+  Future<void> _loadMembers() async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      if (widget.role == 'Troop') {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final troopId = await authProvider.getUserIdFromToken() ?? 0;
+
+        final filter = {'TroopId': troopId, 'RetrieveAll': true};
+        final result = await _memberProvider.get(filter: filter);
+
+        final allMembers = result.items ?? [];
+        final membersWithoutBadge = <Member>[];
+
+        final completedMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatusAndTroop(widget.badge.id, 1, troopId);
+        final inProgressMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatusAndTroop(widget.badge.id, 0, troopId);
+
+        final memberIdsWithBadge = <int>{};
+        for (final mb in completedMembers) {
+          memberIdsWithBadge.add(mb.memberId);
+        }
+        for (final mb in inProgressMembers) {
+          memberIdsWithBadge.add(mb.memberId);
+        }
+
+        for (final member in allMembers) {
+          if (!memberIdsWithBadge.contains(member.id)) {
+            membersWithoutBadge.add(member);
+          }
+        }
+
+        setState(() {
+          _members = membersWithoutBadge;
+          _loading = false;
+        });
+      } else {
+        final filter = {'RetrieveAll': true};
+        final result = await _memberProvider.get(filter: filter);
+
+        final allMembers = result.items ?? [];
+        final membersWithoutBadge = <Member>[];
+
+        final completedMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatus(widget.badge.id, 1);
+        final inProgressMembers = await _memberBadgeProvider
+            .getMembersByBadgeStatus(widget.badge.id, 0);
+
+        final memberIdsWithBadge = <int>{};
+        for (final mb in completedMembers) {
+          memberIdsWithBadge.add(mb.memberId);
+        }
+        for (final mb in inProgressMembers) {
+          memberIdsWithBadge.add(mb.memberId);
+        }
+
+        for (final member in allMembers) {
+          if (!memberIdsWithBadge.contains(member.id)) {
+            membersWithoutBadge.add(member);
+          }
+        }
+
+        setState(() {
+          _members = membersWithoutBadge;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _createMemberBadge() async {
+    if (_selectedMember == null) return;
+
+    setState(() {
+      _creating = true;
+    });
+
+    try {
+      await _memberBadgeProvider.createMemberBadge(
+        _selectedMember!.id,
+        widget.badge.id,
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onMemberBadgeCreated();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vještarstvo je uspješno dodijeljeno članu'),
+          ),
+        );
+      }
+    } catch (e) {
+      showErrorSnackbar(context, e);
+      setState(() {
+        _creating = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dodijeli vještarstvo članu',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Odaberite člana koji želi započeti rad na vještarstvu "${widget.badge.name}":',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_members.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.grey.shade600,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Svi članovi već imaju ovo vještarstvo ili su već dodijeljeni.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                height: 300,
+                child: ListView.builder(
+                  itemCount: _members.length,
+                  itemBuilder: (context, index) {
+                    final member = _members[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.grey.shade400,
+                        backgroundImage: member.profilePictureUrl.isNotEmpty
+                            ? NetworkImage(member.profilePictureUrl)
+                            : null,
+                        child: member.profilePictureUrl.isEmpty
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null,
+                      ),
+                      title: Text(member.firstName + ' ' + member.lastName),
+                      subtitle: Text(member.email),
+                      trailing: Radio<Member>(
+                        value: member,
+                        groupValue: _selectedMember,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedMember = value;
+                          });
+                        },
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _selectedMember = member;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Odustani'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _selectedMember == null || _creating
+                      ? null
+                      : _createMemberBadge,
+                  child: _creating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Dodijeli'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HoverableMemberCard extends StatefulWidget {
+  final MemberBadge member;
+  final VoidCallback onTap;
+  final String role;
+  final String? troopName;
+
+  const HoverableMemberCard({
+    super.key,
+    required this.member,
+    required this.onTap,
+    required this.role,
+    this.troopName,
+  });
+
+  @override
+  State<HoverableMemberCard> createState() => _HoverableMemberCardState();
+}
+
+class _HoverableMemberCardState extends State<HoverableMemberCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: _isHovered ? Colors.grey.shade100 : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isHovered ? Colors.green : Colors.grey.shade300,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? Colors.green.withOpacity(0.3)
+                    : Colors.grey.shade300,
+                blurRadius: _isHovered ? 4 : 2,
+                offset: Offset(0, _isHovered ? 2 : 1),
+                spreadRadius: _isHovered ? 1 : 0,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.grey.shade400,
+                backgroundImage:
+                    widget.member.memberProfilePictureUrl.isNotEmpty
+                    ? NetworkImage(widget.member.memberProfilePictureUrl)
+                    : null,
+                child: widget.member.memberProfilePictureUrl.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.member.memberFullName,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: _isHovered ? FontWeight.w600 : FontWeight.normal,
+                  color: _isHovered ? Colors.green : Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (widget.role == 'Admin' && widget.troopName != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.troopName!,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.blue.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

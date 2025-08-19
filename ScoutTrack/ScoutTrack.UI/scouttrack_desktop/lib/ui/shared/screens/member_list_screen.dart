@@ -455,6 +455,30 @@ class _MemberListScreenState extends State<MemberListScreen> {
               ),
             ],
             const SizedBox(height: 8),
+            // Results count
+            if (_members != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Prikazano ${_members!.items?.length ?? 0} od ukupno ${_members!.totalCount ?? 0} članova',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
             Expanded(
               child: Column(
                 children: [
