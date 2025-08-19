@@ -242,14 +242,12 @@ namespace ScoutTrack.Services.Services
             if (userRole != "Member" || userId == null)
                 return false;
 
-            // Check if activity is finished
             var activity = await _context.Activities
                 .FirstOrDefaultAsync(a => a.Id == activityId);
 
             if (activity == null || activity.ActivityState != "FinishedActivityState")
                 return false;
 
-            // Check if member has a completed registration for this activity
             var registration = await _context.ActivityRegistrations
                 .FirstOrDefaultAsync(ar => ar.ActivityId == activityId && ar.MemberId == userId);
 
@@ -312,7 +310,6 @@ namespace ScoutTrack.Services.Services
             var userId = _authService.GetUserId(user);
             var userRole = _authService.GetUserRole(user);
 
-            // Admin can edit any post
             if (userRole == "Admin") return true;
 
             if (post.CreatedById == userId) return true;
@@ -368,10 +365,8 @@ namespace ScoutTrack.Services.Services
             var userId = _authService.GetUserId(user);
             var userRole = _authService.GetUserRole(user);
 
-            // Admin cannot edit comments (even their own)
             if (userRole == "Admin") return false;
 
-            // Only the comment creator can edit their own comment
             if (comment.CreatedById == userId) return true;
 
             return false;

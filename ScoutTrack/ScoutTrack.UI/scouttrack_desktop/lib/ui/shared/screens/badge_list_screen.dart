@@ -25,7 +25,6 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
 
-  // Filter variables
   String? _selectedSort;
 
   late BadgeProvider _badgeProvider;
@@ -148,7 +147,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         builder: (context) => BadgeDetailsScreen(
           badge: badge,
           role: _role ?? 'Troop',
-          loggedInUserId: 0, // Not used in current implementation
+          loggedInUserId: 0,
         ),
       ),
     );
@@ -227,7 +226,6 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                   Expanded(
                     child: Row(
                       children: [
-                        // Search field
                         Container(
                           width: 300,
                           child: TextField(
@@ -244,7 +242,6 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // Sort filter
                         Container(
                           width: 200,
                           child: DropdownButtonFormField<String?>(
@@ -375,9 +372,9 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 5,
-                                    childAspectRatio: 0.8,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 0.7,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
                                   ),
                               itemCount: _badges?.items?.length ?? 0,
                               itemBuilder: (context, index) {
@@ -446,27 +443,31 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                         size: 32,
                       ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-              Text(
-                badge.name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  badge.name,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
 
               const SizedBox(height: 6),
 
-              Text(
-                badge.description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Flexible(
+                child: Text(
+                  badge.description,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -474,6 +475,10 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
               Tooltip(
                 message: 'Ukupan broj članova koji imaju ovo vještarstvo',
                 child: Container(
+                  constraints: const BoxConstraints(
+                    maxWidth: double.infinity,
+                    minHeight: 24,
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -485,89 +490,109 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.people, size: 14, color: Colors.blue.shade700),
                       const SizedBox(width: 4),
-                      Text(
-                        '${badge.totalMemberBadges}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Text(
+                          '${badge.totalMemberBadges}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+              
               const SizedBox(height: 4),
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Tooltip(
-                    message: 'Broj članova koji su završili ovo vještarstvo',
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 12,
-                            color: Colors.green.shade700,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${badge.completedMemberBadges}',
-                            style: TextStyle(
-                              fontSize: 9,
+                  Expanded(
+                    child: Tooltip(
+                      message: 'Broj članova koji su završili ovo vještarstvo',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 12,
                               color: Colors.green.shade700,
-                              fontWeight: FontWeight.w500,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                '${badge.completedMemberBadges}',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Tooltip(
-                    message:
-                        'Broj članova koji su u toku rada na ovom vještarstvu',
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.schedule,
-                            size: 12,
-                            color: Colors.orange.shade700,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${badge.inProgressMemberBadges}',
-                            style: TextStyle(
-                              fontSize: 9,
+                  
+                  const SizedBox(width: 4),
+                  
+                  Expanded(
+                    child: Tooltip(
+                      message: 'Broj članova koji su u toku rada na ovom vještarstvu',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 12,
                               color: Colors.orange.shade700,
-                              fontWeight: FontWeight.w500,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                '${badge.inProgressMemberBadges}',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

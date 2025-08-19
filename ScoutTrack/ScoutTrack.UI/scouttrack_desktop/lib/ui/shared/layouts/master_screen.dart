@@ -15,6 +15,7 @@ import 'package:scouttrack_desktop/ui/admin/screens/activity_type_list_screen.da
 import 'package:scouttrack_desktop/ui/admin/screens/equipment_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/badge_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/document_list_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -149,9 +150,9 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Tipovi aktivnosti',
                     selected: selectedLabel == 'Tipovi aktivnosti',
                     onTap: () => _handleTap('Tipovi aktivnosti', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const ActivityTypeListScreen()));
+                      Navigator.of(context).pushReplacement(
+                        _fadeRoute(const ActivityTypeListScreen()),
+                      );
                     }),
                   ),
                   _SidebarItem(
@@ -159,9 +160,9 @@ class _MasterScreenState extends State<MasterScreen> {
                     label: 'Oprema',
                     selected: selectedLabel == 'Oprema',
                     onTap: () => _handleTap('Oprema', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const EquipmentListScreen()));
+                      Navigator.of(context).pushReplacement(
+                        _fadeRoute(const EquipmentListScreen()),
+                      );
                     }),
                   ),
                   _SidebarItem(
@@ -172,6 +173,16 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const CityListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.description,
+                    label: 'Dokumenti',
+                    selected: selectedLabel == 'Dokumenti',
+                    onTap: () => _handleTap('Dokumenti', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const DocumentListScreen()));
                     }),
                   ),
                 ],
@@ -215,6 +226,16 @@ class _MasterScreenState extends State<MasterScreen> {
                       Navigator.of(
                         context,
                       ).pushReplacement(_fadeRoute(const BadgeListScreen()));
+                    }),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.description,
+                    label: 'Dokumenti',
+                    selected: selectedLabel == 'Dokumenti',
+                    onTap: () => _handleTap('Dokumenti', () {
+                      Navigator.of(
+                        context,
+                      ).pushReplacement(_fadeRoute(const DocumentListScreen()));
                     }),
                   ),
                 ],
