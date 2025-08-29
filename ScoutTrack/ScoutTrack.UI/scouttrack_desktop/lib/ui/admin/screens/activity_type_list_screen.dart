@@ -9,6 +9,7 @@ import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class ActivityTypeListScreen extends StatefulWidget {
   const ActivityTypeListScreen({super.key});
@@ -118,6 +119,71 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
     }
   }
 
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      var result = await _activityTypeProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateActivityTypeReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_role == null) {
@@ -160,6 +226,28 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
+                  onPressed: _loading ? null : _generateReport,
+                  icon: _loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.picture_as_pdf),
+                  label: Text(
+                    _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
                   onPressed: _onAddActivityType,
                   icon: const Icon(Icons.add),
                   label: const Text(
@@ -170,10 +258,12 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Results count
             if (_activityTypes != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -181,7 +271,11 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Prikazano ${_activityTypes!.items?.length ?? 0} od ukupno ${_activityTypes!.totalCount ?? 0} tipova aktivnosti',

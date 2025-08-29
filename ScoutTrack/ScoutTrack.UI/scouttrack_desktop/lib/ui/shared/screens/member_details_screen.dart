@@ -492,16 +492,17 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   final updatedMember = await memberProvider
                                       .update(_member.id, requestBody);
 
-                                  setState(() {
-                                    _member = updatedMember;
-                                  });
+                                  // Refresh the member data
+                                  final refreshedMember = await memberProvider
+                                      .getById(_member.id);
+
                                   isUpdated = true;
 
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Član "${_member.firstName} ${_member.lastName}" je ažuriran.',
+                                          'Član "${refreshedMember.firstName} ${refreshedMember.lastName}" je ažuriran.',
                                         ),
                                       ),
                                     );
@@ -527,6 +528,20 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         );
       },
     );
+
+    // If the member was updated, refresh the main screen's state
+    if (isUpdated) {
+      try {
+        final memberProvider = Provider.of<MemberProvider>(context, listen: false);
+        final refreshedMember = await memberProvider.getById(_member.id);
+        
+        setState(() {
+          _member = refreshedMember;
+        });
+      } catch (e) {
+        if (context.mounted) showErrorSnackbar(context, e);
+      }
+    }
 
     return isUpdated;
   }

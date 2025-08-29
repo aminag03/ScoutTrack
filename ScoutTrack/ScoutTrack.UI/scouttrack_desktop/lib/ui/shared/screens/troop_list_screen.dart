@@ -17,7 +17,6 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
-
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -26,6 +25,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class TroopListScreen extends StatefulWidget {
   const TroopListScreen({super.key});
@@ -158,7 +158,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
             Row(
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: TextField(
@@ -178,7 +178,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                 ),
 
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: DropdownButtonFormField<int?>(
@@ -217,7 +217,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                 ),
 
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: DropdownButtonFormField<String?>(
@@ -278,35 +278,78 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     flex: 2,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12),
-                      child: ElevatedButton.icon(
-                        onPressed: _onAddTroop,
-                        icon: const Icon(Icons.add),
-                        label: Text(
-                          'Dodaj novi odred',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _loading ? null : _generateReport,
+                              icon: _loading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.picture_as_pdf),
+                              label: Text(
+                                _loading
+                                    ? 'Generiranje...'
+                                    : 'Generiši izvještaj',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 12,
+                                ),
+                                minimumSize: const Size(0, 44),
+                              ),
+                            ),
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 16,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _onAddTroop,
+                              icon: const Icon(Icons.add),
+                              label: Text(
+                                'Dodaj novi odred',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 12,
+                                ),
+                                minimumSize: const Size(0, 44),
+                              ),
+                            ),
                           ),
-                          minimumSize: const Size(0, 48),
-                        ),
+                        ],
                       ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 16),
-            // Results count
             if (_troops != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -314,7 +357,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Prikazano ${_troops!.items?.length ?? 0} od ukupno ${_troops!.totalCount ?? 0} odreda',
@@ -540,12 +587,10 @@ class _TroopListScreenState extends State<TroopListScreen> {
       try {
         await _troopProvider.delete(troop.id);
 
-        // Check if we're on the last page and it's the last item
         final currentItemsOnPage = _troops?.items?.length ?? 0;
         final newTotalCount = (_troops?.totalCount ?? 0) - 1;
         final newTotalPages = (newTotalCount / pageSize).ceil();
 
-        // If we're on the last page and deleting the last item, go to previous page
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchTroops(page: currentPage - 1);
         } else {
@@ -1233,5 +1278,77 @@ class _TroopListScreenState extends State<TroopListScreen> {
         );
       },
     );
+  }
+
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      if (_selectedCityId != null) {
+        final selectedCity = _cities.firstWhere((c) => c.id == _selectedCityId);
+        filter["CityName"] = selectedCity.name;
+      }
+
+      var result = await _troopProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateTroopReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generisan!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 }

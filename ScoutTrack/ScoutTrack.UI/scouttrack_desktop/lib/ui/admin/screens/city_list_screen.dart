@@ -10,6 +10,7 @@ import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -122,6 +123,67 @@ class _CityListScreenState extends State<CityListScreen> {
     }
   }
 
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      var filter = {"RetrieveAll": true, "IncludeTotalCount": true};
+
+      var result = await _cityProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateCityReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_role == null) {
@@ -164,6 +226,28 @@ class _CityListScreenState extends State<CityListScreen> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
+                  onPressed: _loading ? null : _generateReport,
+                  icon: _loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.picture_as_pdf),
+                  label: Text(
+                    _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
                   onPressed: _onAddCity,
                   icon: const Icon(Icons.add),
                   label: const Text(
@@ -174,10 +258,12 @@ class _CityListScreenState extends State<CityListScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Results count
             if (_cities != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -185,7 +271,11 @@ class _CityListScreenState extends State<CityListScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Prikazano ${_cities!.items?.length ?? 0} od ukupno ${_cities!.totalCount ?? 0} gradova',
@@ -363,12 +453,10 @@ class _CityListScreenState extends State<CityListScreen> {
       try {
         await _cityProvider.delete(city.id);
 
-        // Check if we're on the last page and it's the last item
         final currentItemsOnPage = _cities?.items?.length ?? 0;
         final newTotalCount = (_cities?.totalCount ?? 0) - 1;
         final newTotalPages = (newTotalCount / pageSize).ceil();
 
-        // If we're on the last page and deleting the last item, go to previous page
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchCities(page: currentPage - 1);
         } else {
@@ -568,7 +656,6 @@ class _CityListScreenState extends State<CityListScreen> {
                                         ),
                                       ),
                                     );
-                                    // For edit, stay on current page
                                     await _fetchCities(page: currentPage);
                                   } else {
                                     await _cityProvider.insert(requestBody);
@@ -577,7 +664,6 @@ class _CityListScreenState extends State<CityListScreen> {
                                         content: Text('Grad je dodan.'),
                                       ),
                                     );
-                                    // After adding a new city, go to the last page to show it
                                     final newTotalCount =
                                         (_cities?.totalCount ?? 0) + 1;
                                     final newTotalPages =

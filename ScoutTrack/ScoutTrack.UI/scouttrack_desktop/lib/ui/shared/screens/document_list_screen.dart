@@ -10,6 +10,7 @@ import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class DocumentListScreen extends StatefulWidget {
   const DocumentListScreen({super.key});
@@ -618,6 +619,78 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     _loadDocuments(page: page - 1);
   }
 
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final authProvider = context.read<AuthProvider>();
+      final documentProvider = DocumentProvider(authProvider);
+
+      final result = await documentProvider.get(
+        filter: {
+          'FTS': _searchController.text,
+          'RetrieveAll': true,
+          'IncludeTotalCount': true,
+        },
+      );
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateDocumentReport(
+          result.items!,
+          filters: {
+            'FTS': _searchController.text,
+            'RetrieveAll': true,
+            'IncludeTotalCount': true,
+          },
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!isRoleDetermined) {
@@ -651,6 +724,33 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                       },
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  if (isAdmin)
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _generateReport,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.picture_as_pdf),
+                      label: Text(
+                        _isLoading ? 'Generiranje...' : 'Generiši izvještaj',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -961,8 +1061,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 5,
-                                childAspectRatio:
-                                    0.8,
+                                childAspectRatio: 0.8,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
                               ),

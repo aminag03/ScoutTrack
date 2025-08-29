@@ -10,6 +10,8 @@ import 'package:scouttrack_desktop/ui/shared/widgets/badge_form_dialog.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/badge_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
+import 'package:scouttrack_desktop/providers/troop_provider.dart';
 
 class BadgeListScreen extends StatefulWidget {
   const BadgeListScreen({super.key});
@@ -208,6 +210,86 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
     }
   }
 
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      final filter = {
+        'RetrieveAll': true,
+        'IncludeTotalCount': true,
+        'FTS': searchController.text.isEmpty ? null : searchController.text,
+        if (_selectedSort != null) 'OrderBy': _selectedSort,
+        if (_role == 'Troop')
+          'TroopId': await Provider.of<AuthProvider>(
+            context,
+            listen: false,
+          ).getUserIdFromToken(),
+      };
+
+      if (_role == 'Troop') {
+        final troopId = await Provider.of<AuthProvider>(context, listen: false).getUserIdFromToken();
+        if (troopId != null) {
+          final troopProvider = TroopProvider(Provider.of<AuthProvider>(context, listen: false));
+          final troopResult = await troopProvider.getById(troopId);
+          filter["TroopName"] = troopResult.name;
+        }
+      }
+
+      final result = await _badgeProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateBadgeReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
@@ -283,14 +365,42 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     ),
                   ),
                   if (_role == 'Admin')
-                    ElevatedButton.icon(
-                      onPressed: _showAddBadgeDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Dodaj novo vještarstvo'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F8055),
-                        foregroundColor: Colors.white,
-                      ),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _loading ? null : _generateReport,
+                          icon: _loading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.picture_as_pdf),
+                          label: Text(
+                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: _showAddBadgeDialog,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Dodaj novo vještarstvo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F8055),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -509,9 +619,9 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 4),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -554,12 +664,13 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 4),
-                  
+
                   Expanded(
                     child: Tooltip(
-                      message: 'Broj članova koji su u toku rada na ovom vještarstvu',
+                      message:
+                          'Broj članova koji su u toku rada na ovom vještarstvu',
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,

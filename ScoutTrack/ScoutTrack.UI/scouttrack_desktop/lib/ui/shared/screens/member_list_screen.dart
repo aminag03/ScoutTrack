@@ -23,6 +23,7 @@ import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class MemberListScreen extends StatefulWidget {
   final int? initialTroopId;
@@ -62,22 +63,17 @@ class _MemberListScreenState extends State<MemberListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Check if AuthProvider is available (user is still logged in)
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Only initialize providers if authProvider is valid
       if (authProvider.isLoggedIn) {
         _memberProvider = MemberProvider(authProvider);
 
-        // Load data only if we haven't loaded it yet and user is authenticated
         if (_role == null) {
           _loadInitialData();
         }
       }
     } catch (e) {
-      // AuthProvider is not available (user logged out)
-      print('AuthProvider not available: $e');
       return;
     }
   }
@@ -100,7 +96,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
   Future<void> _loadInitialData() async {
     try {
-      // Check if we're still mounted and user is logged in
       if (!mounted) return;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -112,7 +107,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       final role = await authProvider.getUserRole();
       final userId = await authProvider.getUserIdFromToken();
 
-      // Check again if we're still mounted after async calls
       if (!mounted) return;
 
       setState(() {
@@ -126,7 +120,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       final cityResult = await cityProvider.get(filter: filter);
       final troopResult = await troopProvider.get(filter: filter);
 
-      // Check again if we're still mounted after async calls
       if (!mounted) return;
 
       setState(() {
@@ -146,7 +139,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       await _fetchMembers();
     } catch (e) {
       print('Error in _loadInitialData: $e');
-      // Don't rethrow - this might happen during logout
     }
   }
 
@@ -167,7 +159,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       _error = null;
     });
     try {
-      // Determine which troopId to use for filtering
       int? troopIdForFilter = _selectedTroopId;
       if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
         troopIdForFilter = _loggedInUserId;
@@ -405,25 +396,58 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 if (_role == 'Admin' || _role == 'Troop')
                   Padding(
                     padding: const EdgeInsets.only(left: 12),
-                    child: ElevatedButton.icon(
-                      onPressed: _onAddMember,
-                      icon: const Icon(Icons.add),
-                      label: Text(
-                        'Dodaj novog člana',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    child: Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _loading ? null : _generateReport,
+                          icon: _loading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.picture_as_pdf),
+                          label: Text(
+                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _onAddMember,
+                          icon: const Icon(Icons.add),
+                          label: Text(
+                            'Dodaj novog člana',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                        minimumSize: const Size(0, 48),
-                      ),
+                      ],
                     ),
                   ),
               ],
@@ -455,10 +479,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
               ),
             ],
             const SizedBox(height: 8),
-            // Results count
             if (_members != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -466,7 +492,11 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Prikazano ${_members!.items?.length ?? 0} od ukupno ${_members!.totalCount ?? 0} članova',
@@ -542,12 +572,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
       try {
         await _memberProvider.delete(member.id);
 
-        // Check if we're on the last page and it's the last item
         final currentItemsOnPage = _members?.items?.length ?? 0;
         final newTotalCount = (_members?.totalCount ?? 0) - 1;
         final newTotalPages = (newTotalCount / pageSize).ceil();
 
-        // If we're on the last page and deleting the last item, go to previous page
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchMembers(page: currentPage - 1);
         } else {
@@ -1178,7 +1206,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                         ),
                                       ),
                                     );
-                                    // For edit, stay on current page
                                     await _fetchMembers(page: currentPage);
                                   } else {
                                     await _memberProvider.insert(requestBody);
@@ -1187,7 +1214,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                         content: Text('Član je dodan.'),
                                       ),
                                     );
-                                    // After adding a new member, go to the last page to show it
                                     final newTotalCount =
                                         (_members?.totalCount ?? 0) + 1;
                                     final newTotalPages =
@@ -1319,6 +1345,94 @@ class _MemberListScreenState extends State<MemberListScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      int? troopIdForFilter = _selectedTroopId;
+      if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
+        troopIdForFilter = _loggedInUserId;
+      }
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      if (_selectedCityId != null) {
+        final selectedCity = _cities.firstWhere((c) => c.id == _selectedCityId);
+        filter["CityName"] = selectedCity.name;
+      }
+
+      if (troopIdForFilter != null) {
+        final selectedTroop = _troops.firstWhere((t) => t.id == troopIdForFilter);
+        filter["TroopName"] = selectedTroop.name;
+      }
+
+      if (_selectedGender != null) {
+        filter["GenderText"] = _selectedGender == 0 ? 'Muski' : 'Zenski';
+      }
+
+      var result = await _memberProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateMemberReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Widget _buildResultView() {

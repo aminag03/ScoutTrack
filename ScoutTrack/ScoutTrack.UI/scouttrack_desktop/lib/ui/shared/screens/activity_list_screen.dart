@@ -28,6 +28,7 @@ import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dar
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class ActivityListScreen extends StatefulWidget {
   final int? initialTroopId;
@@ -128,15 +129,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       await _fetchActivities();
     } catch (e) {
       if (!mounted) return;
-      // Handle authentication errors gracefully
       if (e.toString().contains("Token nije moguće osvježiti") ||
           e.toString().contains("Niste autorizovani")) {
-        // Redirect to login or show login prompt
         setState(() {
           _error = "Sesija je istekla. Molimo prijavite se ponovo.";
         });
-        // You might want to navigate to login screen here
-        // Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacementNamed('/login');
       } else {
         setState(() {
           _error = e.toString();
@@ -233,23 +231,56 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 if (_role == 'Admin' || _role == 'Troop')
                   Padding(
                     padding: const EdgeInsets.only(left: 12),
-                    child: ElevatedButton.icon(
-                      onPressed: _onAddActivity,
-                      icon: const Icon(Icons.add),
-                      label: const Text(
-                        'Kreiraj aktivnost',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    child: Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _loading ? null : _generateReport,
+                          icon: _loading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.picture_as_pdf),
+                          label: Text(
+                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _onAddActivity,
+                          icon: const Icon(Icons.add),
+                          label: const Text(
+                            'Kreiraj aktivnost',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                        minimumSize: const Size(0, 48),
-                      ),
+                      ],
                     ),
                   ),
               ],
@@ -282,10 +313,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               ),
             ],
             const SizedBox(height: 8),
-            // Results count
             if (_activities != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -293,7 +326,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Prikazano ${_activities!.items?.length ?? 0} od ukupno ${_activities!.totalCount ?? 0} aktivnosti',
@@ -1417,7 +1454,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         ),
                                       ),
                                     );
-                                    // For edit, stay on current page
                                     await _fetchActivities(page: currentPage);
                                   } else {
                                     final newActivity = await _activityProvider
@@ -1440,7 +1476,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         content: Text('Aktivnost je dodana.'),
                                       ),
                                     );
-                                    // After adding a new activity, go to the last page to show it
                                     final newTotalCount =
                                         (_activities?.totalCount ?? 0) + 1;
                                     final newTotalPages =
@@ -1790,6 +1825,99 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       }
     } catch (e) {
       print('Error saving activity equipment: $e');
+    }
+  }
+
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      int? troopIdForFilter = _selectedTroopId;
+      if (_showOnlyMyActivities &&
+          _role == 'Troop' &&
+          _loggedInUserId != null) {
+        troopIdForFilter = _loggedInUserId;
+      }
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedActivityTypeId != null)
+          "ActivityTypeId": _selectedActivityTypeId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      if (_role == 'Troop' && _loggedInUserId != null) {
+        if (troopIdForFilter == null) {
+          filter["ShowPublicAndOwn"] = true;
+          filter["OwnTroopId"] = _loggedInUserId;
+        }
+      }
+
+      if (troopIdForFilter != null) {
+        final selectedTroop = _troops.firstWhere((t) => t.id == troopIdForFilter);
+        filter["TroopName"] = selectedTroop.name;
+      }
+
+      if (_selectedActivityTypeId != null) {
+        final selectedActivityType = _activityTypes.firstWhere((at) => at.id == _selectedActivityTypeId);
+        filter["ActivityTypeName"] = selectedActivityType.name;
+      }
+
+      var result = await _activityProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateActivityReport(
+          result.items!,
+          filters: filter,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 

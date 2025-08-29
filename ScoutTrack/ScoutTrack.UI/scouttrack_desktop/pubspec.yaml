@@ -48,6 +48,8 @@ dependencies:
   image: ^4.5.4
   syncfusion_flutter_datepicker: ^30.1.41
   file_picker: ^8.0.0+1
+  pdf: ^3.10.7
+  path_provider: ^2.1.2
 
 
 dev_dependencies:
@@ -81,6 +83,7 @@ flutter:
 
   assets:
       - assets/scouttrack_logo.png
+      - assets/fonts/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

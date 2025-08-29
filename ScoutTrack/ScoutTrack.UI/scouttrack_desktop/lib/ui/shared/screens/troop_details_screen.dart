@@ -543,13 +543,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   final updatedTroop = await troopProvider
                                       .update(_troop.id, requestBody);
 
-                                  setState(() {
-                                    _troop = updatedTroop;
-                                    _selectedLocation = LatLng(
-                                      updatedTroop.latitude!,
-                                      updatedTroop.longitude!,
-                                    );
-                                  });
+                                  // Refresh the troop data
+                                  final refreshedTroop = await troopProvider
+                                      .getById(_troop.id);
 
                                   isUpdated = true;
 
@@ -557,7 +553,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Odred "${_troop.name}" je ažuriran.',
+                                          'Odred "${refreshedTroop.name}" je ažuriran.',
                                         ),
                                       ),
                                     );
@@ -583,6 +579,26 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         );
       },
     );
+
+    // If the troop was updated, refresh the main screen's state
+    if (isUpdated) {
+      try {
+        final troopProvider = Provider.of<TroopProvider>(context, listen: false);
+        final refreshedTroop = await troopProvider.getById(_troop.id);
+        
+        setState(() {
+          _troop = refreshedTroop;
+          if (refreshedTroop.latitude != null && refreshedTroop.longitude != null) {
+            _selectedLocation = LatLng(
+              refreshedTroop.latitude!,
+              refreshedTroop.longitude!,
+            );
+          }
+        });
+      } catch (e) {
+        if (context.mounted) showErrorSnackbar(context, e);
+      }
+    }
 
     return isUpdated;
   }
