@@ -12,6 +12,7 @@ import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
@@ -529,12 +530,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
       },
     );
 
-    // If the member was updated, refresh the main screen's state
     if (isUpdated) {
       try {
-        final memberProvider = Provider.of<MemberProvider>(context, listen: false);
+        final memberProvider = Provider.of<MemberProvider>(
+          context,
+          listen: false,
+        );
         final refreshedMember = await memberProvider.getById(_member.id);
-        
+
         setState(() {
           _member = refreshedMember;
         });
@@ -1002,11 +1005,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                           formatDate(_member.birthDate),
                           Icons.calendar_today,
                         ),
-                        UIComponents.buildDetailRow(
-                          'Spol',
-                          _member.gender == 0 ? 'Muški' : 'Ženski',
-                          Icons.person_outline,
-                        ),
                       ]),
 
                       const SizedBox(height: 30),
@@ -1032,11 +1030,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                           _member.cityName,
                           Icons.location_city,
                         ),
-                        UIComponents.buildDetailRow(
-                          'Odred',
-                          _getTroopName(_member.troopId),
-                          Icons.group,
-                        ),
+                        _buildClickableTroopRow(),
                       ]),
 
                       const SizedBox(height: 30),
@@ -1140,6 +1134,124 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
     // TODO: Implement navigation to friends
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Prijatelji - funkcionalnost u razvoju')),
+    );
+  }
+
+  Widget _buildClickableTroopRow() {
+    if (_member.troopId == null) {
+      return UIComponents.buildDetailRow(
+        'Odred',
+        'Nepoznat odred',
+        Icons.group,
+      );
+    }
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: GestureDetector(
+            onTap: _navigateToTroop,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: isHovered ? Colors.blue.shade50 : Colors.transparent,
+                border: Border.all(
+                  color: isHovered ? Colors.blue.shade200 : Colors.transparent,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.group,
+                    size: 20,
+                    color: isHovered ? Colors.blue.shade600 : Colors.grey[600],
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Odred',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isHovered
+                            ? Colors.blue.shade700
+                            : Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          _getTroopName(_member.troopId),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isHovered
+                                ? Colors.blue.shade700
+                                : Colors.blue.shade600,
+                            decoration: TextDecoration.underline,
+                            fontWeight: isHovered
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        AnimatedRotation(
+                          turns: isHovered ? 0.125 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.open_in_new,
+                            size: 16,
+                            color: isHovered
+                                ? Colors.blue.shade700
+                                : Colors.blue.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToTroop() {
+    if (_member.troopId == null) return;
+
+    final troop = _troops.firstWhere(
+      (t) => t.id == _member.troopId,
+      orElse: () => Troop(
+        id: _member.troopId!,
+        name: _getTroopName(_member.troopId),
+        createdAt: DateTime.now(),
+        foundingDate: DateTime.now(),
+      ),
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TroopDetailsScreen(
+          troop: troop,
+          role: _role,
+          loggedInUserId: _loggedInUserId,
+        ),
+      ),
     );
   }
 }

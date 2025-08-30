@@ -238,7 +238,7 @@ namespace ScoutTrack.Services
 
         protected override void MapUpdateToEntity(Troop entity, TroopUpdateRequest request)
         {
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
             base.MapUpdateToEntity(entity, request);
         }
 
@@ -265,7 +265,7 @@ namespace ScoutTrack.Services
                     "lowercase letter, one number and one special character.");
 
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;

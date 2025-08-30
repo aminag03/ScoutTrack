@@ -113,7 +113,7 @@ namespace ScoutTrack.Services.Services
 
             entity.IsGlobal = true;
             entity.CreatedByTroopId = null; // Remove troop association when making global
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return _mapper.Map<EquipmentResponse>(entity);

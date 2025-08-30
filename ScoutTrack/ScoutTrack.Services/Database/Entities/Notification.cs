@@ -17,11 +17,15 @@ namespace ScoutTrack.Services.Database.Entities
         [MaxLength(500)]
         public string Message { get; set; } = string.Empty;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        [ForeignKey(nameof(UserAccount))]
-        public int UserAccountId { get; set; }
-        public UserAccount UserAccount { get; set; } = null!;
+        [ForeignKey(nameof(Receiver))]
+        public int ReceiverId { get; set; }
+        public UserAccount Receiver { get; set; } = null!;
+
+        [ForeignKey(nameof(Sender))]
+        public int? SenderId { get; set; }
+        public UserAccount? Sender { get; set; }
 
         public bool IsRead { get; set; } = false;
     }

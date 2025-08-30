@@ -93,7 +93,7 @@ namespace ScoutTrack.Services
                 throw new Exception("Progress record not found.");
 
             progress.IsCompleted = isCompleted;
-            progress.CompletedAt = isCompleted ? DateTime.UtcNow : null;
+            progress.CompletedAt = isCompleted ? DateTime.Now : null;
 
             await _context.SaveChangesAsync();
             return true;

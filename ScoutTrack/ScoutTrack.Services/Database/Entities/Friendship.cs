@@ -22,7 +22,7 @@ namespace ScoutTrack.Services.Database.Entities
         public int ResponderId { get; set; }
         public Member Responder { get; set; } = null!;
 
-        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+        public DateTime RequestedAt { get; set; } = DateTime.Now;
         public DateTime? RespondedAt { get; set; }
         public FriendshipStatus Status { get; set; }
     }

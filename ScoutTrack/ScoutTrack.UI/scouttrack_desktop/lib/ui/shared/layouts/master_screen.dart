@@ -16,6 +16,7 @@ import 'package:scouttrack_desktop/ui/admin/screens/equipment_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/badge_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/document_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/notification_screen.dart';
 
 class MasterScreen extends StatefulWidget {
   final Widget child;
@@ -242,6 +243,17 @@ class _MasterScreenState extends State<MasterScreen> {
 
                 const Spacer(),
 
+              
+                _SidebarItem(
+                  icon: Icons.notifications,
+                  label: 'Obavještenja',
+                  selected: selectedLabel == 'Obavještenja',
+                  onTap: () => _handleTap('Obavještenja', () {
+                    Navigator.of(
+                      context,
+                    ).pushReplacement(_fadeRoute(const NotificationScreen()));
+                  }),
+                ),
                 if (widget.role == 'Admin') ...[
                   _SidebarItem(
                     icon: Icons.account_circle,

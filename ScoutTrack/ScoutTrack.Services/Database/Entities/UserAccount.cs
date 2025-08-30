@@ -26,11 +26,12 @@ namespace ScoutTrack.Services.Database.Entities
         public string PasswordHash { get; set; } = string.Empty;
         public Role Role { get; set; }
         public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
 
-        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<Notification> ReceivedNotifications { get; set; } = new List<Notification>();
+        public ICollection<Notification> SentNotifications { get; set; } = new List<Notification>();
         public ICollection<Post> Posts { get; set; } = new List<Post>();
         public ICollection<Like> Likes { get; set; } = new List<Like>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();

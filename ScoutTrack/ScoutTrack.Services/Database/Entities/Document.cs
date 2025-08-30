@@ -20,7 +20,7 @@ namespace ScoutTrack.Services.Database.Entities
         [Required]
         public string FilePath { get; set; } = string.Empty;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 
         [ForeignKey(nameof(Admin))]

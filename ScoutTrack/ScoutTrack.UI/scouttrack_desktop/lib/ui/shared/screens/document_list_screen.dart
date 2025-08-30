@@ -1091,7 +1091,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     return Card(
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(6),
         child: Column(
           children: [
             Text(
@@ -1102,19 +1102,19 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               overflow: TextOverflow.ellipsis,
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
 
             Expanded(
               child: Center(
                 child: Icon(
                   Icons.description,
-                  size: 56,
+                  size: 48,
                   color: Colors.grey[600],
                 ),
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
 
             if (isAdmin) ...[
               Text(
@@ -1124,7 +1124,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 1),
             ],
 
             Text(
@@ -1132,49 +1132,51 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
                   onPressed: () => _downloadDocument(document),
                   icon: const Icon(
                     Icons.download,
                     color: Colors.blue,
-                    size: 24,
+                    size: 22,
                   ),
                   tooltip: 'Preuzmi',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
+                    minWidth: 26,
+                    minHeight: 26,
                   ),
                 ),
 
                 if (isAdmin) ...[
+                  const SizedBox(width: 12),
                   IconButton(
                     onPressed: () => _editDocument(document),
                     icon: const Icon(
                       Icons.edit,
                       color: Colors.orange,
-                      size: 24,
+                      size: 22,
                     ),
                     tooltip: 'Uredi',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
+                      minWidth: 26,
+                      minHeight: 26,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => _deleteDocument(document),
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 24),
+                    icon: const Icon(Icons.delete, color: Colors.red, size: 22),
                     tooltip: 'Obriši',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
+                      minWidth: 26,
+                      minHeight: 26,
                     ),
                   ),
                 ],

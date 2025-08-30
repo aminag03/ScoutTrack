@@ -132,7 +132,7 @@ namespace ScoutTrack.Services
                 Title = request.Title,
                 AdminId = adminId,
                 FilePath = NormalizeFilePath(request.FilePath),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             base._context.Documents.Add(document);
@@ -208,7 +208,7 @@ namespace ScoutTrack.Services
 
             entity.Title = request.Title;
             entity.FilePath = normalizedNewPath;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
         }
 
         protected override DocumentResponse MapToResponse(Document entity)

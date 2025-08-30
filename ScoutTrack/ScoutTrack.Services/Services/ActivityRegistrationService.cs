@@ -159,7 +159,7 @@ namespace ScoutTrack.Services.Services
             _mapper.Map(registrationRequest, entity);
             entity.MemberId = userId;
             entity.Status = Common.Enums.RegistrationStatus.Pending;
-            entity.RegisteredAt = DateTime.UtcNow;
+            entity.RegisteredAt = DateTime.Now;
 
             var existingRegistration = await _context.ActivityRegistrations
                 .FirstOrDefaultAsync(ar => ar.ActivityId == request.ActivityId && ar.MemberId == userId);

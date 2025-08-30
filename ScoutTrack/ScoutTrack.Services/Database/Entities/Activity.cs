@@ -40,7 +40,7 @@ namespace ScoutTrack.Services.Database.Entities
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? Fee { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 
         [ForeignKey(nameof(Troop))]

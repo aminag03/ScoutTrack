@@ -7,6 +7,7 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 
 class AdminDetailsScreen extends StatefulWidget {
   final Admin admin;
@@ -340,9 +341,12 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                           );
                           await authProvider.logout();
 
-                          Navigator.of(
-                            context,
-                          ).pushNamedAndRemoveUntil('/', (_) => false);
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
                         }
                       } catch (e) {
                         if (context.mounted) {

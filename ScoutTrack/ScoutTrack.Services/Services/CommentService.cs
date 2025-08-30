@@ -59,7 +59,7 @@ namespace ScoutTrack.Services.Services
                 Content = request.Content,
                 PostId = request.PostId,
                 CreatedById = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _context.Comments.Add(comment);
@@ -74,7 +74,7 @@ namespace ScoutTrack.Services.Services
             if (comment == null) return null;
 
             comment.Content = request.Content;
-            comment.UpdatedAt = DateTime.UtcNow;
+            comment.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 

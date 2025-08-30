@@ -22,6 +22,7 @@ import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -543,7 +544,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   final updatedTroop = await troopProvider
                                       .update(_troop.id, requestBody);
 
-                                  // Refresh the troop data
                                   final refreshedTroop = await troopProvider
                                       .getById(_troop.id);
 
@@ -580,15 +580,18 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       },
     );
 
-    // If the troop was updated, refresh the main screen's state
     if (isUpdated) {
       try {
-        final troopProvider = Provider.of<TroopProvider>(context, listen: false);
+        final troopProvider = Provider.of<TroopProvider>(
+          context,
+          listen: false,
+        );
         final refreshedTroop = await troopProvider.getById(_troop.id);
-        
+
         setState(() {
           _troop = refreshedTroop;
-          if (refreshedTroop.latitude != null && refreshedTroop.longitude != null) {
+          if (refreshedTroop.latitude != null &&
+              refreshedTroop.longitude != null) {
             _selectedLocation = LatLng(
               refreshedTroop.latitude!,
               refreshedTroop.longitude!,
@@ -766,9 +769,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                           );
                           await authProvider.logout();
 
-                          Navigator.of(
-                            context,
-                          ).pushNamedAndRemoveUntil('/', (_) => false);
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
                         }
                       } catch (e) {
                         if (context.mounted) {

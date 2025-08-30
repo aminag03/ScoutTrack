@@ -86,7 +86,7 @@ namespace ScoutTrack.Services.Services
                 MemberId = userId,
                 Content = request.Content,
                 Rating = request.Rating,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _context.Reviews.Add(review);
@@ -110,7 +110,7 @@ namespace ScoutTrack.Services.Services
 
             review.Content = request.Content;
             review.Rating = request.Rating;
-            review.UpdatedAt = DateTime.UtcNow;
+            review.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -214,7 +214,7 @@ namespace ScoutTrack.Services.Services
             entity.ActivityId = request.ActivityId;
             entity.Content = request.Content;
             entity.Rating = request.Rating;
-            entity.CreatedAt = DateTime.UtcNow;
+            entity.CreatedAt = DateTime.Now;
             return entity;
         }
 
@@ -222,7 +222,7 @@ namespace ScoutTrack.Services.Services
         {
             entity.Content = request.Content;
             entity.Rating = request.Rating;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
         }
 
         private IQueryable<Review> ApplyOrderBy(IQueryable<Review> query, ReviewSearchObject search)

@@ -45,7 +45,7 @@ namespace ScoutTrack.Services.Services
                 Content = request.Content,
                 ActivityId = request.ActivityId,
                 CreatedById = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _context.Posts.Add(post);
@@ -57,7 +57,7 @@ namespace ScoutTrack.Services.Services
                 {
                     PostId = post.Id,
                     ImageUrl = url,
-                    UploadedAt = DateTime.UtcNow,
+                    UploadedAt = DateTime.Now,
                     IsCoverPhoto = index == 0
                 }).ToList();
 
@@ -241,7 +241,7 @@ namespace ScoutTrack.Services.Services
             var oldImageUrls = post.Images.Select(img => img.ImageUrl).ToList();
 
             post.Content = request.Content;
-            post.UpdatedAt = DateTime.UtcNow;
+            post.UpdatedAt = DateTime.Now;
 
             _context.PostImages.RemoveRange(post.Images);
 
@@ -251,7 +251,7 @@ namespace ScoutTrack.Services.Services
                 {
                     PostId = post.Id,
                     ImageUrl = url,
-                    UploadedAt = DateTime.UtcNow,
+                    UploadedAt = DateTime.Now,
                     IsCoverPhoto = index == 0
                 }).ToList();
 
@@ -317,7 +317,7 @@ namespace ScoutTrack.Services.Services
                 {
                     PostId = postId,
                     CreatedById = userId,
-                    LikedAt = DateTime.UtcNow
+                    LikedAt = DateTime.Now
                 };
 
                 _context.Likes.Add(like);

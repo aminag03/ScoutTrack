@@ -77,7 +77,7 @@ namespace ScoutTrack.Services.Database
                 Email = "admin@scouttrack.ba",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Pass123!"),
                 Role = Role.Admin,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
             modelBuilder.Entity<Admin>().HasData(admin);
 

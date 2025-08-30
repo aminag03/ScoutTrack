@@ -25,6 +25,7 @@ import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_form_widgets.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/activity_dialog_widgets.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
@@ -134,7 +135,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         setState(() {
           _error = "Sesija je istekla. Molimo prijavite se ponovo.";
         });
-        Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
       } else {
         setState(() {
           _error = e.toString();
@@ -1859,12 +1863,16 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       }
 
       if (troopIdForFilter != null) {
-        final selectedTroop = _troops.firstWhere((t) => t.id == troopIdForFilter);
+        final selectedTroop = _troops.firstWhere(
+          (t) => t.id == troopIdForFilter,
+        );
         filter["TroopName"] = selectedTroop.name;
       }
 
       if (_selectedActivityTypeId != null) {
-        final selectedActivityType = _activityTypes.firstWhere((at) => at.id == _selectedActivityTypeId);
+        final selectedActivityType = _activityTypes.firstWhere(
+          (at) => at.id == _selectedActivityTypeId,
+        );
         filter["ActivityTypeName"] = selectedActivityType.name;
       }
 

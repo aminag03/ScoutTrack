@@ -11,6 +11,7 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/providers/notification_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
@@ -54,6 +55,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   Timer? _debounce;
 
   late MemberProvider _memberProvider;
+  late NotificationProvider _notificationProvider;
 
   int currentPage = 1;
   int pageSize = 10;
@@ -68,6 +70,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
       if (authProvider.isLoggedIn) {
         _memberProvider = MemberProvider(authProvider);
+        _notificationProvider = NotificationProvider(authProvider);
 
         if (_role == null) {
           _loadInitialData();
@@ -1284,38 +1287,64 @@ class _MemberListScreenState extends State<MemberListScreen> {
       return;
     }
 
+    final TextEditingController messageController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Želite li poslati obavještenje svim prikazanim članovima?',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Unesite sadržaj obavještenja:',
+                style: const TextStyle(fontSize: 16),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Odred: $troopName',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text('Broj članova: $memberCount'),
-                ],
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Poruka *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Unesite sadržaj obavještenja...',
+                ),
+                maxLines: 3,
+                maxLength: 500,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Poruka je obavezna';
+                  }
+                  if (value.trim().length > 500) {
+                    return 'Poruka ne smije imati više od 500 znakova';
+                  }
+                  return null;
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Odred: $troopName',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('Broj članova: $memberCount'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1323,17 +1352,15 @@ class _MemberListScreenState extends State<MemberListScreen> {
             child: const Text('Odustani'),
           ),
           ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implement notification sending logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Obavještenje je poslano $memberCount članovima odreda "$troopName".',
-                  ),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            onPressed: () async {
+              if (_formKey.currentState?.validate() ?? false) {
+                Navigator.of(context).pop();
+                await _sendNotificationToMembers(
+                  troopName,
+                  memberCount,
+                  messageController.text.trim(),
+                );
+              }
             },
             icon: const Icon(Icons.send),
             label: const Text('Pošalji obavještenje'),
@@ -1345,6 +1372,41 @@ class _MemberListScreenState extends State<MemberListScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _sendNotificationToMembers(
+    String troopName,
+    int memberCount,
+    String message,
+  ) async {
+    try {
+      if (_members?.items == null || _members!.items!.isEmpty) {
+        return;
+      }
+
+      final memberIds = _members!.items!.map((member) => member.id).toList();
+
+      await _notificationProvider.sendNotificationsToUsers(
+        message: message,
+        userIds: memberIds,
+        senderId: _loggedInUserId,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Obavještenje je uspješno poslano sljedećem broju članova: $memberCount.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
   Future<void> _generateReport() async {
@@ -1374,7 +1436,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
       }
 
       if (troopIdForFilter != null) {
-        final selectedTroop = _troops.firstWhere((t) => t.id == troopIdForFilter);
+        final selectedTroop = _troops.firstWhere(
+          (t) => t.id == troopIdForFilter,
+        );
         filter["TroopName"] = selectedTroop.name;
       }
 

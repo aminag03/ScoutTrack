@@ -52,7 +52,7 @@ namespace ScoutTrack.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(expiresIn),
+                Expires = DateTime.Now.AddMinutes(expiresIn),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -63,20 +63,20 @@ namespace ScoutTrack.Services
             var refreshTokenEntity = new RefreshToken
             {
                 Token = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7),
-                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.Now.AddDays(7),
+                CreatedAt = DateTime.Now,
                 UserAccountId = user.Id,
                 IsRevoked = false
             };
             _context.RefreshTokens.Add(refreshTokenEntity);
-            user.LastLoginAt = DateTime.UtcNow;
+            user.LastLoginAt = DateTime.Now;
             await _context.SaveChangesAsync();
             await CleanupOldRefreshTokensAsync(user.Id);
 
             return new LoginResponse
             {
                 AccessToken = tokenHandler.WriteToken(token),
-                Expiration = tokenDescriptor.Expires ?? DateTime.UtcNow.AddMinutes(expiresIn),
+                Expiration = tokenDescriptor.Expires ?? DateTime.Now.AddMinutes(expiresIn),
                 Username = user.Username,
                 Role = user.Role.ToString(),
                 RefreshToken = refreshToken
@@ -97,7 +97,7 @@ namespace ScoutTrack.Services
         {
             var refreshTokenEntity = await _context.RefreshTokens.Include(rt => rt.UserAccount)
                 .FirstOrDefaultAsync(rt => rt.Token == refreshToken && !rt.IsRevoked);
-            if (refreshTokenEntity == null || refreshTokenEntity.ExpiresAt < DateTime.UtcNow)
+            if (refreshTokenEntity == null || refreshTokenEntity.ExpiresAt < DateTime.Now)
                 throw new UnauthorizedAccessException("Invalid or expired refresh token");
 
             var user = refreshTokenEntity.UserAccount;
@@ -119,23 +119,21 @@ namespace ScoutTrack.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(expiresIn),
+                Expires = DateTime.Now.AddMinutes(expiresIn),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            // Revoke the old refresh token
             refreshTokenEntity.IsRevoked = true;
 
-            // Issue a new refresh token
             var newRefreshToken = GenerateRefreshToken();
             var newRefreshTokenEntity = new RefreshToken
             {
                 Token = newRefreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7),
-                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.Now.AddDays(7),
+                CreatedAt = DateTime.Now,
                 UserAccountId = user.Id,
                 IsRevoked = false
             };
@@ -146,7 +144,7 @@ namespace ScoutTrack.Services
             return new LoginResponse
             {
                 AccessToken = tokenHandler.WriteToken(token),
-                Expiration = tokenDescriptor.Expires ?? DateTime.UtcNow.AddMinutes(expiresIn),
+                Expiration = tokenDescriptor.Expires ?? DateTime.Now.AddMinutes(expiresIn),
                 Username = user.Username,
                 Role = user.Role.ToString(),
                 RefreshToken = newRefreshToken
@@ -155,7 +153,7 @@ namespace ScoutTrack.Services
 
         public async Task LogoutAsync(int userId)
         {
-            var tokens = await _context.RefreshTokens.Where(rt => rt.UserAccountId == userId && !rt.IsRevoked && rt.ExpiresAt > DateTime.UtcNow).ToListAsync();
+            var tokens = await _context.RefreshTokens.Where(rt => rt.UserAccountId == userId && !rt.IsRevoked && rt.ExpiresAt > DateTime.Now).ToListAsync();
             foreach (var token in tokens)
             {
                 token.IsRevoked = true;
@@ -166,7 +164,7 @@ namespace ScoutTrack.Services
 
         private async Task CleanupOldRefreshTokensAsync(int userId)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var oldTokens = _context.RefreshTokens
                 .Where(rt => rt.UserAccountId == userId && (rt.IsRevoked || rt.ExpiresAt < now));
             _context.RefreshTokens.RemoveRange(oldTokens);

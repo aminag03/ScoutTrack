@@ -13,7 +13,7 @@ namespace ScoutTrack.Services.Database.Entities
     {
         [Key]
         public int Id { get; set; }
-        public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
+        public DateTime RegisteredAt { get; set; } = DateTime.Now;
 
         [ForeignKey(nameof(Activity))]
         public int ActivityId { get; set; }

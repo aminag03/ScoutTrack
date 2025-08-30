@@ -51,7 +51,7 @@ namespace ScoutTrack.Services
 
         protected override void MapUpdateToEntity(City entity, CityUpsertRequest request)
         {
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
             base.MapUpdateToEntity(entity, request);
         }
 

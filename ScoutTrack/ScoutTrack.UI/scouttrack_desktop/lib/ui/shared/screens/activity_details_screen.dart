@@ -83,7 +83,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     _tabController = TabController(length: 3, vsync: this);
     _mapController = MapController();
     _activity = widget.activity;
-    // _loadInitialData() is now called from didChangeDependencies() after providers are initialized
   }
 
   @override
@@ -115,11 +114,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Check if AuthProvider is available (user is still logged in)
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Only initialize providers if authProvider is valid
       if (authProvider.isLoggedIn) {
         _activityProvider = ActivityProvider(authProvider);
         _activityRegistrationProvider = ActivityRegistrationProvider(
@@ -130,13 +127,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         _commentProvider = CommentProvider(authProvider);
         _likeProvider = LikeProvider(authProvider);
 
-        // Load data only if we haven't loaded it yet and user is authenticated
         if (_activity != null && _role == null) {
           _loadInitialData();
         }
       }
     } catch (e) {
-      // AuthProvider is not available (user logged out)
       print('AuthProvider not available: $e');
       return;
     }
@@ -144,7 +139,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   Future<void> _loadInitialData() async {
     try {
-      // Check if we're still mounted and user is logged in
       if (!mounted) return;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -156,7 +150,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       final role = await authProvider.getUserRole();
       final userId = await authProvider.getUserIdFromToken();
 
-      // Check again if we're still mounted after async calls
       if (!mounted) return;
 
       setState(() {
@@ -177,7 +170,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       await _checkCanCreatePost();
     } catch (e) {
       print('Error in _loadInitialData: $e');
-      // Don't rethrow - this might happen during logout
     }
   }
 
@@ -194,7 +186,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   Future<void> _loadEquipment() async {
     try {
-      // Check if we're still mounted and user is logged in
       if (!mounted) return;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -208,7 +199,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         _activity!.id,
       );
 
-      // Check again if we're still mounted after async call
       if (!mounted) return;
 
       setState(() {
@@ -216,7 +206,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       });
     } catch (e) {
       print('Error loading equipment: $e');
-      // Don't rethrow - this might happen during logout
     }
   }
 
@@ -1019,10 +1008,30 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               const Icon(Icons.people, color: Colors.blue, size: 24),
               const SizedBox(width: 8),
               Text(
-                'Registracije (${_filteredRegistrations.length}/${_totalRegistrations})',
+                'Registracije',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Text(
+                  'Ukupno: $_totalRegistrations',
+                  style: TextStyle(
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -2927,9 +2936,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                     ),
                                   ),
 
-                                  // Navigation arrows - only show if there are multiple images
                                   if (currentPost.images.length > 1) ...[
-                                    // Left arrow
                                     Positioned(
                                       left: 8,
                                       top: 0,
@@ -2968,7 +2975,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                       ),
                                     ),
 
-                                    // Right arrow
                                     Positioned(
                                       right: 8,
                                       top: 0,
@@ -3013,7 +3019,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                 ],
                               ),
 
-                              // Dots indicator
                               if (currentPost.images.length > 1)
                                 Padding(
                                   padding: const EdgeInsets.all(16),
@@ -3458,7 +3463,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   onPressed: isUploading
                       ? null
                       : () async {
-                          // Check if there are any images left
                           if (existingImageUrls.isEmpty &&
                               selectedImages.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(

@@ -229,9 +229,14 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
       };
 
       if (_role == 'Troop') {
-        final troopId = await Provider.of<AuthProvider>(context, listen: false).getUserIdFromToken();
+        final troopId = await Provider.of<AuthProvider>(
+          context,
+          listen: false,
+        ).getUserIdFromToken();
         if (troopId != null) {
-          final troopProvider = TroopProvider(Provider.of<AuthProvider>(context, listen: false));
+          final troopProvider = TroopProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          );
           final troopResult = await troopProvider.getById(troopId);
           filter["TroopName"] = troopResult.name;
         }
@@ -519,13 +524,13 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         onTap: () => _showBadgeDetails(badge),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 65,
-                height: 65,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFF),
                   shape: BoxShape.circle,
@@ -535,14 +540,14 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     ? ClipOval(
                         child: Image.network(
                           badge.imageUrl,
-                          width: 65,
-                          height: 65,
+                          width: 60,
+                          height: 60,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return const Icon(
                               Icons.emoji_events,
                               color: Colors.amber,
-                              size: 32,
+                              size: 28,
                             );
                           },
                         ),
@@ -550,10 +555,10 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     : const Icon(
                         Icons.emoji_events,
                         color: Colors.amber,
-                        size: 32,
+                        size: 28,
                       ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
 
               Flexible(
                 child: Text(
@@ -568,7 +573,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                 ),
               ),
 
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
 
               Flexible(
                 child: Text(
@@ -580,7 +585,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
 
               Tooltip(
                 message: 'Ukupan broj članova koji imaju ovo vještarstvo',
@@ -590,8 +595,8 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     minHeight: 24,
                   ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 6,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
@@ -603,7 +608,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.people, size: 14, color: Colors.blue.shade700),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Flexible(
                         child: Text(
                           '${badge.totalMemberBadges}',
@@ -620,7 +625,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                 ),
               ),
 
-              const SizedBox(height: 4),
+              const SizedBox(height: 1),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -630,8 +635,8 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                       message: 'Broj članova koji su završili ovo vještarstvo',
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
+                          horizontal: 5,
+                          vertical: 2,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.green.shade50,
@@ -647,7 +652,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                               size: 12,
                               color: Colors.green.shade700,
                             ),
-                            const SizedBox(width: 3),
+                            const SizedBox(width: 2),
                             Flexible(
                               child: Text(
                                 '${badge.completedMemberBadges}',
@@ -665,7 +670,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
 
                   Expanded(
                     child: Tooltip(
@@ -673,8 +678,8 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                           'Broj članova koji su u toku rada na ovom vještarstvu',
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
+                          horizontal: 5,
+                          vertical: 2,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
@@ -690,7 +695,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                               size: 12,
                               color: Colors.orange.shade700,
                             ),
-                            const SizedBox(width: 3),
+                            const SizedBox(width: 2),
                             Flexible(
                               child: Text(
                                 '${badge.inProgressMemberBadges}',
@@ -711,9 +716,9 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
               ),
 
               if (_role == 'Admin') ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Tooltip(
                       message: 'Uredi vještarstvo',
@@ -722,11 +727,12 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                         icon: const Icon(Icons.edit, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 24,
-                          minHeight: 24,
+                          minWidth: 22,
+                          minHeight: 22,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Tooltip(
                       message: 'Obriši vještarstvo',
                       child: IconButton(
@@ -735,8 +741,8 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                         color: Colors.red,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 24,
-                          minHeight: 24,
+                          minWidth: 22,
+                          minHeight: 22,
                         ),
                       ),
                     ),

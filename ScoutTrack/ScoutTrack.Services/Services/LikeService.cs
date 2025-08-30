@@ -62,7 +62,7 @@ namespace ScoutTrack.Services.Services
             {
                 PostId = postId,
                 CreatedById = userId,
-                LikedAt = DateTime.UtcNow
+                LikedAt = DateTime.Now
             };
 
             _context.Likes.Add(like);

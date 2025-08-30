@@ -9,6 +9,8 @@ import 'package:scouttrack_desktop/models/troop.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/providers/notification_provider.dart';
+
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
@@ -26,6 +28,7 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
+import 'package:scouttrack_desktop/models/search_result.dart';
 
 class TroopListScreen extends StatefulWidget {
   const TroopListScreen({super.key});
@@ -48,6 +51,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
   Timer? _debounce;
 
   late TroopProvider _troopProvider;
+  late NotificationProvider _notificationProvider;
 
   int currentPage = 1;
   int pageSize = 10;
@@ -58,6 +62,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
     super.didChangeDependencies();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _troopProvider = TroopProvider(authProvider);
+    _notificationProvider = NotificationProvider(authProvider);
     _loadInitialData();
   }
 
@@ -374,6 +379,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                 ),
               ),
             const SizedBox(height: 16),
+
             Expanded(child: _buildResultView()),
             const SizedBox(height: 8),
             PaginationControls(
@@ -382,6 +388,31 @@ class _TroopListScreenState extends State<TroopListScreen> {
               totalCount: _troops?.totalCount ?? 0,
               onPageChanged: (page) => _fetchTroops(page: page),
             ),
+            if (_role == 'Admin' &&
+                _troops != null &&
+                _troops!.items != null &&
+                _troops!.items!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _onSendNotification,
+                  icon: const Icon(Icons.notifications),
+                  label: const Text(
+                    'Pošalji obavještenje prikazanim odredima',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    minimumSize: const Size(0, 48),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1233,7 +1264,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                         ),
                                       ),
                                     );
-                                    // For edit, stay on current page
                                     await _fetchTroops(page: currentPage);
                                   } else {
                                     final createdTroop = await _troopProvider
@@ -1252,7 +1282,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                         content: Text('Odred je dodan.'),
                                       ),
                                     );
-                                    // After adding a new troop, go to the last page to show it
+
                                     final newTotalCount =
                                         (_troops?.totalCount ?? 0) + 1;
                                     final newTotalPages =
@@ -1348,6 +1378,137 @@ class _TroopListScreenState extends State<TroopListScreen> {
         setState(() {
           _loading = false;
         });
+      }
+    }
+  }
+
+  void _onSendNotification() {
+    if (_troops?.items == null || _troops!.items!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nema odreda za slanje obavještenja.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final TextEditingController messageController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+    int troopCount = _troops!.items!.length;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Slanje obavještenja'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Unesite sadržaj obavještenja:',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Poruka *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Unesite sadržaj obavještenja...',
+                ),
+                maxLines: 3,
+                maxLength: 500,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Poruka je obavezna';
+                  }
+                  if (value.trim().length > 500) {
+                    return 'Poruka ne smije imati više od 500 znakova';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Broj odreda: $troopCount',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Obavještenje će biti poslano svim prikazanim odredima',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Odustani'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              if (_formKey.currentState?.validate() ?? false) {
+                Navigator.of(context).pop();
+                await _sendNotificationToTroops(
+                  troopCount,
+                  messageController.text.trim(),
+                );
+              }
+            },
+            icon: const Icon(Icons.send),
+            label: const Text('Pošalji obavještenje'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendNotificationToTroops(int troopCount, String message) async {
+    try {
+      if (_troops?.items == null || _troops!.items!.isEmpty) {
+        return;
+      }
+
+      final troopIds = _troops!.items!.map((troop) => troop.id).toList();
+
+      await _notificationProvider.sendNotificationsToUsers(
+        message: message,
+        userIds: troopIds,
+        senderId: null,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Obavještenje je uspješno poslano sljedećem broju odreda: $troopCount.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
       }
     }
   }

@@ -23,7 +23,7 @@ namespace ScoutTrack.Services.Database.Entities
         public bool IsGlobal { get; set; } = true;
         public int? CreatedByTroopId { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
         public ICollection<ActivityEquipment> ActivityEquipments { get; set; } = new List<ActivityEquipment>();
     }

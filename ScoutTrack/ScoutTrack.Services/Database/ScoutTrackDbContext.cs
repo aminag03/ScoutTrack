@@ -282,10 +282,15 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<Notification>()
                 .HasIndex(n => n.CreatedAt);
             modelBuilder.Entity<Notification>()
-                .HasOne(n => n.UserAccount)
-                .WithMany(u => u.Notifications)
-                .HasForeignKey(n => n.UserAccountId)
+                .HasOne(n => n.Receiver)
+                .WithMany(u => u.ReceivedNotifications)
+                .HasForeignKey(n => n.ReceiverId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Sender)
+                .WithMany(u => u.SentNotifications)
+                .HasForeignKey(n => n.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Document
             modelBuilder.Entity<Document>()

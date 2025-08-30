@@ -12,7 +12,7 @@ namespace ScoutTrack.Services.Database.Entities
     {
         [Key]
         public int Id { get; set; }
-        public DateTime LikedAt { get; set; } = DateTime.UtcNow;
+        public DateTime LikedAt { get; set; } = DateTime.Now;
 
         [ForeignKey(nameof(Post))]
         public int PostId { get; set; }

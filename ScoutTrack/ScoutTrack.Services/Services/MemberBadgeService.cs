@@ -124,8 +124,8 @@ namespace ScoutTrack.Services
                 throw new UserException("All requirements must be completed before marking badge as completed.");
 
             memberBadge.Status = MemberBadgeStatus.Completed;
-            memberBadge.CompletedAt = DateTime.UtcNow;
-            memberBadge.UpdatedAt = DateTime.UtcNow;
+            memberBadge.CompletedAt = DateTime.Now;
+            memberBadge.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -285,7 +285,7 @@ namespace ScoutTrack.Services
                 throw new UserException("Member already has this badge.");
             }
 
-            entity.CreatedAt = DateTime.UtcNow;
+            entity.CreatedAt = DateTime.Now;
         }
 
         public override async Task<MemberBadgeResponse> CreateAsync(MemberBadgeUpsertRequest request)
@@ -323,7 +323,7 @@ namespace ScoutTrack.Services
                 throw new UserException("Member already has this badge.");
             }
 
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
         }
 
         protected override async Task BeforeDelete(MemberBadge entity)
