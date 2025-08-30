@@ -1485,7 +1485,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Ovaj član se još nije prijavio na nijednu aktivnost.',
+                        'Ovaj član se još nije prijavio ni na jednu aktivnost.',
                         style: TextStyle(fontSize: 14, color: Colors.grey),
                         textAlign: TextAlign.center,
                       ),

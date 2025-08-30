@@ -21,10 +21,24 @@ class AuthProvider with ChangeNotifier {
     if (response.statusCode == 200) {
       _currentUser = jsonDecode(response.body);
       return _currentUser;
-    } else {
-      debugPrint('Failed to fetch current user: ${response.statusCode}');
-      return null;
+    } else if (response.statusCode == 401 && await refreshToken()) {
+      // 🔹 Retry request once if token was refreshed
+      final retryResponse = await http.get(
+        Uri.parse('http://localhost:5164/Auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+        },
+      );
+
+      if (retryResponse.statusCode == 200) {
+        _currentUser = jsonDecode(retryResponse.body);
+        return _currentUser;
+      }
     }
+
+    debugPrint('Failed to fetch current user: ${response.statusCode}');
+    return null;
   }
 
   Future<String?> getUserRoleFromToken() async {

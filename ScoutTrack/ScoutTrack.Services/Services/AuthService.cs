@@ -31,7 +31,12 @@ namespace ScoutTrack.Services
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
-            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == request.UsernameOrEmail || u.Email == request.UsernameOrEmail);
+            var user = await _context.UserAccounts
+                .FirstOrDefaultAsync(u =>
+                    EF.Functions.Collate(u.Username, "SQL_Latin1_General_CP1_CS_AS") == request.UsernameOrEmail ||
+                    EF.Functions.Collate(u.Email, "SQL_Latin1_General_CP1_CS_AS") == request.UsernameOrEmail
+                );
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid username or password");
 
