@@ -208,6 +208,12 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           errorMsg.contains('already exists')) {
         throw Exception('Opis već postoji.');
       }
+      if (errorMsg.contains('permission') && errorMsg.contains('activity')) {
+        throw Exception('Aktivnost je privatna. Nemate dozvolu za pristup.');
+      }
+      if (errorMsg.contains('permission')) {
+        throw Exception('Nemate dozvolu za ovu akciju.');
+      }
 
       throw Exception('Došlo je do problema. Pokušajte ponovo.');
     }

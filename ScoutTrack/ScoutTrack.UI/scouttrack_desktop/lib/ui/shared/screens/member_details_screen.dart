@@ -1,22 +1,34 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/models/member.dart';
 import 'package:scouttrack_desktop/models/troop.dart';
 import 'package:scouttrack_desktop/models/city.dart';
+import 'package:scouttrack_desktop/models/activity_registration.dart';
+import 'package:scouttrack_desktop/models/member_badge.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
+import 'package:scouttrack_desktop/providers/activity_registration_provider.dart';
+import 'package:scouttrack_desktop/providers/activity_provider.dart';
+import 'package:scouttrack_desktop/providers/member_badge_provider.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
+import 'package:scouttrack_desktop/providers/badge_provider.dart';
+import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
-
+import 'package:scouttrack_desktop/ui/shared/screens/badge_details_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dart';
+import 'package:scouttrack_desktop/models/badge.dart';
+import 'package:scouttrack_desktop/models/activity.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
+import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 
@@ -38,16 +50,34 @@ class MemberDetailsScreen extends StatefulWidget {
   State<MemberDetailsScreen> createState() => _MemberDetailsScreenState();
 }
 
-class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
+class _MemberDetailsScreenState extends State<MemberDetailsScreen>
+    with TickerProviderStateMixin {
   late Member _member;
   bool _isLoading = false;
   late String _role;
   late int _loggedInUserId;
   List<City> _cities = [];
   List<Troop> _troops = [];
+  List<ActivityRegistration> _activityRegistrations = [];
+  List<MemberBadge> _memberBadges = [];
+  bool _isLoadingRegistrations = false;
+  bool _isLoadingBadges = false;
+
+  int _currentRegistrationsPage = 1;
+  int _registrationsPageSize = 10;
+  int _totalRegistrations = 0;
+
+  int _currentBadgesPage = 1;
+  int _badgesPageSize = 10;
+  int _totalBadges = 0;
+
+  int? _selectedRegistrationStatus;
+  int? _selectedBadgeStatus;
+
   Uint8List? _selectedImageBytes;
   File? _selectedImageFile;
   bool _isImageLoading = false;
+  late TabController _tabController;
 
   bool get isAdmin => _role == 'Admin';
   bool get isTroop => _role == 'Troop';
@@ -60,7 +90,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
     _member = widget.member;
     _role = widget.role;
     _loggedInUserId = widget.loggedInUserId;
+    _tabController = TabController(length: 2, vsync: this);
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -68,14 +105,40 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cityProvider = CityProvider(authProvider);
       final troopProvider = TroopProvider(authProvider);
+      final activityRegistrationProvider = ActivityRegistrationProvider(
+        authProvider,
+      );
+      final memberBadgeProvider = MemberBadgeProvider(authProvider);
 
       var filter = {"RetrieveAll": true};
       final cityResult = await cityProvider.get(filter: filter);
       final troopResult = await troopProvider.get(filter: filter);
 
+      final registrationsFilter = {
+        "memberId": _member.id,
+        "page": 0,
+        "pageSize": _registrationsPageSize,
+        "includeTotalCount": true,
+      };
+      final registrationsResult = await activityRegistrationProvider.get(
+        filter: registrationsFilter,
+      );
+
+      final badgesFilter = {
+        "memberId": _member.id,
+        "page": 0,
+        "pageSize": _badgesPageSize,
+        "includeTotalCount": true,
+      };
+      final badgesResult = await memberBadgeProvider.get(filter: badgesFilter);
+
       setState(() {
         _cities = cityResult.items ?? [];
         _troops = troopResult.items ?? [];
+        _activityRegistrations = registrationsResult.items ?? [];
+        _memberBadges = badgesResult.items ?? [];
+        _totalRegistrations = registrationsResult.totalCount ?? 0;
+        _totalBadges = badgesResult.totalCount ?? 0;
       });
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
@@ -493,7 +556,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
                                   final updatedMember = await memberProvider
                                       .update(_member.id, requestBody);
 
-                                  // Refresh the member data
                                   final refreshedMember = await memberProvider
                                       .getById(_member.id);
 
@@ -717,6 +779,106 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
     } catch (e) {
       return 'Nepoznat odred';
     }
+  }
+
+  Future<void> _loadRegistrationsPage(int page) async {
+    try {
+      setState(() {
+        _isLoadingRegistrations = true;
+      });
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final activityRegistrationProvider = ActivityRegistrationProvider(
+        authProvider,
+      );
+
+      final registrationsFilter = <String, dynamic>{
+        "memberId": _member.id,
+        "page": page - 1,
+        "pageSize": _registrationsPageSize,
+        "includeTotalCount": true,
+      };
+
+      if (_selectedRegistrationStatus != null) {
+        registrationsFilter["status"] = _selectedRegistrationStatus;
+      }
+
+      final registrationsResult = await activityRegistrationProvider.get(
+        filter: registrationsFilter,
+      );
+
+      if (mounted) {
+        setState(() {
+          _activityRegistrations = registrationsResult.items ?? [];
+          _totalRegistrations = registrationsResult.totalCount ?? 0;
+          _currentRegistrationsPage = page;
+          _isLoadingRegistrations = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRegistrations = false;
+        });
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _loadBadgesPage(int page) async {
+    try {
+      setState(() {
+        _isLoadingBadges = true;
+      });
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberBadgeProvider = MemberBadgeProvider(authProvider);
+
+      final badgesFilter = <String, dynamic>{
+        "memberId": _member.id,
+        "page": page - 1,
+        "pageSize": _badgesPageSize,
+        "includeTotalCount": true,
+      };
+
+      if (_selectedBadgeStatus != null) {
+        badgesFilter["status"] = _selectedBadgeStatus;
+      }
+
+      final badgesResult = await memberBadgeProvider.get(filter: badgesFilter);
+
+      if (mounted) {
+        setState(() {
+          _memberBadges = badgesResult.items ?? [];
+          _totalBadges = badgesResult.totalCount ?? 0;
+          _currentBadgesPage = page;
+          _isLoadingBadges = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBadges = false;
+        });
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  void _onRegistrationStatusFilterChanged(int? value) {
+    setState(() {
+      _selectedRegistrationStatus = value;
+      _currentRegistrationsPage = 1;
+    });
+    _loadRegistrationsPage(1);
+  }
+
+  void _onBadgeStatusFilterChanged(int? value) {
+    setState(() {
+      _selectedBadgeStatus = value;
+      _currentBadgesPage = 1;
+    });
+    _loadBadgesPage(1);
   }
 
   @override
@@ -1059,46 +1221,71 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                 Expanded(
                   flex: 2,
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          UIComponents.buildBigActionButton(
-                            icon: Icons.event,
-                            label: 'Aktivnosti',
-                            color: Colors.blue,
-                            onPressed: _navigateToActivities,
-                          ),
-                          const SizedBox(width: 24),
-                          UIComponents.buildBigActionButton(
-                            icon: Icons.app_registration,
-                            label: 'Registracije',
-                            color: Colors.green,
-                            onPressed: _navigateToRegistrations,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          UIComponents.buildBigActionButton(
-                            icon: Icons.emoji_events,
-                            label: 'Vještarstva',
-                            color: Colors.orange,
-                            onPressed: _navigateToBadges,
-                          ),
-                          const SizedBox(width: 24),
-                          UIComponents.buildBigActionButton(
-                            icon: Icons.people,
-                            label: 'Prijatelji',
-                            color: Colors.purple,
-                            onPressed: _navigateToFriends,
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: 500,
+                      maxHeight: 800,
+                    ),
+                    padding: const EdgeInsets.all(24.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _tabController.length == 2
+                        ? Column(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(8),
+                                    topRight: Radius.circular(8),
+                                  ),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      spreadRadius: 1,
+                                      blurRadius: 3,
+                                      offset: const Offset(0, -1),
+                                    ),
+                                  ],
+                                ),
+                                child: TabBar(
+                                  controller: _tabController,
+                                  labelColor: const Color(0xFF4F8055),
+                                  unselectedLabelColor: Colors.grey,
+                                  indicatorColor: const Color(0xFF4F8055),
+                                  indicatorWeight: 3,
+                                  labelStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                  unselectedLabelStyle: const TextStyle(
+                                    fontWeight: FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                  tabs: const [
+                                    Tab(text: 'Registracije'),
+                                    Tab(text: 'Vještarstva'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Expanded(
+                                child: TabBarView(
+                                  controller: _tabController,
+                                  children: [
+                                    _buildRegistrationsTab(),
+                                    _buildBadgesTab(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Center(child: CircularProgressIndicator()),
                   ),
                 ),
               ],
@@ -1106,34 +1293,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _navigateToActivities() {
-    // TODO: Implement navigation to activities
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Aktivnosti - funkcionalnost u razvoju')),
-    );
-  }
-
-  void _navigateToRegistrations() {
-    // TODO: Implement navigation to registrations
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registracije - funkcionalnost u razvoju')),
-    );
-  }
-
-  void _navigateToBadges() {
-    // TODO: Implement navigation to badges
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Badges - funkcionalnost u razvoju')),
-    );
-  }
-
-  void _navigateToFriends() {
-    // TODO: Implement navigation to friends
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Prijatelji - funkcionalnost u razvoju')),
     );
   }
 
@@ -1253,5 +1412,749 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildRegistrationsTab() {
+    if (_isLoadingRegistrations) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.people, color: Colors.blue, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Registracije (${_totalRegistrations})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: 200,
+                child: DropdownButtonFormField<int?>(
+                  value: _selectedRegistrationStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Filtriraj po statusu',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Svi statusi'),
+                    ),
+                    DropdownMenuItem<int>(value: 0, child: Text('Na čekanju')),
+                    DropdownMenuItem<int>(value: 1, child: Text('Odobreno')),
+                    DropdownMenuItem<int>(value: 2, child: Text('Odbijeno')),
+                    DropdownMenuItem<int>(value: 3, child: Text('Otkazano')),
+                    DropdownMenuItem<int>(value: 4, child: Text('Završeno')),
+                  ],
+                  onChanged: _onRegistrationStatusFilterChanged,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Expanded(
+          child: _activityRegistrations.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Nema registracija',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Ovaj član se još nije prijavio na nijednu aktivnost.',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _activityRegistrations.length,
+                  itemBuilder: (context, index) {
+                    final registration = _activityRegistrations[index];
+                    return _HoverableActivityCard(
+                      registration: registration,
+                      onTap: () => _navigateToActivity(registration),
+                    );
+                  },
+                ),
+        ),
+
+        const SizedBox(height: 16),
+        PaginationControls(
+          currentPage: _currentRegistrationsPage,
+          totalPages: (_totalRegistrations / _registrationsPageSize).ceil(),
+          totalCount: _totalRegistrations,
+          onPageChanged: _loadRegistrationsPage,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgesTab() {
+    if (_isLoadingBadges) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Vještarstva (${_totalBadges})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: 200,
+                child: DropdownButtonFormField<int?>(
+                  value: _selectedBadgeStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Filtriraj po statusu',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Svi statusi'),
+                    ),
+                    DropdownMenuItem<int>(value: 0, child: Text('U toku')),
+                    DropdownMenuItem<int>(value: 1, child: Text('Završeno')),
+                  ],
+                  onChanged: _onBadgeStatusFilterChanged,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Expanded(
+          child: _memberBadges.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.star_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Nema vještarstva',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ovaj član još nije osvojio nijedno vještarstvo.',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _memberBadges.length,
+                  itemBuilder: (context, index) {
+                    final badge = _memberBadges[index];
+                    return _HoverableBadgeCard(
+                      badge: badge,
+                      onTap: () => _navigateToBadge(badge),
+                    );
+                  },
+                ),
+        ),
+
+        const SizedBox(height: 16),
+        PaginationControls(
+          currentPage: _currentBadgesPage,
+          totalPages: (_totalBadges / _badgesPageSize).ceil(),
+          totalCount: _totalBadges,
+          onPageChanged: _loadBadgesPage,
+        ),
+      ],
+    );
+  }
+
+  Color _getBadgeStatusColor(int status) {
+    switch (status) {
+      case 0:
+        return Colors.orange; // Pending
+      case 1:
+        return Colors.green; // Awarded
+      case 2:
+        return Colors.red; // Rejected
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getBadgeStatusIcon(int status) {
+    switch (status) {
+      case 0:
+        return Icons.pending_actions; // Pending
+      case 1:
+        return Icons.verified; // Awarded
+      case 2:
+        return Icons.cancel; // Rejected
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getBadgeStatusText(int status) {
+    switch (status) {
+      case 0:
+        return 'U toku';
+      case 1:
+        return 'Završeno';
+      default:
+        return 'Nepoznat status';
+    }
+  }
+
+  Color _getStatusColor(int status) {
+    switch (status) {
+      case 0:
+        return Colors.orange; // Na čekanju
+      case 1:
+        return Colors.green; // Odobreno
+      case 2:
+        return Colors.red; // Odbijeno
+      case 3:
+        return Colors.grey; // Otkazano
+      case 4:
+        return Colors.blue; // Završeno
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(int status) {
+    switch (status) {
+      case 0:
+        return Icons.schedule; // Na čekanju
+      case 1:
+        return Icons.check_circle; // Odobreno
+      case 2:
+        return Icons.cancel; // Odbijeno
+      case 3:
+        return Icons.block; // Otkazano
+      case 4:
+        return Icons.done_all; // Završeno
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _getStatusText(int status) {
+    switch (status) {
+      case 0:
+        return 'Na čekanju';
+      case 1:
+        return 'Odobreno';
+      case 2:
+        return 'Odbijeno';
+      case 3:
+        return 'Otkazano';
+      case 4:
+        return 'Završeno';
+      default:
+        return 'Nepoznato';
+    }
+  }
+
+  void _navigateToActivity(ActivityRegistration registration) async {
+    if (context.mounted) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Učitavanje podataka o aktivnosti...'),
+              ],
+            ),
+          ),
+        );
+
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        try {
+          final token = authProvider.accessToken;
+          if (token != null) {
+            final decoded = _decodeJwt(token);
+            if (decoded != null) {
+              final exp = decoded['exp'];
+              if (exp != null) {
+                final expirationTime = DateTime.fromMillisecondsSinceEpoch(
+                  exp * 1000,
+                );
+                final now = DateTime.now();
+                if (now.isAfter(expirationTime)) {
+                  await authProvider.refreshToken();
+                }
+              }
+            }
+          }
+        } catch (e) {
+          print('Token refresh failed: $e');
+        }
+
+        final activityProvider = ActivityProvider(authProvider);
+        Activity activity = await activityProvider.getById(
+          registration.activityId,
+        );
+
+        if (activity.troopName.isEmpty || activity.activityTypeName.isEmpty) {
+          try {
+            if (activity.troopName.isEmpty) {
+              final troopProvider = TroopProvider(authProvider);
+              final troop = await troopProvider.getById(activity.troopId);
+              if (troop != null) {
+                activity = Activity(
+                  id: activity.id,
+                  title: activity.title,
+                  description: activity.description,
+                  isPrivate: activity.isPrivate,
+                  startTime: activity.startTime,
+                  endTime: activity.endTime,
+                  latitude: activity.latitude,
+                  longitude: activity.longitude,
+                  locationName: activity.locationName,
+                  cityId: activity.cityId,
+                  cityName: activity.cityName,
+                  fee: activity.fee,
+                  troopId: activity.troopId,
+                  troopName: troop.name,
+                  activityTypeId: activity.activityTypeId,
+                  activityTypeName: activity.activityTypeName,
+                  activityState: activity.activityState,
+                  createdAt: activity.createdAt,
+                  updatedAt: activity.updatedAt,
+                  registrationCount: activity.registrationCount,
+                  imagePath: activity.imagePath,
+                  summary: activity.summary,
+                );
+              }
+            }
+
+            if (activity.activityTypeName.isEmpty) {
+              final activityTypeProvider = ActivityTypeProvider(authProvider);
+              final activityType = await activityTypeProvider.getById(
+                activity.activityTypeId,
+              );
+              if (activityType != null) {
+                activity = Activity(
+                  id: activity.id,
+                  title: activity.title,
+                  description: activity.description,
+                  isPrivate: activity.isPrivate,
+                  startTime: activity.startTime,
+                  endTime: activity.endTime,
+                  latitude: activity.latitude,
+                  longitude: activity.longitude,
+                  locationName: activity.locationName,
+                  cityId: activity.cityId,
+                  cityName: activity.cityName,
+                  fee: activity.fee,
+                  troopId: activity.troopId,
+                  troopName: activity.troopName,
+                  activityTypeId: activity.activityTypeId,
+                  activityTypeName: activityType.name,
+                  activityState: activity.activityState,
+                  createdAt: activity.createdAt,
+                  updatedAt: activity.updatedAt,
+                  registrationCount: activity.registrationCount,
+                  imagePath: activity.imagePath,
+                  summary: activity.summary,
+                );
+              }
+            }
+          } catch (e) {
+            print('Error loading additional data: $e');
+          }
+        }
+
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          _navigateToActivityDetails(activity);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          showErrorSnackbar(context, e);
+        }
+      }
+    }
+  }
+
+  void _navigateToActivityDetails(Activity activity) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityDetailsScreen(activity: activity),
+      ),
+    );
+  }
+
+  Map<String, dynamic>? _decodeJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      return jsonDecode(payload);
+    } catch (e) {
+      print('Error decoding JWT: $e');
+      return null;
+    }
+  }
+
+  void _navigateToBadge(MemberBadge badge) async {
+    if (context.mounted) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Učitavanje podataka o vještarstvu...'),
+              ],
+            ),
+          ),
+        );
+
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        try {
+          final token = authProvider.accessToken;
+          if (token != null) {
+            final decoded = _decodeJwt(token);
+            if (decoded != null) {
+              final exp = decoded['exp'];
+              if (exp != null) {
+                final expirationTime = DateTime.fromMillisecondsSinceEpoch(
+                  exp * 1000,
+                );
+                final now = DateTime.now();
+                if (now.isAfter(expirationTime)) {
+                  await authProvider.refreshToken();
+                }
+              }
+            }
+          }
+        } catch (e) {
+          print('Token refresh failed: $e');
+        }
+
+        final badgeProvider = BadgeProvider(authProvider);
+        final completeBadge = await badgeProvider.getById(badge.badgeId);
+
+        if (context.mounted) {
+          Navigator.of(context).pop();
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => BadgeDetailsScreen(
+                badge: completeBadge,
+                role: _role,
+                loggedInUserId: _loggedInUserId,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          showErrorSnackbar(context, e);
+        }
+      }
+    }
+  }
+}
+
+class _HoverableBadgeCard extends StatefulWidget {
+  final MemberBadge badge;
+  final VoidCallback onTap;
+
+  const _HoverableBadgeCard({required this.badge, required this.onTap});
+
+  @override
+  State<_HoverableBadgeCard> createState() => _HoverableBadgeCardState();
+}
+
+class _HoverableBadgeCardState extends State<_HoverableBadgeCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isHovered ? Colors.amber.shade300 : Colors.grey.shade300,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? Colors.amber.withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.1),
+                blurRadius: _isHovered ? 8 : 4,
+                offset: Offset(0, _isHovered ? 4 : 2),
+                spreadRadius: _isHovered ? 1 : 0,
+              ),
+            ],
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getBadgeStatusColor(widget.badge.status),
+              child: Icon(
+                _getBadgeStatusIcon(widget.badge.status),
+                color: Colors.white,
+              ),
+            ),
+            title: Text(
+              widget.badge.badgeName ?? 'Nepoznato vještarstvo',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _isHovered
+                    ? Colors.amber.shade700
+                    : Colors.amber.shade600,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Status: ${_getBadgeStatusText(widget.badge.status)}'),
+                if (widget.badge.createdAt != null)
+                  Text('Kreirano: ${formatDateTime(widget.badge.createdAt)}'),
+              ],
+            ),
+            isThreeLine: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getBadgeStatusColor(int status) {
+    switch (status) {
+      case 0:
+        return Colors.orange; // In Progress
+      case 1:
+        return Colors.green; // Completed
+      case 2:
+        return Colors.red; // Rejected
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getBadgeStatusIcon(int status) {
+    switch (status) {
+      case 0:
+        return Icons.pending; // In Progress
+      case 1:
+        return Icons.star; // Completed
+      case 2:
+        return Icons.cancel; // Rejected
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _getBadgeStatusText(int status) {
+    switch (status) {
+      case 0:
+        return 'U toku';
+      case 1:
+        return 'Završeno';
+      case 2:
+        return 'Odbijeno';
+      default:
+        return 'Nepoznato';
+    }
+  }
+}
+
+class _HoverableActivityCard extends StatefulWidget {
+  final ActivityRegistration registration;
+  final VoidCallback onTap;
+
+  const _HoverableActivityCard({
+    required this.registration,
+    required this.onTap,
+  });
+
+  @override
+  State<_HoverableActivityCard> createState() => _HoverableActivityCardState();
+}
+
+class _HoverableActivityCardState extends State<_HoverableActivityCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isHovered ? Colors.blue.shade300 : Colors.grey.shade300,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? Colors.blue.withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.1),
+                blurRadius: _isHovered ? 8 : 4,
+                offset: Offset(0, _isHovered ? 4 : 2),
+                spreadRadius: _isHovered ? 1 : 0,
+              ),
+            ],
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getStatusColor(widget.registration.status),
+              child: Icon(
+                _getStatusIcon(widget.registration.status),
+                color: Colors.white,
+              ),
+            ),
+            title: Text(
+              widget.registration.activityTitle ?? 'Nepoznata aktivnost',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _isHovered ? Colors.blue.shade700 : Colors.blue,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Status: ${_getStatusText(widget.registration.status)}'),
+                if (widget.registration.notes.isNotEmpty)
+                  Text('Napomena: ${widget.registration.notes}'),
+                Text(
+                  'Registrovan: ${formatDateTime(widget.registration.registeredAt)}',
+                ),
+              ],
+            ),
+            isThreeLine: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(int status) {
+    switch (status) {
+      case 0:
+        return Colors.orange; // Pending
+      case 1:
+        return Colors.green; // Approved
+      case 2:
+        return Colors.red; // Rejected
+      case 3:
+        return Colors.grey; // Cancelled
+      case 4:
+        return Colors.blue; // Completed
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(int status) {
+    switch (status) {
+      case 0:
+        return Icons.schedule; // Pending
+      case 1:
+        return Icons.check_circle; // Approved
+      case 2:
+        return Icons.cancel; // Rejected
+      case 3:
+        return Icons.block; // Cancelled
+      case 4:
+        return Icons.done_all; // Completed
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _getStatusText(int status) {
+    switch (status) {
+      case 0:
+        return 'Na čekanju';
+      case 1:
+        return 'Odobreno';
+      case 2:
+        return 'Odbijeno';
+      case 3:
+        return 'Otkazano';
+      case 4:
+        return 'Završeno';
+      default:
+        return 'Nepoznato';
+    }
   }
 }
