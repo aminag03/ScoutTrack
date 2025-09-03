@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:scouttrack_desktop/models/document.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/document_provider.dart';
@@ -22,6 +23,7 @@ class DocumentListScreen extends StatefulWidget {
 class _DocumentListScreenState extends State<DocumentListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   SearchResult<Document>? _documents;
   bool _isLoading = false;
   bool _isUploading = false;
@@ -58,6 +60,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   void dispose() {
     _searchController.dispose();
     _titleController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -109,6 +112,23 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
       await documentProvider.downloadDocument(document.id, fileName);
 
+      Directory? downloadsDir;
+      if (Platform.isWindows) {
+        downloadsDir = Directory(
+          '${Platform.environment['USERPROFILE']}\\Downloads',
+        );
+      } else if (Platform.isMacOS) {
+        downloadsDir = Directory('${Platform.environment['HOME']}/Downloads');
+      } else if (Platform.isLinux) {
+        downloadsDir = Directory('${Platform.environment['HOME']}/Downloads');
+      }
+
+      if (downloadsDir == null || !downloadsDir.existsSync()) {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      }
+
+      final filePath = '${downloadsDir.path}/$fileName';
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -116,19 +136,18 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Dokument "$fileName" uspješno preuzet!'),
+                const Text('Dokument je uspješno preuzet!'),
                 const SizedBox(height: 4),
                 Text(
-                  'Datoteka spremljena u: Downloads/',
-                  style: TextStyle(
+                  'Datoteka spremljena u: $filePath',
+                  style: const TextStyle(
                     fontSize: 11,
-                    color: Colors.grey[300],
                     fontStyle: FontStyle.italic,
                   ),
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -310,22 +329,14 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Datoteka: ${_getFileDisplayName(document.filePath)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
                     onPressed: () async {
                       try {
                         FilePickerResult? pickResult = await FilePicker.platform
@@ -401,50 +412,6 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                       ),
                     ),
                   ],
-
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: hasValidDocument
-                          ? Colors.green[50]
-                          : Colors.orange[50],
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: hasValidDocument
-                            ? Colors.green[200]!
-                            : Colors.orange[200]!,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          hasValidDocument ? Icons.check_circle : Icons.info,
-                          color: hasValidDocument
-                              ? Colors.green[600]
-                              : Colors.orange[600],
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            hasValidDocument
-                                ? 'Spremno za spremanje'
-                                : editTitleController.text.trim().isEmpty
-                                ? 'Unesite naslov dokumenta'
-                                : 'Naslov je predugačak (max 100 znakova)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: hasValidDocument
-                                  ? Colors.green[700]
-                                  : Colors.orange[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -470,6 +437,10 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                       ? Colors.green[600]
                       : Colors.grey[400],
                   foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('Spremi'),
               ),
@@ -702,386 +673,399 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     return MasterScreen(
       role: role,
       selectedMenu: 'Dokumenti',
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.grey[100],
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Pretraži dokumente...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        _currentPage = 0;
-                        _loadDocuments(page: 0);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  if (isAdmin)
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _generateReport,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.picture_as_pdf),
-                      label: Text(
-                        _isLoading ? 'Generiranje...' : 'Generiši izvještaj',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            if (isRoleDetermined && isAdmin) ...[
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
               Container(
-                margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  border: Border.all(color: Colors.blue[200]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                color: Colors.grey[100],
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.upload, color: Colors.blue[700]),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Dodaj novi dokument',
-                          style: TextStyle(
-                            fontSize: 16,
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Pretraži dokumente...',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          _currentPage = 0;
+                          _loadDocuments(page: 0);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    if (isAdmin)
+                      ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _generateReport,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.picture_as_pdf),
+                        label: Text(
+                          _isLoading ? 'Generiranje...' : 'Generiši izvještaj',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
+                            fontSize: 16,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _titleController,
-                            decoration: InputDecoration(
-                              hintText: 'Unesite naslov dokumenta',
-                              border: const OutlineInputBorder(),
-                              labelText: 'Naslov',
-                              errorText: _titleController.text.length > 100
-                                  ? 'Naslov ne smije imati više od 100 znakova'
-                                  : null,
-                              counterText:
-                                  '${_titleController.text.length}/100',
+              if (isRoleDetermined && isAdmin) ...[
+                Container(
+                  margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    border: Border.all(color: Colors.blue[200]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.upload, color: Colors.blue[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Dodaj novi dokument',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
                             ),
-                            maxLength: 100,
-                            onChanged: (value) {
-                              setState(() {});
-                            },
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        ElevatedButton.icon(
-                          onPressed: _isUploading ? null : _pickFile,
-                          icon: const Icon(Icons.attach_file),
-                          label: const Text('Odaberi datoteku'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
-                            foregroundColor: Colors.white,
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _titleController,
+                              decoration: InputDecoration(
+                                hintText: 'Unesite naslov dokumenta',
+                                border: const OutlineInputBorder(),
+                                labelText: 'Naslov',
+                                errorText: _titleController.text.length > 100
+                                    ? 'Naslov ne smije imati više od 100 znakova'
+                                    : null,
+                                counterText:
+                                    '${_titleController.text.length}/100',
+                              ),
+                              maxLength: 100,
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _pickFile,
+                            icon: const Icon(Icons.attach_file),
+                            label: const Text('Odaberi datoteku'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_selectedFileName != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_present, color: Colors.grey[600]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Odabrana datoteka: $_selectedFileName',
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Veličina: ${_formatFileSize(_selectedFile!.lengthSync())}',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
 
-                    if (_selectedFileName != null) ...[
                       const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Builder(
+                              builder: (context) {
+                                final isButtonEnabled =
+                                    _selectedFile != null &&
+                                    _titleController.text.trim().isNotEmpty &&
+                                    _titleController.text.length <= 100 &&
+                                    !_isUploading;
+
+                                return ElevatedButton.icon(
+                                  onPressed: isButtonEnabled
+                                      ? _uploadDocument
+                                      : null,
+                                  icon: _isUploading
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                      : const Icon(Icons.upload),
+                                  label: Text(
+                                    _isUploading
+                                        ? 'Učitavanje...'
+                                        : 'Učitaj dokument',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isButtonEnabled
+                                        ? Colors.green[600]
+                                        : Colors.grey[400],
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _clearUploadForm,
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Očisti'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color:
+                              (_selectedFile != null &&
+                                  _titleController.text.trim().isNotEmpty &&
+                                  _titleController.text.length <= 100)
+                              ? Colors.green[50]
+                              : _titleController.text.length > 100
+                              ? Colors.red[50]
+                              : Colors.grey[50],
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color:
+                                (_selectedFile != null &&
+                                    _titleController.text.trim().isNotEmpty &&
+                                    _titleController.text.length <= 100)
+                                ? Colors.green[200]!
+                                : _titleController.text.length > 100
+                                ? Colors.red[200]!
+                                : Colors.grey[300]!,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.file_present, color: Colors.grey[600]),
+                            Icon(
+                              (_selectedFile != null &&
+                                      _titleController.text.trim().isNotEmpty &&
+                                      _titleController.text.length <= 100)
+                                  ? Icons.check_circle
+                                  : _titleController.text.length > 100
+                                  ? Icons.error
+                                  : Icons.info_outline,
+                              color:
+                                  (_selectedFile != null &&
+                                      _titleController.text.trim().isNotEmpty &&
+                                      _titleController.text.length <= 100)
+                                  ? Colors.green[600]
+                                  : _titleController.text.length > 100
+                                  ? Colors.red[600]
+                                  : Colors.grey[600],
+                              size: 16,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Odabrana datoteka: $_selectedFileName',
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Veličina: ${_formatFileSize(_selectedFile!.lengthSync())}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                _selectedFile == null
+                                    ? 'Odaberite datoteku'
+                                    : _titleController.text.trim().isEmpty
+                                    ? 'Unesite naslov dokumenta'
+                                    : _titleController.text.length > 100
+                                    ? 'Naslov je predug (max 100 znakova)'
+                                    : 'Spremno za učitavanje',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      (_selectedFile != null &&
+                                          _titleController.text
+                                              .trim()
+                                              .isNotEmpty &&
+                                          _titleController.text.length <= 100)
+                                      ? Colors.green[700]
+                                      : _titleController.text.length > 100
+                                      ? Colors.red[700]
+                                      : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ],
-
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Builder(
-                            builder: (context) {
-                              final isButtonEnabled =
-                                  _selectedFile != null &&
-                                  _titleController.text.trim().isNotEmpty &&
-                                  _titleController.text.length <= 100 &&
-                                  !_isUploading;
-
-                              return ElevatedButton.icon(
-                                onPressed: isButtonEnabled
-                                    ? _uploadDocument
-                                    : null,
-                                icon: _isUploading
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
-                                        ),
-                                      )
-                                    : const Icon(Icons.upload),
-                                label: Text(
-                                  _isUploading
-                                      ? 'Učitavanje...'
-                                      : 'Učitaj dokument',
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isButtonEnabled
-                                      ? Colors.green[600]
-                                      : Colors.grey[400],
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: _isUploading ? null : _clearUploadForm,
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Očisti'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            (_selectedFile != null &&
-                                _titleController.text.trim().isNotEmpty &&
-                                _titleController.text.length <= 100)
-                            ? Colors.green[50]
-                            : _titleController.text.length > 100
-                            ? Colors.red[50]
-                            : Colors.grey[50],
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color:
-                              (_selectedFile != null &&
-                                  _titleController.text.trim().isNotEmpty &&
-                                  _titleController.text.length <= 100)
-                              ? Colors.green[200]!
-                              : _titleController.text.length > 100
-                              ? Colors.red[200]!
-                              : Colors.grey[300]!,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            (_selectedFile != null &&
-                                    _titleController.text.trim().isNotEmpty &&
-                                    _titleController.text.length <= 100)
-                                ? Icons.check_circle
-                                : _titleController.text.length > 100
-                                ? Icons.error
-                                : Icons.info_outline,
-                            color:
-                                (_selectedFile != null &&
-                                    _titleController.text.trim().isNotEmpty &&
-                                    _titleController.text.length <= 100)
-                                ? Colors.green[600]
-                                : _titleController.text.length > 100
-                                ? Colors.red[600]
-                                : Colors.grey[600],
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _selectedFile == null
-                                  ? 'Odaberite datoteku'
-                                  : _titleController.text.trim().isEmpty
-                                  ? 'Unesite naslov dokumenta'
-                                  : _titleController.text.length > 100
-                                  ? 'Naslov je predug (max 100 znakova)'
-                                  : 'Spremno za učitavanje',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    (_selectedFile != null &&
-                                        _titleController.text
-                                            .trim()
-                                            .isNotEmpty &&
-                                        _titleController.text.length <= 100)
-                                    ? Colors.green[700]
-                                    : _titleController.text.length > 100
-                                    ? Colors.red[700]
-                                    : Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            if (_documents != null)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.green.shade700,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Prikazano ${_documents!.items?.length ?? 0} od ukupno ${_documents!.totalCount ?? 0} dokumenata',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 16),
-
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
+              if (_documents != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
                     children: [
-                      if (_documents?.items?.isEmpty == true)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: Text(
-                              'Nema dokumenata',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        )
-                      else if (_documents?.items != null)
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 5,
-                                childAspectRatio: 0.8,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                              ),
-                          itemCount: _documents!.items!.length,
-                          itemBuilder: (context, index) {
-                            final document = _documents!.items![index];
-                            return _buildDocumentCard(document);
-                          },
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.green.shade700,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Prikazano ${_documents!.items?.length ?? 0} od ukupno ${_documents!.totalCount ?? 0} dokumenata',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
                         ),
-
-                      if (_documents != null && _documents!.totalCount != null)
-                        PaginationControls(
-                          currentPage: _currentPage + 1,
-                          totalPages: _calculateTotalPages(),
-                          totalCount: _documents!.totalCount!,
-                          onPageChanged: _onPageChanged,
-                        ),
+                      ),
                     ],
                   ),
-          ],
+                ),
+
+              const SizedBox(height: 16),
+
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        if (_documents?.items?.isEmpty == true)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Text(
+                                'Nema dokumenata',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (_documents?.items != null)
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(12),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 5,
+                                  childAspectRatio: 0.8,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
+                            itemCount: _documents!.items!.length,
+                            itemBuilder: (context, index) {
+                              final document = _documents!.items![index];
+                              return _buildDocumentCard(document);
+                            },
+                          ),
+
+                        if (_documents != null &&
+                            _documents!.totalCount != null)
+                          PaginationControls(
+                            currentPage: _currentPage + 1,
+                            totalPages: _calculateTotalPages(),
+                            totalCount: _documents!.totalCount!,
+                            onPageChanged: _onPageChanged,
+                          ),
+                      ],
+                    ),
+            ],
+          ),
         ),
       ),
     );
@@ -1089,100 +1073,102 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   Widget _buildDocumentCard(Document document) {
     return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Column(
-          children: [
-            Text(
-              document.title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 5),
-
-            Expanded(
-              child: Center(
-                child: Icon(
-                  Icons.description,
-                  size: 48,
-                  color: Colors.grey[600],
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: Icon(
+                    Icons.description,
+                    size: 80,
+                    color: Colors.blue.shade600,
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 5),
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Text(
+                    document.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
 
-            if (isAdmin) ...[
               Text(
-                'Dodao: ${document.adminFullName}',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                formatDate(document.createdAt),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 1),
-            ],
 
-            Text(
-              formatDate(document.createdAt),
-              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-            ),
+              const SizedBox(height: 4),
 
-            const SizedBox(height: 5),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => _downloadDocument(document),
-                  icon: const Icon(
-                    Icons.download,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildActionButton(
+                    icon: Icons.download,
                     color: Colors.blue,
-                    size: 22,
+                    onPressed: () => _downloadDocument(document),
+                    tooltip: 'Preuzmi',
                   ),
-                  tooltip: 'Preuzmi',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 26,
-                    minHeight: 26,
-                  ),
-                ),
-
-                if (isAdmin) ...[
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed: () => _editDocument(document),
-                    icon: const Icon(
-                      Icons.edit,
+                  if (isAdmin) ...[
+                    _buildActionButton(
+                      icon: Icons.edit,
                       color: Colors.orange,
-                      size: 22,
+                      onPressed: () => _editDocument(document),
+                      tooltip: 'Uredi',
                     ),
-                    tooltip: 'Uredi',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 26,
-                      minHeight: 26,
+                    _buildActionButton(
+                      icon: Icons.delete,
+                      color: Colors.red,
+                      onPressed: () => _deleteDocument(document),
+                      tooltip: 'Obriši',
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _deleteDocument(document),
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 22),
-                    tooltip: 'Obriši',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 26,
-                      minHeight: 26,
-                    ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Icon(icon, size: 18, color: color),
         ),
       ),
     );

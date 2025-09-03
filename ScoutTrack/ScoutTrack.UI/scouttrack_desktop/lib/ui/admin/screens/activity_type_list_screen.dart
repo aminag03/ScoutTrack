@@ -244,6 +244,10 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -253,6 +257,12 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                   label: const Text(
                     'Dodaj novi tip aktivnosti',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ],
@@ -333,11 +343,13 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
       child: Scrollbar(
         controller: _verticalScrollController,
         thumbVisibility: true,
+        trackVisibility: true,
         child: SingleChildScrollView(
           controller: _verticalScrollController,
           child: Scrollbar(
             controller: _horizontalScrollController,
             thumbVisibility: true,
+            trackVisibility: true,
             child: SingleChildScrollView(
               controller: _horizontalScrollController,
               scrollDirection: Axis.horizontal,
@@ -584,6 +596,12 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
                         onPressed: () async {
                           if (_formKey.currentState?.validate() ?? false) {
                             try {

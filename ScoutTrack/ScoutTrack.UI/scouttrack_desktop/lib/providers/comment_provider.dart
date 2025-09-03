@@ -16,21 +16,12 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
     int postId, {
     Map<String, dynamic>? filter,
   }) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
-    ).replace(queryParameters: filter);
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+      ).replace(queryParameters: filter);
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -51,27 +42,18 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
           error['title'] ?? 'Greška prilikom učitavanja komentara.',
         );
       }
-    } catch (e) {
-      print('Comment API Error: $e');
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<Comment> createComment(String content, int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.post(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
         body: jsonEncode({
           'content': content,
           'postId': postId,
@@ -87,26 +69,18 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
           error['message'] ?? 'Greška prilikom kreiranja komentara.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<Comment> updateComment(int commentId, String content) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$commentId",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$commentId",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.put(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
         body: jsonEncode({
           'content': content,
           'postId': 0, // This will be ignored by the backend
@@ -121,27 +95,16 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
           error['message'] ?? 'Greška prilikom ažuriranja komentara.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<bool> deleteComment(int commentId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$commentId",
-    );
-
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
-      final response = await http.delete(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$commentId",
       );
+
+      final response = await http.delete(uri, headers: await createHeaders());
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
@@ -151,8 +114,6 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
           error['message'] ?? 'Greška prilikom brisanja komentara.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 }

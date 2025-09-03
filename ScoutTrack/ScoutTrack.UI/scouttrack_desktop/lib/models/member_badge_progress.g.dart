@@ -16,7 +16,6 @@ MemberBadgeProgress _$MemberBadgeProgressFromJson(Map<String, dynamic> json) =>
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
     );
 
 Map<String, dynamic> _$MemberBadgeProgressToJson(
@@ -28,5 +27,4 @@ Map<String, dynamic> _$MemberBadgeProgressToJson(
   'requirementDescription': instance.requirementDescription,
   'isCompleted': instance.isCompleted,
   'completedAt': instance.completedAt?.toIso8601String(),
-  'createdAt': instance.createdAt.toIso8601String(),
 };

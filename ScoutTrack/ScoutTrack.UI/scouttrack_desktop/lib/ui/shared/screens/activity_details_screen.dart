@@ -58,6 +58,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   late LikeProvider _likeProvider;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _mainScrollController = ScrollController();
 
   int _currentPage = 1;
   int _pageSize = 10;
@@ -90,6 +91,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     _tabController.dispose();
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
+    _mainScrollController.dispose();
     super.dispose();
   }
 
@@ -527,11 +529,65 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
     return Container(
       padding: const EdgeInsets.all(24.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_activity!.imagePath.isNotEmpty) ...[
+      child: Scrollbar(
+        controller: _mainScrollController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: SingleChildScrollView(
+          controller: _mainScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_activity!.imagePath.isNotEmpty) ...[
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      _activity!.imagePath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              UIComponents.buildDetailRow(
+                'Odred',
+                _activity!.troopName,
+                Icons.group,
+              ),
+              UIComponents.buildDetailRow(
+                'Lokacija',
+                _activity!.locationName,
+                Icons.location_on,
+              ),
+              UIComponents.buildDetailRow(
+                'Datum',
+                _activity!.startTime != null && _activity!.endTime != null
+                    ? '${DateFormat('dd. MM. yyyy.').format(_activity!.startTime!)} - ${DateFormat('dd. MM. yyyy.').format(_activity!.endTime!)}'
+                    : 'Datum nije određen',
+                Icons.calendar_today,
+              ),
+              const SizedBox(height: 24),
+
               Container(
                 height: 200,
                 width: double.infinity,
@@ -541,189 +597,161 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    _activity!.imagePath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      );
-                    },
+                  child: MapUtils.createMapWidget(
+                    location: LatLng(_activity!.latitude, _activity!.longitude),
+                    mapController: _mapController,
+                    height: 200,
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-            ],
 
-            UIComponents.buildDetailRow(
-              'Odred',
-              _activity!.troopName,
-              Icons.group,
-            ),
-            UIComponents.buildDetailRow(
-              'Lokacija',
-              _activity!.locationName,
-              Icons.location_on,
-            ),
-            UIComponents.buildDetailRow(
-              'Datum',
-              _activity!.startTime != null && _activity!.endTime != null
-                  ? '${DateFormat('dd. MM. yyyy.').format(_activity!.startTime!)} - ${DateFormat('dd. MM. yyyy.').format(_activity!.endTime!)}'
-                  : 'Datum nije određen',
-              Icons.calendar_today,
-            ),
-            const SizedBox(height: 24),
-
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: MapUtils.createMapWidget(
-                  location: LatLng(_activity!.latitude, _activity!.longitude),
-                  mapController: _mapController,
-                  height: 200,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info, color: Colors.blue, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _activity!.description.isNotEmpty
-                        ? _activity!.description
-                        : 'Nema opisa aktivnosti.',
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            if (_activity!.activityState == 'FinishedActivityState') ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.summarize,
-                          color: Colors.green,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Sažetak aktivnosti',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                        if (_canStartOrFinish) ...[
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _onWriteSummary,
-                            icon: const Icon(Icons.edit, color: Colors.green),
-                            tooltip: 'Uredi sažetak',
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _activity!.summary.isNotEmpty
-                          ? _activity!.summary
-                          : 'Sažetak aktivnosti još nije napisan.',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info, color: Colors.blue, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _activity!.description.isNotEmpty
+                          ? _activity!.description
+                          : 'Nema opisa aktivnosti.',
                       style: const TextStyle(fontSize: 16, height: 1.5),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
-            ],
 
-            UIComponents.buildDetailSection('Detalji aktivnosti', [
-              UIComponents.buildDetailRow(
-                'Tip aktivnosti',
-                _activity!.activityTypeName,
-                Icons.category,
-              ),
-              UIComponents.buildDetailRow(
-                'Kotizacija',
-                '${_activity!.fee.toStringAsFixed(2)} KM',
-                Icons.payment,
-              ),
-              if (_activity!.activityState == 'FinishedActivityState')
-                UIComponents.buildDetailRow(
-                  'Broj učesnika',
-                  _activity!.registrationCount.toString(),
-                  Icons.people,
-                ),
-              UIComponents.buildDetailRow(
-                'Status',
-                _formatActivityState(_activity!.activityState),
-                Icons.info_outline,
-              ),
-              UIComponents.buildDetailRow(
-                'Privatnost',
-                _activity!.isPrivate ? 'Privatan' : 'Javan',
-                Icons.visibility,
-              ),
-              if (_activity!.startTime != null)
-                UIComponents.buildDetailRow(
-                  'Vrijeme početka',
-                  formatDateTime(_activity!.startTime!),
-                  Icons.access_time,
-                ),
-              if (_activity!.endTime != null)
-                UIComponents.buildDetailRow(
-                  'Vrijeme završetka',
-                  formatDateTime(_activity!.endTime!),
-                  Icons.access_time_filled,
-                ),
-            ]),
-
-            const SizedBox(height: 32),
-
-            if (_equipment.isNotEmpty) ...[
-              UIComponents.buildDetailSection('Preporučena oprema', [
-                ..._equipment.map(
-                  (eq) => UIComponents.buildDetailRow(
-                    eq.equipmentName,
-                    '',
-                    Icons.backpack,
+              if (_activity!.activityState == 'FinishedActivityState') ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.summarize,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Sažetak aktivnosti',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          if (_canStartOrFinish) ...[
+                            const Spacer(),
+                            IconButton(
+                              onPressed: _onWriteSummary,
+                              icon: const Icon(Icons.edit, color: Colors.green),
+                              tooltip: 'Uredi sažetak',
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _activity!.summary.isNotEmpty
+                            ? _activity!.summary
+                            : 'Sažetak aktivnosti još nije napisan.',
+                        style: const TextStyle(fontSize: 16, height: 1.5),
+                      ),
+                    ],
                   ),
                 ),
-              ]),
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 32),
+              ],
 
-            _buildActionButtons(),
-          ],
+              UIComponents.buildDetailSection('Detalji aktivnosti', [
+                UIComponents.buildDetailRow(
+                  'Tip aktivnosti',
+                  _activity!.activityTypeName,
+                  Icons.category,
+                ),
+                UIComponents.buildDetailRow(
+                  'Kotizacija',
+                  '${_activity!.fee.toStringAsFixed(2)} KM',
+                  Icons.payment,
+                ),
+                if (_activity!.activityState == 'FinishedActivityState')
+                  UIComponents.buildDetailRow(
+                    'Broj učesnika',
+                    _activity!.registrationCount.toString(),
+                    Icons.people,
+                  ),
+                UIComponents.buildDetailRow(
+                  'Status',
+                  _formatActivityState(_activity!.activityState),
+                  Icons.info_outline,
+                ),
+                UIComponents.buildDetailRow(
+                  'Privatnost',
+                  _activity!.isPrivate ? 'Privatan' : 'Javan',
+                  Icons.visibility,
+                ),
+                if (_activity!.startTime != null)
+                  UIComponents.buildDetailRow(
+                    'Vrijeme početka',
+                    formatDateTime(_activity!.startTime!),
+                    Icons.access_time,
+                  ),
+                if (_activity!.endTime != null)
+                  UIComponents.buildDetailRow(
+                    'Vrijeme završetka',
+                    formatDateTime(_activity!.endTime!),
+                    Icons.access_time_filled,
+                  ),
+              ]),
+
+              const SizedBox(height: 32),
+
+              if (_equipment.isNotEmpty) ...[
+                UIComponents.buildDetailSection('Preporučena oprema', [
+                  Column(
+                    children: [
+                      for (int i = 0; i < _equipment.length; i += 2)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: UIComponents.buildDetailRow(
+                                _equipment[i].equipmentName,
+                                '',
+                                Icons.backpack,
+                              ),
+                            ),
+                            if (i + 1 < _equipment.length) ...[
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: UIComponents.buildDetailRow(
+                                  _equipment[i + 1].equipmentName,
+                                  '',
+                                  Icons.backpack,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                    ],
+                  ),
+                ]),
+                const SizedBox(height: 32),
+              ],
+
+              _buildActionButtons(),
+            ],
+          ),
         ),
       ),
     );

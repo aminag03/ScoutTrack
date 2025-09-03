@@ -1212,6 +1212,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
                                 if (selectedLocation == null) {
@@ -1401,58 +1407,61 @@ class _TroopListScreenState extends State<TroopListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Unesite sadržaj obavještenja:',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Poruka *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Unesite sadržaj obavještenja...',
+        content: SizedBox(
+          width: 400,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unesite sadržaj obavještenja:',
+                  style: const TextStyle(fontSize: 16),
                 ),
-                maxLines: 3,
-                maxLength: 500,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Poruka je obavezna';
-                  }
-                  if (value.trim().length > 500) {
-                    return 'Poruka ne smije imati više od 500 znakova';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Poruka *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Unesite sadržaj obavještenja...',
+                  ),
+                  maxLines: 3,
+                  maxLength: 500,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Poruka je obavezna';
+                    }
+                    if (value.trim().length > 500) {
+                      return 'Poruka ne smije imati više od 500 znakova';
+                    }
+                    return null;
+                  },
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Broj odreda: $troopCount',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Obavještenje će biti poslano svim prikazanim odredima',
-                    ),
-                  ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Broj odreda: $troopCount',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Obavještenje će biti poslano svim prikazanim odredima',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1475,6 +1484,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
         ],

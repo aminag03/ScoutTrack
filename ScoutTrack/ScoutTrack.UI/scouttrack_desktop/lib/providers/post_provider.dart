@@ -17,20 +17,14 @@ class PostProvider extends BaseProvider<Post, dynamic> {
     int activityId, {
     Map<String, dynamic>? filter,
   }) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/activity/$activityId",
-    ).replace(queryParameters: filter);
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/activity/$activityId",
+      ).replace(queryParameters: filter);
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.get(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -53,10 +47,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
         final error = jsonDecode(response.body);
         throw Exception(error['title'] ?? 'Greška prilikom učitavanja objava.');
       }
-    } catch (e) {
-      print('Post API Error: $e');
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<Post> createPost(
@@ -64,20 +55,14 @@ class PostProvider extends BaseProvider<Post, dynamic> {
     int activityId,
     List<String> imageUrls,
   ) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.post(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
         body: jsonEncode({
           'content': content,
           'activityId': activityId,
@@ -93,9 +78,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
           error['message'] ?? 'Greška prilikom kreiranja objave.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   // Note: Like/unlike functionality is now handled by LikeProvider
@@ -111,16 +94,13 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   }
 
   Future<String> uploadImage(File imageFile) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/upload-image",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/upload-image",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       var request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Authorization'] = 'Bearer ${authProvider?.accessToken}';
 
       request.files.add(
         await http.MultipartFile.fromPath('image', imageFile.path),
@@ -138,9 +118,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
           error['message'] ?? 'Greška prilikom učitavanja slike.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<Post> updatePost(
@@ -148,20 +126,14 @@ class PostProvider extends BaseProvider<Post, dynamic> {
     String content,
     List<String> imageUrls,
   ) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.put(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
         body: jsonEncode({'content': content, 'imageUrls': imageUrls}),
       );
 
@@ -173,26 +145,18 @@ class PostProvider extends BaseProvider<Post, dynamic> {
           error['message'] ?? 'Greška prilikom ažuriranja objave.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<bool> deletePost(int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.delete(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -201,8 +165,6 @@ class PostProvider extends BaseProvider<Post, dynamic> {
         final error = jsonDecode(response.body);
         throw Exception(error['message'] ?? 'Greška prilikom brisanja objave.');
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 }

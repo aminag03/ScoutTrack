@@ -20,11 +20,18 @@ class AdminDetailsScreen extends StatefulWidget {
 
 class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
   late Admin _admin;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _admin = widget.admin;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _showEditDialog() async {
@@ -393,9 +400,11 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
       },
     );
 
-    oldPassController.dispose();
-    newPassController.dispose();
-    confirmPassController.dispose();
+    if (result != null || !mounted) {
+      oldPassController.dispose();
+      newPassController.dispose();
+      confirmPassController.dispose();
+    }
   }
 
   @override
@@ -404,84 +413,97 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
       title: 'Moj profil',
       role: 'Admin',
       selectedMenu: 'Moj profil',
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Detalji administratora',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Uredi'),
-                    onPressed: _showEditDialog,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Detalji administratora',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.password),
-                    label: const Text('Promijeni lozinku'),
-                    onPressed: _showChangePasswordDialog,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Uredi'),
+                      onPressed: _showEditDialog,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.password),
+                      label: const Text('Promijeni lozinku'),
+                      onPressed: _showChangePasswordDialog,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
-              const SizedBox(height: 24),
-              UIComponents.buildDetailRow(
-                'Korisničko ime',
-                _admin.username,
-                Icons.person,
-              ),
-              UIComponents.buildDetailRow('E-mail', _admin.email, Icons.email),
-              UIComponents.buildDetailRow(
-                'Puno ime',
-                _admin.fullName,
-                Icons.person_outline,
-              ),
-              UIComponents.buildDetailRow(
-                'Aktivan',
-                _admin.isActive ? 'Da' : 'Ne',
-                _admin.isActive ? Icons.check_circle : Icons.block,
-              ),
-              UIComponents.buildDetailRow(
-                'Kreiran',
-                formatDateTime(_admin.createdAt),
-                Icons.date_range,
-              ),
-              UIComponents.buildDetailRow(
-                'Zadnja izmjena',
-                _admin.updatedAt != null
-                    ? formatDateTime(_admin.updatedAt!)
-                    : '-',
-                Icons.edit,
-              ),
-              UIComponents.buildDetailRow(
-                'Zadnja prijava',
-                _admin.lastLoginAt != null
-                    ? formatDateTime(_admin.lastLoginAt!)
-                    : '-',
-                Icons.login,
-              ),
-            ],
+                const SizedBox(height: 24),
+                UIComponents.buildDetailRow(
+                  'Korisničko ime',
+                  _admin.username,
+                  Icons.person,
+                ),
+                UIComponents.buildDetailRow(
+                  'E-mail',
+                  _admin.email,
+                  Icons.email,
+                ),
+                UIComponents.buildDetailRow(
+                  'Puno ime',
+                  _admin.fullName,
+                  Icons.person_outline,
+                ),
+                UIComponents.buildDetailRow(
+                  'Aktivan',
+                  _admin.isActive ? 'Da' : 'Ne',
+                  _admin.isActive ? Icons.check_circle : Icons.block,
+                ),
+                UIComponents.buildDetailRow(
+                  'Kreiran',
+                  formatDateTime(_admin.createdAt),
+                  Icons.date_range,
+                ),
+                UIComponents.buildDetailRow(
+                  'Zadnja izmjena',
+                  _admin.updatedAt != null
+                      ? formatDateTime(_admin.updatedAt!)
+                      : '-',
+                  Icons.edit,
+                ),
+                UIComponents.buildDetailRow(
+                  'Zadnja prijava',
+                  _admin.lastLoginAt != null
+                      ? formatDateTime(_admin.lastLoginAt!)
+                      : '-',
+                  Icons.login,
+                ),
+              ],
+            ),
           ),
         ),
       ),

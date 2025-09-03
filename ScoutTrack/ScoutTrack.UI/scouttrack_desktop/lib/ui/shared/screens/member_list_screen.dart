@@ -820,6 +820,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                           label: const Text('Odaberi profilnu fotografiju'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(160, 40),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                           onPressed: () => _pickImage(setState),
                         ),
@@ -1171,6 +1175,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
                                 try {
@@ -1294,56 +1304,61 @@ class _MemberListScreenState extends State<MemberListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Unesite sadržaj obavještenja:',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Poruka *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Unesite sadržaj obavještenja...',
+        content: SizedBox(
+          width: 400,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unesite sadržaj obavještenja:',
+                  style: const TextStyle(fontSize: 16),
                 ),
-                maxLines: 3,
-                maxLength: 500,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Poruka je obavezna';
-                  }
-                  if (value.trim().length > 500) {
-                    return 'Poruka ne smije imati više od 500 znakova';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Poruka *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Unesite sadržaj obavještenja...',
+                  ),
+                  maxLines: 3,
+                  maxLength: 500,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Poruka je obavezna';
+                    }
+                    if (value.trim().length > 500) {
+                      return 'Poruka ne smije imati više od 500 znakova';
+                    }
+                    return null;
+                  },
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Odred: $troopName',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text('Broj članova: $memberCount'),
-                  ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_role != 'Admin') ...[
+                        Text(
+                          'Odred: $troopName',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                      Text('Broj članova: $memberCount'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1367,6 +1382,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
         ],
@@ -1433,13 +1449,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
       if (_selectedCityId != null) {
         final selectedCity = _cities.firstWhere((c) => c.id == _selectedCityId);
         filter["CityName"] = selectedCity.name;
-      }
-
-      if (troopIdForFilter != null) {
-        final selectedTroop = _troops.firstWhere(
-          (t) => t.id == troopIdForFilter,
-        );
-        filter["TroopName"] = selectedTroop.name;
       }
 
       if (_selectedGender != null) {

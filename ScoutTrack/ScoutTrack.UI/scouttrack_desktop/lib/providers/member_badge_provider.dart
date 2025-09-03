@@ -77,7 +77,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
       final requestBody = {
         'memberId': memberId,
         'badgeId': badgeId,
-        'status': 1, // InProgress
+        'status': 0, // InProgress
       };
 
       final response = await http.post(

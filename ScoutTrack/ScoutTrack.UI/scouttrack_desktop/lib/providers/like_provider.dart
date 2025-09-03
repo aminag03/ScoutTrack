@@ -16,20 +16,14 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
     int postId, {
     Map<String, dynamic>? filter,
   }) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
-    ).replace(queryParameters: filter);
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+      ).replace(queryParameters: filter);
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.get(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -51,27 +45,18 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
           error['title'] ?? 'Greška prilikom učitavanja lajkova.',
         );
       }
-    } catch (e) {
-      print('Like API Error: $e');
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<Like> likePost(int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.post(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -80,26 +65,18 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
         final error = jsonDecode(response.body);
         throw Exception(error['message'] ?? 'Greška prilikom lajkanja objave.');
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 
   Future<bool> unlikePost(int postId) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
-    );
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+      );
 
-    final token = authProvider?.accessToken;
-    if (token == null) throw Exception("Niste prijavljeni.");
-
-    try {
       final response = await http.delete(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await createHeaders(),
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -110,8 +87,6 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
           error['message'] ?? 'Greška prilikom uklanjanja lajka.',
         );
       }
-    } catch (e) {
-      throw Exception("Greška u komunikaciji sa serverom: ${e.toString()}");
-    }
+    });
   }
 }

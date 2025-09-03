@@ -47,33 +47,37 @@ class BadgeProvider extends BaseProvider<Badge, Map<String, dynamic>> {
   }
 
   Future<String> uploadImage(File image) async {
-    try {
-      final headers = await createHeaders();
-      headers.remove(
-        'Content-Type',
-      ); // Let the multipart form data set the content type
+    return await handleWithRefresh(() async {
+      try {
+        final headers = await createHeaders();
+        headers.remove(
+          'Content-Type',
+        ); // Let the multipart form data set the content type
 
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse(
-          '${BaseProvider.baseUrl ?? "http://localhost:5164/"}${endpoint}/upload-image',
-        ),
-      );
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+            '${BaseProvider.baseUrl ?? "http://localhost:5164/"}${endpoint}/upload-image',
+          ),
+        );
 
-      request.headers.addAll(headers);
-      request.files.add(await http.MultipartFile.fromPath('image', image.path));
+        request.headers.addAll(headers);
+        request.files.add(
+          await http.MultipartFile.fromPath('image', image.path),
+        );
 
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
+        final response = await request.send();
+        final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(responseBody);
-        return data['imageUrl'] as String;
-      } else {
-        throw Exception('Failed to upload image: ${response.statusCode}');
+        if (response.statusCode == 200) {
+          final data = jsonDecode(responseBody);
+          return data['imageUrl'] as String;
+        } else {
+          throw Exception('Failed to upload image: ${response.statusCode}');
+        }
+      } catch (e) {
+        throw Exception('Error uploading image: $e');
       }
-    } catch (e) {
-      throw Exception('Error uploading image: $e');
-    }
+    });
   }
 }

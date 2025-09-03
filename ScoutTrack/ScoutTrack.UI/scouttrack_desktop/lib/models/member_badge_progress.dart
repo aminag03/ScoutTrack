@@ -10,7 +10,6 @@ class MemberBadgeProgress {
   final String requirementDescription;
   final bool isCompleted;
   final DateTime? completedAt;
-  final DateTime createdAt;
 
   MemberBadgeProgress({
     this.id = 0,
@@ -19,10 +18,10 @@ class MemberBadgeProgress {
     this.requirementDescription = '',
     this.isCompleted = false,
     this.completedAt,
-    required this.createdAt,
   });
 
-  factory MemberBadgeProgress.fromJson(Map<String, dynamic> json) => _$MemberBadgeProgressFromJson(json);
+  factory MemberBadgeProgress.fromJson(Map<String, dynamic> json) =>
+      _$MemberBadgeProgressFromJson(json);
 
   Map<String, dynamic> toJson() => _$MemberBadgeProgressToJson(this);
 }

@@ -14,17 +14,19 @@ class EquipmentProvider extends BaseProvider<Equipment, dynamic> {
   }
 
   Future<Equipment> makeGlobal(int id) async {
-    final uri = Uri.parse(
-      "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/make-global",
-    );
-    final headers = await createHeaders();
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/make-global",
+      );
+      final headers = await createHeaders();
 
-    final response = await http.patch(uri, headers: headers);
-    if (isValidResponse(response)) {
-      final data = jsonDecode(response.body);
-      return fromJson(data);
-    } else {
-      throw Exception("Greška prilikom promjene opreme u globalnu.");
-    }
+      final response = await http.patch(uri, headers: headers);
+      if (isValidResponse(response)) {
+        final data = jsonDecode(response.body);
+        return fromJson(data);
+      } else {
+        throw Exception("Greška prilikom promjene opreme u globalnu.");
+      }
+    });
   }
 }

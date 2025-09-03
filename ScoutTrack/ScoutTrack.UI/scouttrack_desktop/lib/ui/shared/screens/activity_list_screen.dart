@@ -623,15 +623,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     Future<void> _addEquipmentItem(StateSetter setState) async {
       final result = await _showEquipmentSelectionDialog();
-      print(
-        '_addEquipmentItem received result: ${result?.runtimeType} - ${result?.toString()}',
-      );
       if (result is Equipment) {
         final alreadySelected = selectedEquipment.any(
           (eq) => eq?.id == result.id,
         );
         if (!alreadySelected) {
-          print('Adding equipment to selectedEquipment list: ${result.name}');
           setState(() {
             equipmentList.add(result.name);
             selectedEquipment.add(result);
@@ -647,7 +643,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             }
           });
         } else {
-          print('Equipment already selected: ${result.name}');
           await showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -876,6 +871,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       double.infinity,
                                       40,
                                     ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -899,32 +898,29 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.green,
                                           foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton.icon(
-                                        onPressed: () {
-                                          // TODO: Implement AI suggestion
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'AI prijedlog će biti implementiran',
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                        onPressed: null,
                                         icon: const Icon(
                                           Icons.auto_awesome,
                                           size: 16,
                                         ),
                                         label: const Text('AI prijedlog'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
+                                          backgroundColor: Colors.grey,
                                           foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1356,6 +1352,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
                                 try {
@@ -1797,6 +1799,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       final activityEquipmentProvider = ActivityEquipmentProvider(
         Provider.of<AuthProvider>(context, listen: false),
       );
+      final equipmentProvider = EquipmentProvider(
+        Provider.of<AuthProvider>(context, listen: false),
+      );
 
       final existingEquipment = await activityEquipmentProvider.getByActivityId(
         activityId,
@@ -1816,13 +1821,39 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
       for (final equipment in selectedEquipment) {
         if (equipment != null) {
+          bool isTemporaryEquipment =
+              equipment.id >
+              1000000000000;
+
+          int equipmentId = equipment.id;
+
+          if (isTemporaryEquipment) {
+            try {
+              final newEquipment = await equipmentProvider.insert({
+                "name": equipment.name,
+                "description": equipment.description,
+              });
+              equipmentId = newEquipment.id;
+
+              if (mounted) {
+                setState(() {
+                  _equipment.add(newEquipment);
+                });
+              }
+            } catch (e) {
+              print('Error creating temporary equipment in database: $e');
+              continue;
+            }
+          }
+
           final alreadyExists = existingEquipment.any(
-            (eq) => eq.equipmentId == equipment.id,
+            (eq) => eq.equipmentId == equipmentId,
           );
+
           if (!alreadyExists) {
             await activityEquipmentProvider.insert({
               "activityId": activityId,
-              "equipmentId": equipment.id,
+              "equipmentId": equipmentId,
             });
           }
         }
@@ -1860,13 +1891,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           filter["ShowPublicAndOwn"] = true;
           filter["OwnTroopId"] = _loggedInUserId;
         }
-      }
-
-      if (troopIdForFilter != null) {
-        final selectedTroop = _troops.firstWhere(
-          (t) => t.id == troopIdForFilter,
-        );
-        filter["TroopName"] = selectedTroop.name;
       }
 
       if (_selectedActivityTypeId != null) {

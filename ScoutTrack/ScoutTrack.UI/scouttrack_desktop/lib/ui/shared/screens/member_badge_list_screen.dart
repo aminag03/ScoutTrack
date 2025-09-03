@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
-import 'package:scouttrack_desktop/ui/shared/screens/badge_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_details_screen.dart';
 import 'package:scouttrack_desktop/models/member_badge.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
@@ -19,6 +18,7 @@ import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/models/member_badge_progress.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class MemberBadgeListScreen extends StatefulWidget {
   final int? badgeId;
@@ -42,7 +42,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
   String? _error;
   String? _role;
   int? _loggedInUserId;
-  final ScrollController _scrollController = ScrollController();
 
   int? _selectedStatus;
   int? _selectedTroopId;
@@ -50,7 +49,7 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
   String? _selectedSort;
   List<Troop> _troops = [];
   List<Badge> _badges = [];
-  Map<int, String> _memberTroopNames = {}; // Map memberId to troop name
+  Map<int, String> _memberTroopNames = {};
 
   late MemberBadgeProvider _memberBadgeProvider;
   late TroopProvider _troopProvider;
@@ -86,7 +85,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
   void initState() {
     super.initState();
 
-    // Set initial values from widget parameters
     if (widget.initialStatus != null) {
       _selectedStatus = widget.initialStatus;
     }
@@ -100,7 +98,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -124,12 +121,10 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
         _loggedInUserId = userId;
       });
 
-      // For troop users, automatically set their troop as the filter
       if (role == 'Troop' && _selectedTroopId == null) {
         _selectedTroopId = userId;
       }
 
-      // Load troops for filtering
       var filter = {"RetrieveAll": true};
       final troopResult = await _troopProvider.get(filter: filter);
 
@@ -139,15 +134,12 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
         _troops = troopResult.items ?? [];
       });
 
-      // For troop users, ensure their troop exists in the loaded troops
       if (_role == 'Troop' && _selectedTroopId != null) {
         if (!_troops.any((troop) => troop.id == _selectedTroopId)) {
-          // If the selected troop doesn't exist in the loaded troops, reset it
           _selectedTroopId = null;
         }
       }
 
-      // Load badges for filtering
       final badgeResult = await _badgeProvider.get(filter: filter);
 
       if (!mounted) return;
@@ -155,14 +147,12 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
       setState(() {
         _badges = badgeResult.items ?? [];
 
-        // Ensure the selected badge ID exists in the loaded badges
         if (_selectedBadgeId != null &&
             !_badges.any((badge) => badge.id == _selectedBadgeId)) {
           _selectedBadgeId = null;
         }
       });
 
-      // Load member-troop relationships for admin users
       if (_role == 'Admin') {
         await _loadMemberTroopNames();
       }
@@ -214,7 +204,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
   }
 
   void _onViewMemberBadge(MemberBadge memberBadge) {
-    // Show member badge progress dialog (same as in badge_details_screen.dart)
     _showMemberBadgeProgressDialog(memberBadge);
   }
 
@@ -232,7 +221,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
   }
 
   void _onViewMember(MemberBadge memberBadge) {
-    // Navigate to member details screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MemberDetailsScreen(
@@ -245,7 +233,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
     );
   }
 
-  // Temporary helper methods - these would need proper implementation
   Badge _createDummyBadge(MemberBadge memberBadge) {
     return Badge(
       id: memberBadge.badgeId,
@@ -264,8 +251,7 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
       username: '',
       email: '',
       profilePictureUrl: memberBadge.memberProfilePictureUrl,
-      birthDate:
-          DateTime.now(), // Required field, using current date as fallback
+      birthDate: DateTime.now(),
       gender: 0,
       cityId: 0,
       troopId: 0,
@@ -298,7 +284,6 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
 
   Future<void> _loadMemberTroopNames() async {
     try {
-      // Get all members to build troop relationships
       final memberProvider = MemberProvider(_memberBadgeProvider.authProvider);
       final filter = {'RetrieveAll': true};
       final memberResult = await memberProvider.get(filter: filter);
@@ -333,6 +318,89 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
     return _memberTroopNames[memberId] ?? 'Nepoznato';
   }
 
+  Future<void> _generateReport() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      final filter = {
+        if (_selectedBadgeId != null) "BadgeId": _selectedBadgeId,
+        if (_selectedStatus != null) "Status": _selectedStatus,
+        if (_selectedTroopId != null) "TroopId": _selectedTroopId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      if (_role == 'Troop') {
+        final troopId = await Provider.of<AuthProvider>(
+          context,
+          listen: false,
+        ).getUserIdFromToken();
+        if (troopId != null) {
+          final troopProvider = TroopProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          );
+          final troopResult = await troopProvider.getById(troopId);
+          filter["TroopName"] = troopResult.name;
+        }
+      }
+
+      final result = await _memberBadgeProvider.get(filter: filter);
+
+      if (result.items != null && result.items!.isNotEmpty) {
+        final filePath = await PdfReportUtils.generateMemberBadgeReport(
+          result.items!,
+          filters: filter,
+          memberTroopNames: _memberTroopNames,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PDF izvještaj je uspješno generiran!'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Datoteka spremljena u: $filePath',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nema podataka za generiranje izvještaja.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
@@ -344,211 +412,244 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Filters
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedStatus,
-                      decoration: const InputDecoration(
-                        labelText: 'Status',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: DropdownButtonFormField<int?>(
+                            value: _selectedStatus,
+                            decoration: const InputDecoration(
+                              labelText: 'Status',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStatus = value;
+                                currentPage = 1;
+                              });
+                              _fetchMemberBadges();
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text("Svi statusi"),
+                              ),
+                              DropdownMenuItem(value: 0, child: Text("U toku")),
+                              DropdownMenuItem(
+                                value: 1,
+                                child: Text("Završeno"),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedStatus = value;
-                          currentPage = 1;
-                        });
-                        _fetchMemberBadges();
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text("Svi statusi"),
-                        ),
-                        DropdownMenuItem(value: 0, child: Text("U toku")),
-                        DropdownMenuItem(value: 1, child: Text("Završeno")),
-                      ],
-                    ),
-                  ),
-                ),
-                // Only show troop filter for Admin users
-                if (_role != 'Troop')
-                  Expanded(
-                    flex: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: DropdownButtonFormField<int?>(
-                        value:
-                            _selectedTroopId != null &&
-                                _troops.any(
-                                  (troop) => troop.id == _selectedTroopId,
-                                )
-                            ? _selectedTroopId
-                            : null,
-                        decoration: const InputDecoration(
-                          labelText: 'Odred',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                        isExpanded: true,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedTroopId = value;
-                            currentPage = 1;
-                          });
-                          _fetchMemberBadges();
-                        },
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text("Svi odredi"),
-                          ),
-                          ..._troops.map(
-                            (troop) => DropdownMenuItem(
-                              value: troop.id,
-                              child: Text(troop.name),
+                      if (_role != 'Troop')
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: DropdownButtonFormField<int?>(
+                              value:
+                                  _selectedTroopId != null &&
+                                      _troops.any(
+                                        (troop) => troop.id == _selectedTroopId,
+                                      )
+                                  ? _selectedTroopId
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: 'Odred',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              isExpanded: true,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedTroopId = value;
+                                  currentPage = 1;
+                                });
+                                _fetchMemberBadges();
+                              },
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text("Svi odredi"),
+                                ),
+                                ..._troops.map(
+                                  (troop) => DropdownMenuItem(
+                                    value: troop.id,
+                                    child: Text(troop.name),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value:
-                          _selectedBadgeId != null &&
-                              _badges.any(
-                                (badge) => badge.id == _selectedBadgeId,
-                              )
-                          ? _selectedBadgeId
-                          : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Vještarstvo',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
                         ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedBadgeId = value;
-                          currentPage = 1;
-                        });
-                        _fetchMemberBadges();
-                      },
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Sva vještarstva"),
-                        ),
-                        ..._badges.map(
-                          (badge) => DropdownMenuItem(
-                            value: badge.id,
-                            child: Text(badge.name),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: DropdownButtonFormField<int?>(
+                            value:
+                                _selectedBadgeId != null &&
+                                    _badges.any(
+                                      (badge) => badge.id == _selectedBadgeId,
+                                    )
+                                ? _selectedBadgeId
+                                : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Vještarstvo',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedBadgeId = value;
+                                currentPage = 1;
+                              });
+                              _fetchMemberBadges();
+                            },
+                            items: [
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text("Sva vještarstva"),
+                              ),
+                              ..._badges.map(
+                                (badge) => DropdownMenuItem(
+                                  value: badge.id,
+                                  child: Text(badge.name),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedSort,
-                      decoration: const InputDecoration(
-                        labelText: 'Sortiraj',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: DropdownButtonFormField<String?>(
+                            value: _selectedSort,
+                            decoration: const InputDecoration(
+                              labelText: 'Sortiraj',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedSort = value;
+                                currentPage = 1;
+                              });
+                              _fetchMemberBadges();
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text('Bez sortiranja'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'memberFirstName',
+                                child: Text('Ime člana (A-Ž)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '-memberFirstName',
+                                child: Text('Ime člana (Ž-A)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'badgeName',
+                                child: Text('Naziv vještarstva (A-Ž)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '-badgeName',
+                                child: Text('Naziv vještarstva (Ž-A)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'createdAt',
+                                child: Text('Datum početka (najstariji)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '-createdAt',
+                                child: Text('Datum početka (najnoviji)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'completedAt',
+                                child: Text('Datum završetka (najstariji)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '-completedAt',
+                                child: Text('Datum završetka (najnoviji)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'status',
+                                child: Text('Status (U toku → Završeno)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '-status',
+                                child: Text('Status (Završeno → U toku)'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSort = value;
-                          currentPage = 1;
-                        });
-                        _fetchMemberBadges();
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text('Bez sortiranja'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'memberFirstName',
-                          child: Text('Ime člana (A-Ž)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-memberFirstName',
-                          child: Text('Ime člana (Ž-A)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'badgeName',
-                          child: Text('Naziv vještarstva (A-Ž)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-badgeName',
-                          child: Text('Naziv vještarstva (Ž-A)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'createdAt',
-                          child: Text('Datum početka (najstariji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-createdAt',
-                          child: Text('Datum početka (najnoviji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'completedAt',
-                          child: Text('Datum završetka (najstariji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-completedAt',
-                          child: Text('Datum završetka (najnoviji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'status',
-                          child: Text('Status (U toku → Završeno)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-status',
-                          child: Text('Status (Završeno → U toku)'),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
+                if (_role == 'Admin')
+                  ElevatedButton.icon(
+                    onPressed: _loading ? null : _generateReport,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf),
+                    label: Text(
+                      _loading ? 'Generisanje...' : 'Generiši izvještaj',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            // Results count
             if (_memberBadges != null)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -676,12 +777,11 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
     }
 
     return GridView.builder(
-      controller: _scrollController,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        childAspectRatio: 0.95,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: _memberBadges!.items!.length,
       itemBuilder: (context, index) {
@@ -693,70 +793,49 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
             child: Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.white, Colors.grey.shade50],
-                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.shade300.withOpacity(0.2),
-                                  blurRadius: 3,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Colors.grey.shade100,
-                              backgroundImage:
-                                  memberBadge.memberProfilePictureUrl.isNotEmpty
-                                  ? NetworkImage(
-                                      memberBadge.memberProfilePictureUrl,
-                                    )
-                                  : null,
-                              child: memberBadge.memberProfilePictureUrl.isEmpty
-                                  ? Icon(
-                                      Icons.person,
-                                      color: Colors.grey.shade600,
-                                      size: 22,
-                                    )
-                                  : null,
-                            ),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage:
+                                memberBadge.memberProfilePictureUrl.isNotEmpty
+                                ? NetworkImage(
+                                    memberBadge.memberProfilePictureUrl,
+                                  )
+                                : null,
+                            child: memberBadge.memberProfilePictureUrl.isEmpty
+                                ? Icon(
+                                    Icons.person,
+                                    color: Colors.grey.shade600,
+                                    size: 22,
+                                  )
+                                : null,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   memberBadge.memberFullName,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 12,
-                                    letterSpacing: 0.2,
-                                    color: Colors.grey.shade800,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black87,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -764,29 +843,19 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
                                 const SizedBox(height: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
+                                    horizontal: 8,
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
                                     color: _getStatusColor(memberBadge.status),
                                     borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _getStatusColor(
-                                          memberBadge.status,
-                                        ).withOpacity(0.2),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                   child: Text(
                                     _getStatusText(memberBadge.status),
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.3,
                                     ),
                                   ),
                                 ),
@@ -795,24 +864,24 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 12),
 
                       Row(
                         children: [
                           Icon(
                             Icons.emoji_events,
-                            color: Colors.amber.shade600,
                             size: 16,
+                            color: Colors.amber.shade700,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               memberBadge.badgeName,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                                color: Colors.green.shade700,
-                                letterSpacing: 0.1,
+                                fontSize: 15,
+                                color: Colors.black87,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -820,106 +889,102 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+
+                      const SizedBox(height: 10),
 
                       if (_role == 'Admin') ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.blue.shade200,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.group,
-                                color: Colors.blue.shade600,
-                                size: 12,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  _getTroopName(memberBadge.memberId),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Colors.grey.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.schedule,
-                                  color: Colors.grey.shade600,
-                                  size: 12,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'Započeto: ${formatDateTime(memberBadge.createdAt)}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Icon(
+                              Icons.group,
+                              size: 14,
+                              color: Colors.blue.shade600,
                             ),
-                            if (memberBadge.completedAt != null) ...[
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green.shade600,
-                                    size: 12,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      'Završeno: ${formatDateTime(memberBadge.completedAt!)}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.green.shade700,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                'Odred',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ],
+                            ),
+                            Text(
+                              _getTroopName(memberBadge.memberId),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
+                        const SizedBox(height: 6),
+                      ],
+                      if (memberBadge.status == 1 &&
+                          memberBadge.completedAt != null) ...[
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 14,
+                              color: Colors.green.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                'Završeno',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              formatDateTime(memberBadge.completedAt!),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                      ],
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.play_circle_outline,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 70,
+                            child: Text(
+                              'Započeto',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            formatDateTime(memberBadge.createdAt),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -958,6 +1023,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
   List<MemberBadgeProgress> _progressList = [];
   bool _loading = false;
   bool _updating = false;
+  final ScrollController _dialogScrollController = ScrollController();
 
   late MemberBadgeProgressProvider _progressProvider;
   late MemberBadgeProvider _memberBadgeProvider;
@@ -1024,7 +1090,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         Navigator.of(context).pop();
       }
 
-      // Show error
       if (context.mounted) {
         showErrorSnackbar(context, e);
       }
@@ -1074,7 +1139,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
             requirementDescription: progress.requirementDescription,
             isCompleted: isCompleted,
             completedAt: isCompleted ? DateTime.now() : null,
-            createdAt: progress.createdAt,
           );
         }
         _updating = false;
@@ -1171,6 +1235,12 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
   }
 
   @override
+  void dispose() {
+    _dialogScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       child: Container(
@@ -1220,7 +1290,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
                                 decorationColor: Colors.blue,
                                 decorationThickness: 1,
                               ),
@@ -1268,7 +1337,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Nema zapisanog napretka za ovo vještarstvo.',
+                      'Nema zapisanog napretka za ovo vještarstvo. Provjerite da li postoje uslovi za vještarstvo.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.yellow.shade700,
@@ -1280,48 +1349,58 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
               )
             else
               Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _progressList.length,
-                  itemBuilder: (context, index) {
-                    final progress = _progressList[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(
-                          progress.requirementDescription,
-                          style: TextStyle(
-                            decoration: progress.isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: progress.isCompleted
-                                ? Colors.grey.shade600
-                                : null,
+                child: Scrollbar(
+                  controller: _dialogScrollController,
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  child: ListView.builder(
+                    controller: _dialogScrollController,
+                    shrinkWrap: true,
+                    itemCount: _progressList.length,
+                    itemBuilder: (context, index) {
+                      final progress = _progressList[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(
+                            progress.requirementDescription,
+                            style: TextStyle(
+                              decoration: progress.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: progress.isCompleted
+                                  ? Colors.grey.shade600
+                                  : null,
+                            ),
                           ),
+                          leading: Checkbox(
+                            value: progress.isCompleted,
+                            onChanged: _updating
+                                ? null
+                                : (value) {
+                                    if (value != null) {
+                                      _updateProgressCompletion(
+                                        progress,
+                                        value,
+                                      );
+                                    }
+                                  },
+                          ),
+                          trailing:
+                              progress.isCompleted &&
+                                  progress.completedAt != null
+                              ? Text(
+                                  'Završeno: ${formatDateTime(progress.completedAt!)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green.shade700,
+                                  ),
+                                )
+                              : null,
                         ),
-                        leading: Checkbox(
-                          value: progress.isCompleted,
-                          onChanged: _updating
-                              ? null
-                              : (value) {
-                                  if (value != null) {
-                                    _updateProgressCompletion(progress, value);
-                                  }
-                                },
-                        ),
-                        trailing:
-                            progress.isCompleted && progress.completedAt != null
-                            ? Text(
-                                'Završeno: ${formatDateTime(progress.completedAt!)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green.shade700,
-                                ),
-                              )
-                            : null,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             const SizedBox(height: 24),
@@ -1357,6 +1436,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                         ),
                 ),
               ),
+            const SizedBox(height: 12),
             if (widget.memberBadge.status == 1 && widget.role != 'Member')
               SizedBox(
                 width: double.infinity,

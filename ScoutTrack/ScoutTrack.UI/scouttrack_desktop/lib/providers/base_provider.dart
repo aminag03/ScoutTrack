@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 
@@ -16,7 +15,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
 
   BaseProvider(this.authProvider, this.endpoint) {
     baseUrl ??= const String.fromEnvironment(
-      "baseUrl",
+      "BASE_URL",
       defaultValue: "http://localhost:5164/",
     );
   }
@@ -138,7 +137,9 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     } else if (response.statusCode == 400) {
       if (errorMsg.contains('referenc') ||
           errorMsg.contains('foreign key') ||
-          errorMsg.contains('constraint')) {
+          errorMsg.contains('constraint') ||
+          (errorMsg.contains('cannot delete') &&
+              errorMsg.contains('using this'))) {
         throw Exception(
           'Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.',
         );
@@ -213,6 +214,12 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       }
       if (errorMsg.contains('permission')) {
         throw Exception('Nemate dozvolu za ovu akciju.');
+      }
+      if (errorMsg.contains('Cannot delete') &&
+          errorMsg.contains('using this record')) {
+        throw Exception(
+          'Ne možete obrisati ovaj zapis jer je povezan s drugim podacima.',
+        );
       }
 
       throw Exception('Došlo je do problema. Pokušajte ponovo.');

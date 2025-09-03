@@ -28,6 +28,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   int totalPages = 1;
 
   late NotificationProvider _notificationProvider;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void didChangeDependencies() {
@@ -35,6 +36,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _notificationProvider = NotificationProvider(authProvider);
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -143,6 +150,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Obriši'),
             ),
@@ -190,6 +201,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Obriši sve'),
             ),
@@ -262,6 +277,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -274,6 +293,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -336,6 +359,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
               onPressed: () => _loadNotifications(),
               child: const Text('Pokušaj ponovo'),
             ),
@@ -374,12 +403,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Column(
       children: [
         Expanded(
-          child: ListView.builder(
-            itemCount: _notifications!.items!.length,
-            itemBuilder: (context, index) {
-              final notification = _notifications!.items![index];
-              return _buildNotificationItem(notification);
-            },
+          child: Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: true,
+            trackVisibility: true,
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: _notifications!.items!.length,
+              itemBuilder: (context, index) {
+                final notification = _notifications!.items![index];
+                return _buildNotificationItem(notification);
+              },
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -491,7 +526,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'Nova',
+                'Nepročitano',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

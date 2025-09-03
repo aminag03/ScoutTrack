@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +11,7 @@ import 'package:scouttrack_desktop/models/badge.dart';
 import 'package:scouttrack_desktop/models/document.dart';
 import 'package:scouttrack_desktop/models/member.dart';
 import 'package:scouttrack_desktop/models/troop.dart';
+import 'package:scouttrack_desktop/models/member_badge.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 
 class PdfReportUtils {
@@ -97,11 +97,18 @@ class PdfReportUtils {
     final pdf = pw.Document();
     final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
 
+    final Map<int, String> troopIdToName = {};
+    for (final activity in activities) {
+      if (activity.troopName.isNotEmpty) {
+        troopIdToName[activity.troopId] = activity.troopName;
+      }
+    }
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         build: (context) => [
-          _buildHeader('IZVJESTAJ - AKTIVNOSTI', filters),
+          _buildHeader('IZVJESTAJ - AKTIVNOSTI', filters, null, troopIdToName),
           _buildActivityTable(activities),
         ],
       ),
@@ -157,11 +164,18 @@ class PdfReportUtils {
     final pdf = pw.Document();
     final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
 
+    final Map<int, String> troopIdToName = {};
+    for (final member in members) {
+      if (member.troopName.isNotEmpty) {
+        troopIdToName[member.troopId] = member.troopName;
+      }
+    }
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         build: (context) => [
-          _buildHeader('IZVJESTAJ - CLANOVI', filters),
+          _buildHeader('IZVJESTAJ - CLANOVI', filters, null, troopIdToName),
           _buildMemberTable(members),
         ],
       ),
@@ -190,7 +204,59 @@ class PdfReportUtils {
     return await _savePdf(pdf, 'odredi_izvjestaj_$timestamp.pdf');
   }
 
-  static pw.Widget _buildHeader(String title, Map<String, dynamic>? filters) {
+  static Future<String> generateMemberBadgeReport(
+    List<MemberBadge> memberBadges, {
+    Map<String, dynamic>? filters,
+    Map<int, String>? memberTroopNames,
+  }) async {
+    final pdf = pw.Document();
+    final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+
+    final Map<int, String> badgeIdToName = {};
+    for (final memberBadge in memberBadges) {
+      badgeIdToName[memberBadge.badgeId] = memberBadge.badgeName;
+    }
+
+    final Map<int, String> troopIdToName = {};
+    if (memberTroopNames != null &&
+        filters != null &&
+        filters.containsKey('TroopId')) {
+      final troopId = filters['TroopId'] as int;
+      final memberBadge = memberBadges.firstWhere(
+        (mb) => memberTroopNames[mb.memberId] != null,
+        orElse: () => memberBadges.first,
+      );
+      if (memberTroopNames[memberBadge.memberId] != null) {
+        troopIdToName[troopId] = memberTroopNames[memberBadge.memberId]!;
+      }
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        build: (context) => [
+          _buildHeader(
+            'IZVJESTAJ - VJESTARSTVA CLANOVA',
+            filters,
+            badgeIdToName,
+            troopIdToName,
+            memberTroopNames,
+          ),
+          _buildMemberBadgeTable(memberBadges),
+        ],
+      ),
+    );
+
+    return await _savePdf(pdf, 'vjestarstva_clanova_izvjestaj_$timestamp.pdf');
+  }
+
+  static pw.Widget _buildHeader(
+    String title,
+    Map<String, dynamic>? filters, [
+    Map<int, String>? badgeIdToName,
+    Map<int, String>? troopIdToName,
+    Map<int, String>? memberTroopNames,
+  ]) {
     return pw.Header(
       level: 0,
       child: pw.Column(
@@ -220,14 +286,24 @@ class PdfReportUtils {
           ),
           if (filters != null && filters.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            _buildFiltersSection(filters),
+            _buildFiltersSection(
+              filters,
+              badgeIdToName,
+              troopIdToName,
+              memberTroopNames,
+            ),
           ],
         ],
       ),
     );
   }
 
-  static pw.Widget _buildFiltersSection(Map<String, dynamic> filters) {
+  static pw.Widget _buildFiltersSection(
+    Map<String, dynamic> filters, [
+    Map<int, String>? badgeIdToName,
+    Map<int, String>? troopIdToName,
+    Map<int, String>? memberTroopNames,
+  ]) {
     final List<pw.Widget> filterRows = [];
 
     if (filters.containsKey('FTS') &&
@@ -247,7 +323,9 @@ class PdfReportUtils {
       );
     }
 
-    if (filters.containsKey('TroopName') && filters['TroopName'] != null) {
+    if (filters.containsKey('TroopName') &&
+        filters['TroopName'] != null &&
+        !filters.containsKey('TroopId')) {
       filterRows.add(
         _buildFilterRow(
           'Odred',
@@ -309,6 +387,32 @@ class PdfReportUtils {
         filters['ActivityState'].toString(),
       );
       filterRows.add(_buildFilterRow('Status aktivnosti', stateText));
+    }
+
+    if (filters.containsKey('BadgeId') && filters['BadgeId'] != null) {
+      final badgeId = filters['BadgeId'] as int;
+      final badgeName = badgeIdToName?[badgeId] ?? 'Vjestarstvo ID: $badgeId';
+      filterRows.add(
+        _buildFilterRow('Vjestarstvo', _convertToAscii(badgeName)),
+      );
+    }
+
+    if (filters.containsKey('Status') && filters['Status'] != null) {
+      final statusText = filters['Status'] == 0 ? 'U toku' : 'Zavrseno';
+      filterRows.add(_buildFilterRow('Status vjestarstva', statusText));
+    }
+
+    if (filters.containsKey('TroopId') && filters['TroopId'] != null) {
+      final troopId = filters['TroopId'] as int;
+      String troopName = 'Odred ID: $troopId';
+
+      if (troopIdToName?[troopId] != null) {
+        troopName = troopIdToName![troopId]!;
+      } else if (memberTroopNames != null && memberTroopNames.isNotEmpty) {
+        troopName = memberTroopNames.values.first;
+      }
+
+      filterRows.add(_buildFilterRow('Odred', _convertToAscii(troopName)));
     }
 
     if (filterRows.isEmpty) {
@@ -800,6 +904,58 @@ class PdfReportUtils {
     );
   }
 
+  static pw.Widget _buildMemberBadgeTable(List<MemberBadge> memberBadges) {
+    return pw.Table.fromTextArray(
+      headers: [
+        'Clan',
+        'Vjestarstvo',
+        'Status',
+        'Datum pocetka',
+        'Datum zavrsetka',
+      ],
+      data: memberBadges
+          .map(
+            (memberBadge) => [
+              _convertToAscii(memberBadge.memberFullName),
+              _convertToAscii(memberBadge.badgeName),
+              memberBadge.status == 0 ? 'U toku' : 'Zavrseno',
+              formatDateTime(memberBadge.createdAt),
+              memberBadge.completedAt != null
+                  ? formatDateTime(memberBadge.completedAt!)
+                  : '-',
+            ],
+          )
+          .toList(),
+      headerStyle: pw.TextStyle(
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 8,
+        font: pw.Font.helvetica(),
+        fontFallback: [pw.Font.times()],
+      ),
+      cellStyle: pw.TextStyle(
+        font: pw.Font.helvetica(),
+        fontFallback: [pw.Font.times()],
+      ),
+      headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+      cellHeight: 20,
+      cellPadding: const pw.EdgeInsets.all(2),
+      columnWidths: {
+        0: const pw.FixedColumnWidth(150),
+        1: const pw.FixedColumnWidth(180),
+        2: const pw.FixedColumnWidth(100),
+        3: const pw.FixedColumnWidth(120),
+        4: const pw.FixedColumnWidth(120),
+      },
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerLeft,
+        2: pw.Alignment.center,
+        3: pw.Alignment.center,
+        4: pw.Alignment.center,
+      },
+    );
+  }
+
   static String _getActivityStateText(String state) {
     switch (state) {
       case 'DraftActivityState':
@@ -895,6 +1051,34 @@ class PdfReportUtils {
     }
     if (lowerOrderBy == '-updatedat') {
       return 'Datum izmjene (novije-starije)';
+    }
+
+    if (lowerOrderBy == 'memberfirstname') {
+      return 'Ime clana (A-Z)';
+    }
+    if (lowerOrderBy == '-memberfirstname') {
+      return 'Ime clana (Z-A)';
+    }
+
+    if (lowerOrderBy == 'badgename') {
+      return 'Naziv vjestarstva (A-Z)';
+    }
+    if (lowerOrderBy == '-badgename') {
+      return 'Naziv vjestarstva (Z-A)';
+    }
+
+    if (lowerOrderBy == 'completedat') {
+      return 'Datum zavrsetka (najstariji)';
+    }
+    if (lowerOrderBy == '-completedat') {
+      return 'Datum zavrsetka (najnoviji)';
+    }
+
+    if (lowerOrderBy == 'status') {
+      return 'Status (U toku → Zavrseno)';
+    }
+    if (lowerOrderBy == '-status') {
+      return 'Status (Zavrseno → U toku)';
     }
 
     return orderBy;

@@ -14,9 +14,18 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String? _error;
   bool _loading = false;
-  bool _obscurePassword = true; // Track password visibility state
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _userController.dispose();
+    _passController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _login() async {
     setState(() {
@@ -44,11 +53,15 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
         if (role == 'Admin') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => AdminHomePage(username: username)),
+            MaterialPageRoute(
+              builder: (_) => AdminHomePage(username: username),
+            ),
           );
         } else if (role == 'Troop') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => TroopHomePage(username: username)),
+            MaterialPageRoute(
+              builder: (_) => TroopHomePage(username: username),
+            ),
           );
         } else {
           setState(() => _error = 'Nepoznata uloga korisnika.');
@@ -73,83 +86,95 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Image.asset(
-                'assets/scouttrack_logo.png',
-                width: 300,
-                height: 300,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(24),
-                margin: const EdgeInsets.all(16),
-                width: 400,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 8,
-                      color: Colors.black12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+        child: Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              children: [
+                Image.asset(
+                  'assets/scouttrack_logo.png',
+                  width: 300,
+                  height: 300,
                 ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _userController,
-                      decoration: const InputDecoration(
-                        labelText: 'Korisničko ime ili email',
-                        border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.all(16),
+                  width: 400,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 8,
+                        color: Colors.black12,
+                        offset: Offset(0, 4),
                       ),
-                      enabled: !_loading,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passController,
-                      decoration: InputDecoration(
-                        labelText: 'Lozinka',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword 
-                              ? Icons.visibility_off 
-                              : Icons.visibility,
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _userController,
+                        decoration: const InputDecoration(
+                          labelText: 'Korisničko ime ili email',
+                          border: OutlineInputBorder(),
+                        ),
+                        enabled: !_loading,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passController,
+                        decoration: InputDecoration(
+                          labelText: 'Lozinka',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
+                        ),
+                        obscureText: _obscurePassword,
+                        enabled: !_loading,
+                      ),
+                      const SizedBox(height: 16),
+                      if (_error != null)
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _login,
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Prijava'),
                         ),
                       ),
-                      obscureText: _obscurePassword,
-                      enabled: !_loading,
-                    ),
-                    const SizedBox(height: 16),
-                    if (_error != null)
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _login,
-                        child: _loading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text('Prijava'),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

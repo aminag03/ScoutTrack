@@ -30,6 +30,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
   String? _selectedSort;
 
   late BadgeProvider _badgeProvider;
+  final ScrollController _gridScrollController = ScrollController();
 
   int currentPage = 0;
   int pageSize = 10;
@@ -53,6 +54,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
   void dispose() {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
+    _gridScrollController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -184,7 +186,10 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Obriši'),
           ),
         ],
@@ -393,6 +398,10 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -403,6 +412,10 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4F8055),
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -483,19 +496,25 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                     : Column(
                         children: [
                           Expanded(
-                            child: GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 5,
-                                    childAspectRatio: 0.7,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                  ),
-                              itemCount: _badges?.items?.length ?? 0,
-                              itemBuilder: (context, index) {
-                                final badge = _badges!.items![index];
-                                return _buildBadgeCard(badge);
-                              },
+                            child: Scrollbar(
+                              controller: _gridScrollController,
+                              thumbVisibility: true,
+                              trackVisibility: true,
+                              child: GridView.builder(
+                                controller: _gridScrollController,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 5,
+                                      childAspectRatio: 0.7,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                    ),
+                                itemCount: _badges?.items?.length ?? 0,
+                                itemBuilder: (context, index) {
+                                  final badge = _badges!.items![index];
+                                  return _buildBadgeCard(badge);
+                                },
+                              ),
                             ),
                           ),
 
@@ -518,238 +537,292 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
 
   Widget _buildBadgeCard(Badge badge) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () => _showBadgeDetails(badge),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFF),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.green, width: 2),
-                ),
-                child: badge.imageUrl.isNotEmpty
-                    ? ClipOval(
-                        child: Image.network(
-                          badge.imageUrl,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.emoji_events,
-                              color: Colors.amber,
-                              size: 28,
-                            );
-                          },
-                        ),
-                      )
-                    : const Icon(
-                        Icons.emoji_events,
-                        color: Colors.amber,
-                        size: 28,
-                      ),
-              ),
-              const SizedBox(height: 5),
-
-              Flexible(
-                child: Text(
-                  badge.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              Flexible(
-                child: Text(
-                  badge.description,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
-              Tooltip(
-                message: 'Ukupan broj članova koji imaju ovo vještarstvo',
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxWidth: double.infinity,
-                    minHeight: 24,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Colors.grey.shade50],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.people, size: 14, color: Colors.blue.shade700),
-                      const SizedBox(width: 3),
-                      Flexible(
-                        child: Text(
-                          '${badge.totalMemberBadges}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.green.shade300, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.shade100,
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
+                  child: badge.imageUrl.isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            badge.imageUrl,
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.emoji_events,
+                                color: Colors.amber,
+                                size: 32,
+                              );
+                            },
+                          ),
+                        )
+                      : const Icon(
+                          Icons.emoji_events,
+                          color: Colors.amber,
+                          size: 32,
+                        ),
                 ),
-              ),
 
-              const SizedBox(height: 1),
+                const SizedBox(height: 12),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: Tooltip(
-                      message: 'Broj članova koji su završili ovo vještarstvo',
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 12,
-                              color: Colors.green.shade700,
-                            ),
-                            const SizedBox(width: 2),
-                            Flexible(
-                              child: Text(
-                                '${badge.completedMemberBadges}',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                Flexible(
+                  child: Text(
+                    badge.name,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E3A59),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Flexible(
+                  child: Text(
+                    badge.description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Tooltip(
+                  message: 'Ukupan broj članova koji imaju ovo vještarstvo',
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.blue.shade200,
+                        width: 1.5,
                       ),
                     ),
-                  ),
-
-                  const SizedBox(width: 2),
-
-                  Expanded(
-                    child: Tooltip(
-                      message:
-                          'Broj članova koji su u toku rada na ovom vještarstvu',
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people,
+                          size: 16,
+                          color: Colors.blue.shade700,
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.schedule,
-                              size: 12,
-                              color: Colors.orange.shade700,
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '${badge.totalMemberBadges}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 2),
-                            Flexible(
-                              child: Text(
-                                '${badge.inProgressMemberBadges}',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.orange.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
 
-              if (_role == 'Admin') ...[
-                const SizedBox(height: 3),
+                const SizedBox(height: 8),
+
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Tooltip(
-                      message: 'Uredi vještarstvo',
-                      child: IconButton(
-                        onPressed: () => _showEditBadgeDialog(badge),
-                        icon: const Icon(Icons.edit, size: 18),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 22,
-                          minHeight: 22,
+                    Expanded(
+                      child: Tooltip(
+                        message:
+                            'Broj članova koji su završili ovo vještarstvo',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.green.shade200,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: Colors.green.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '${badge.completedMemberBadges}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Tooltip(
-                      message: 'Obriši vještarstvo',
-                      child: IconButton(
-                        onPressed: () => _deleteBadge(badge),
-                        icon: const Icon(Icons.delete, size: 18),
-                        color: Colors.red,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 22,
-                          minHeight: 22,
+
+                    const SizedBox(width: 6),
+
+                    Expanded(
+                      child: Tooltip(
+                        message:
+                            'Broj članova koji su u toku rada na ovom vještarstvu',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.orange.shade200,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 14,
+                                color: Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '${badge.inProgressMemberBadges}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
+
+                if (_role == 'Admin') ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Tooltip(
+                          message: 'Uredi vještarstvo',
+                          child: InkWell(
+                            onTap: () => _showEditBadgeDialog(badge),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.blue.shade200),
+                              ),
+                              child: Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Tooltip(
+                          message: 'Obriši vještarstvo',
+                          child: InkWell(
+                            onTap: () => _deleteBadge(badge),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Icon(
+                                Icons.delete,
+                                size: 16,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

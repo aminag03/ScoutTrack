@@ -6,12 +6,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _currentUser;
 
-  Future<Map<String, dynamic>?> fetchCurrentUser({bool forceRefresh = false}) async {
+  Future<Map<String, dynamic>?> fetchCurrentUser({
+    bool forceRefresh = false,
+  }) async {
     if (_currentUser != null && !forceRefresh) return _currentUser;
     if (_accessToken == null) return null;
 
+    final baseUrl = const String.fromEnvironment(
+      "BASE_URL",
+      defaultValue: "http://localhost:5164/",
+    );
     final response = await http.get(
-      Uri.parse('http://localhost:5164/Auth/me'),
+      Uri.parse('${baseUrl}Auth/me'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_accessToken',
@@ -22,9 +28,8 @@ class AuthProvider with ChangeNotifier {
       _currentUser = jsonDecode(response.body);
       return _currentUser;
     } else if (response.statusCode == 401 && await refreshToken()) {
-      // 🔹 Retry request once if token was refreshed
       final retryResponse = await http.get(
-        Uri.parse('http://localhost:5164/Auth/me'),
+        Uri.parse('${baseUrl}Auth/me'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_accessToken',
@@ -44,13 +49,16 @@ class AuthProvider with ChangeNotifier {
   Future<String?> getUserRoleFromToken() async {
     if (_accessToken == null) return null;
     final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
-    return decoded?['role'] ?? decoded?['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+    return decoded?['role'] ??
+        decoded?['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
   }
 
   Future<int?> getUserIdFromToken() async {
     if (_accessToken == null) return null;
     final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
-    final id = decoded?['nameid'] ?? decoded?['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    final id =
+        decoded?['nameid'] ??
+        decoded?['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
     if (id is int) return id;
     if (id is String) return int.tryParse(id);
     return null;
@@ -59,7 +67,9 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _decodeJwt(String token) {
     final parts = token.split('.');
     if (parts.length != 3) return null;
-    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final payload = utf8.decode(
+      base64Url.decode(base64Url.normalize(parts[1])),
+    );
     return jsonDecode(payload);
   }
 
@@ -69,12 +79,9 @@ class AuthProvider with ChangeNotifier {
 
     if (role == null || id == null) return null;
 
-    return {
-      'id': id,
-      'role': role,
-    };
+    return {'id': id, 'role': role};
   }
-  
+
   static String? _accessToken;
   String? _refreshToken;
   String? _role;
@@ -85,7 +92,11 @@ class AuthProvider with ChangeNotifier {
   String? get username => _username;
 
   Future<void> login(String usernameOrEmail, String password) async {
-    final url = Uri.parse('http://localhost:5164/Auth/login');
+    final baseUrl = const String.fromEnvironment(
+      "BASE_URL",
+      defaultValue: "http://localhost:5164/",
+    );
+    final url = Uri.parse('${baseUrl}Auth/login');
 
     final response = await http.post(
       url,
@@ -120,9 +131,10 @@ class AuthProvider with ChangeNotifier {
           errorMessage = errorData['title'];
         } else if (errorData.containsKey('errors')) {
           final errors = errorData['errors'];
-          if (errors is Map<String, dynamic> && errors.containsKey('userError')) {
-            errorMessage = errors['userError'] is List 
-                ? errors['userError'].first 
+          if (errors is Map<String, dynamic> &&
+              errors.containsKey('userError')) {
+            errorMessage = errors['userError'] is List
+                ? errors['userError'].first
                 : errors['userError'].toString();
           }
         }
@@ -133,8 +145,12 @@ class AuthProvider with ChangeNotifier {
   Future<bool> refreshToken() async {
     if (_refreshToken == null) return false;
 
+    final baseUrl = const String.fromEnvironment(
+      "BASE_URL",
+      defaultValue: "http://localhost:5164/",
+    );
     final response = await http.post(
-      Uri.parse('http://localhost:5164/Auth/refresh'),
+      Uri.parse('${baseUrl}Auth/refresh'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'refreshToken': _refreshToken}),
     );

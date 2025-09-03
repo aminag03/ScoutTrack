@@ -100,12 +100,32 @@ namespace ScoutTrack.Services
 
         public async Task<LoginResponse> RefreshTokenAsync(string refreshToken)
         {
-            var refreshTokenEntity = await _context.RefreshTokens.Include(rt => rt.UserAccount)
+            var now = DateTime.Now;
+
+            var refreshTokenEntity = await _context.RefreshTokens
+                .Include(rt => rt.UserAccount)
                 .FirstOrDefaultAsync(rt => rt.Token == refreshToken && !rt.IsRevoked);
-            if (refreshTokenEntity == null || refreshTokenEntity.ExpiresAt < DateTime.Now)
+
+            if (refreshTokenEntity == null || refreshTokenEntity.ExpiresAt < now)
                 throw new UnauthorizedAccessException("Invalid or expired refresh token");
 
             var user = refreshTokenEntity.UserAccount;
+
+            await CleanupOldRefreshTokensAsync(user.Id);
+
+            refreshTokenEntity.IsRevoked = true;
+
+            var newRefreshToken = GenerateRefreshToken();
+            var newRefreshTokenEntity = new RefreshToken
+            {
+                Token = newRefreshToken,
+                ExpiresAt = now.AddDays(7),
+                CreatedAt = now,
+                UserAccountId = user.Id,
+                IsRevoked = false
+            };
+
+            _context.RefreshTokens.Add(newRefreshTokenEntity);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(
@@ -129,22 +149,10 @@ namespace ScoutTrack.Services
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
+
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            refreshTokenEntity.IsRevoked = true;
-
-            var newRefreshToken = GenerateRefreshToken();
-            var newRefreshTokenEntity = new RefreshToken
-            {
-                Token = newRefreshToken,
-                ExpiresAt = DateTime.Now.AddDays(7),
-                CreatedAt = DateTime.Now,
-                UserAccountId = user.Id,
-                IsRevoked = false
-            };
-            _context.RefreshTokens.Add(newRefreshTokenEntity);
             await _context.SaveChangesAsync();
-            await CleanupOldRefreshTokensAsync(user.Id);
 
             return new LoginResponse
             {

@@ -39,7 +39,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
   List<MemberBadge> _inProgressMembers = [];
   bool _loadingRequirements = false;
   bool _loadingMembers = false;
-  Map<int, String> _memberTroopNames = {}; // Map memberId to troop name
+  Map<int, String> _memberTroopNames = {};
   final ScrollController _scrollController = ScrollController();
   final ScrollController _completedMembersScrollController = ScrollController();
   final ScrollController _inProgressMembersScrollController =
@@ -101,11 +101,9 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final troopId = await authProvider.getUserIdFromToken() ?? 0;
 
-        // Load completed members (status = 1 for Completed)
         final completedMembers = await _memberBadgeProvider
             .getMembersByBadgeStatusAndTroop(widget.badge.id, 1, troopId);
 
-        // Load in-progress members (status = 0 for InProgress)
         final inProgressMembers = await _memberBadgeProvider
             .getMembersByBadgeStatusAndTroop(widget.badge.id, 0, troopId);
 
@@ -115,7 +113,6 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
           _loadingMembers = false;
         });
       } else {
-        // Get all members who already have this badge
         final completedMembers = await _memberBadgeProvider
             .getMembersByBadgeStatus(widget.badge.id, 1);
 
@@ -129,7 +126,6 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
         });
       }
 
-      // Load troop names for admin users
       if (widget.role == 'Admin') {
         await _loadMemberTroopNames();
       }
@@ -143,13 +139,11 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
 
   Future<void> _loadMemberTroopNames() async {
     try {
-      // Get all troops
       final filter = {'RetrieveAll': true};
       final troopResult = await _troopProvider.get(filter: filter);
 
       if (!mounted) return;
 
-      // Get all members to build troop relationships
       final memberProvider = MemberProvider(_memberBadgeProvider.authProvider);
       final memberFilter = {'RetrieveAll': true};
       final memberResult = await memberProvider.get(filter: memberFilter);
@@ -219,7 +213,10 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Obriši'),
           ),
         ],
@@ -454,6 +451,12 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                                     : _showAddRequirementDialog,
                                 icon: const Icon(Icons.add),
                                 label: const Text('Dodaj uslov'),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -1144,6 +1147,9 @@ class _BadgeRequirementFormDialogState
           child: const Text('Odustani'),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
           onPressed: _isLoading ? null : _saveRequirement,
           child: _isLoading
               ? const SizedBox(
@@ -1249,7 +1255,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         Navigator.of(context).pop();
       }
 
-      // Show error
       if (context.mounted) {
         showErrorSnackbar(context, e);
       }
@@ -1298,7 +1303,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
             requirementDescription: progress.requirementDescription,
             isCompleted: isCompleted,
             completedAt: isCompleted ? DateTime.now() : null,
-            createdAt: progress.createdAt,
           );
         }
         _updating = false;
@@ -1365,7 +1369,10 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Obriši'),
           ),
         ],
@@ -1387,31 +1394,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
       } catch (e) {
         showErrorSnackbar(context, e);
       }
-    }
-  }
-
-  Future<void> _syncProgressInDialog() async {
-    try {
-      if (widget.role == 'Troop') {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final troopId = await authProvider.getUserIdFromToken() ?? 0;
-        await _memberBadgeProvider.syncProgressRecordsForBadgeAndTroop(
-          widget.badge.id,
-          troopId,
-        );
-      } else {
-        await _memberBadgeProvider.syncProgressRecordsForBadge(widget.badge.id);
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        widget.onProgressUpdated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Napredak je uspješno sinhronizovan')),
-        );
-      }
-    } catch (e) {
-      showErrorSnackbar(context, e);
     }
   }
 
@@ -1473,7 +1455,6 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
                                 decorationColor: Colors.blue,
                                 decorationThickness: 1,
                               ),
@@ -1521,25 +1502,13 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Nema zapisanog napretka za ovo vještarstvo. Kliknite "Sinhronizuj napredak" za ažuriranje.',
+                      'Nema zapisanog napretka za ovo vještarstvo. Provjerite da li postoje uslovi za vještarstvo.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.yellow.shade700,
                         fontSize: 14,
                       ),
                     ),
-                    if (widget.role == 'Admin' || widget.role == 'Troop') ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _syncProgressInDialog,
-                        icon: const Icon(Icons.sync),
-                        label: const Text('Sinhronizuj napredak'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               )
@@ -1592,7 +1561,8 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
             const SizedBox(height: 24),
             if (_allRequirementsCompleted &&
                 widget.role != 'Member' &&
-                widget.memberBadge.status != 1)
+                widget.memberBadge.status != 1 &&
+                _hasProgressRecords)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -1622,6 +1592,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                         ),
                 ),
               ),
+            const SizedBox(height: 12),
             if (widget.memberBadge.status == 1 && widget.role != 'Member')
               SizedBox(
                 width: double.infinity,
@@ -1822,6 +1793,18 @@ class _CreateMemberBadgeDialogState extends State<CreateMemberBadgeDialog> {
         _selectedMember!.id,
         widget.badge.id,
       );
+
+      if (widget.role == 'Troop') {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final troopId = await authProvider.getUserIdFromToken() ?? 0;
+        await _memberBadgeProvider.syncProgressRecordsForBadgeAndTroop(
+          widget.badge.id,
+          troopId,
+        );
+      } else {
+        await _memberBadgeProvider.syncProgressRecordsForBadge(widget.badge.id);
+      }
+
       if (mounted) {
         Navigator.of(context).pop();
         widget.onMemberBadgeCreated();
@@ -1939,6 +1922,12 @@ class _CreateMemberBadgeDialogState extends State<CreateMemberBadgeDialog> {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
                   onPressed: _selectedMember == null || _creating
                       ? null
                       : _createMemberBadge,
