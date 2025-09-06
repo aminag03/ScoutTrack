@@ -30,6 +30,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
+import 'dart:convert';
 
 class ActivityListScreen extends StatefulWidget {
   final int? initialTroopId;
@@ -249,7 +250,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                 )
                               : const Icon(Icons.picture_as_pdf),
                           label: Text(
-                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            _loading ? 'Generisanje...' : 'Generiši izvještaj',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -395,8 +396,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           await _fetchActivities();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Aktivnost "${activity.title}" je obrisana.')),
+        showSuccessSnackbar(
+          context,
+          'Aktivnost "${activity.title}" je obrisana.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -588,9 +590,34 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       return await ActivityDialogWidgets.showAddNewEquipmentDialog(
         context: context,
         onEquipmentAdded: (equipment) async {
-          final equipmentProvider = EquipmentProvider(
-            Provider.of<AuthProvider>(context, listen: false),
+          final authProvider = Provider.of<AuthProvider>(
+            context,
+            listen: false,
           );
+
+          // Check and refresh token if needed
+          try {
+            final token = authProvider.accessToken;
+            if (token != null) {
+              final decoded = _decodeJwt(token);
+              if (decoded != null) {
+                final exp = decoded['exp'];
+                if (exp != null) {
+                  final expirationTime = DateTime.fromMillisecondsSinceEpoch(
+                    exp * 1000,
+                  );
+                  final now = DateTime.now();
+                  if (now.isAfter(expirationTime)) {
+                    await authProvider.refreshToken();
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            print('Token refresh failed: $e');
+          }
+
+          final equipmentProvider = EquipmentProvider(authProvider);
 
           final newEquipment = await equipmentProvider.insert({
             "name": equipment.name,
@@ -643,18 +670,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             }
           });
         } else {
-          await showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Oprema već dodana'),
-              content: Text('Oprema "${result.name}" je već dodana u listu.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('U redu'),
-                ),
-              ],
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Oprema "${result.name}" je već dodana u listu.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -1379,25 +1399,23 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                     now.minute,
                                   );
                                   if (startDateTime.isBefore(nowRounded)) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
+                                    showCustomSnackbar(
+                                      context,
+                                      message:
                                           'Vrijeme početka ne može biti u prošlosti.',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
+                                      backgroundColor: Colors.red,
+                                      icon: Icons.schedule,
                                     );
                                     return;
                                   }
 
                                   if (endDateTime.isBefore(startDateTime)) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
+                                    showCustomSnackbar(
+                                      context,
+                                      message:
                                           'Vrijeme završetka mora biti nakon vremena početka.',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
+                                      backgroundColor: Colors.red,
+                                      icon: Icons.schedule,
                                     );
                                     return;
                                   }
@@ -1453,12 +1471,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       selectedEquipment,
                                     );
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Aktivnost "${titleController.text}" je ažurirana.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Aktivnost "${titleController.text}" je ažurirana.',
                                     );
                                     await _fetchActivities(page: currentPage);
                                   } else {
@@ -1477,10 +1492,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       selectedEquipment,
                                     );
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Aktivnost je dodana.'),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Aktivnost je dodana.',
                                     );
                                     final newTotalCount =
                                         (_activities?.totalCount ?? 0) + 1;
@@ -1821,9 +1835,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
       for (final equipment in selectedEquipment) {
         if (equipment != null) {
-          bool isTemporaryEquipment =
-              equipment.id >
-              1000000000000;
+          bool isTemporaryEquipment = equipment.id > 1000000000000;
 
           int equipmentId = equipment.id;
 
@@ -1909,34 +1921,22 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -2153,5 +2153,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         ),
       ],
     );
+  }
+
+  Map<String, dynamic>? _decodeJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      return jsonDecode(payload);
+    } catch (e) {
+      print('Error decoding JWT: $e');
+      return null;
+    }
   }
 }

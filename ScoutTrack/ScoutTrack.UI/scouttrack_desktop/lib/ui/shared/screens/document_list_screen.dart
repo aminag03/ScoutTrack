@@ -130,25 +130,13 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       final filePath = '${downloadsDir.path}/$fileName';
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Dokument je uspješno preuzet!'),
-                const SizedBox(height: 4),
-                Text(
-                  'Datoteka spremljena u: $filePath',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 5),
-          ),
+        showCustomSnackbar(
+          context,
+          message:
+              'Dokument je uspješno preuzet!\nDatoteka spremljena u: $filePath',
+          backgroundColor: Colors.green,
+          icon: Icons.download,
+          duration: const Duration(seconds: 5),
         );
       }
     } catch (e) {
@@ -168,13 +156,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   void _showValidationError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red[600],
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showErrorSnackbar(context, message);
     }
   }
 
@@ -231,26 +213,13 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       await _loadDocuments();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Dokument uspješno učitan!'),
-                const SizedBox(height: 4),
-                Text(
-                  'Preusmjereno na zadnju stranicu da vidite novi dokument.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[300],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 5),
-          ),
+        showCustomSnackbar(
+          context,
+          message:
+              'Dokument uspješno učitan!\nPreusmjereno na zadnju stranicu da vidite novi dokument.',
+          backgroundColor: Colors.green,
+          icon: Icons.upload,
+          duration: const Duration(seconds: 5),
         );
       }
     } catch (e) {
@@ -508,9 +477,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         await _loadDocuments();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Dokument uspješno ažuriran!')),
-          );
+          showSuccessSnackbar(context, 'Dokument uspješno ažuriran!');
         }
       } catch (e) {
         if (mounted) {
@@ -555,9 +522,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         await _loadDocuments();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Dokument uspješno obrisan!')),
-          );
+          showSuccessSnackbar(context, 'Dokument uspješno obrisan!');
         }
       } catch (e) {
         if (mounted) {
@@ -618,34 +583,22 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -714,7 +667,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                               )
                             : const Icon(Icons.picture_as_pdf),
                         label: Text(
-                          _isLoading ? 'Generiranje...' : 'Generiši izvještaj',
+                          _isLoading ? 'Generisanje...' : 'Generiši izvještaj',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

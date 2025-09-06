@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
+import 'package:scouttrack_desktop/utils/error_utils.dart';
 
 class AdminDetailsScreen extends StatefulWidget {
   final Admin admin;
@@ -169,15 +170,11 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil uspješno ažuriran.')),
-        );
+        showSuccessSnackbar(context, 'Profil uspješno ažuriran.');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Greška: $e')));
+        showErrorSnackbar(context, e);
       }
     }
   }
@@ -330,12 +327,9 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                         });
 
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Lozinka promijenjena. Preusmjeravanje...',
-                              ),
-                            ),
+                          showSuccessSnackbar(
+                            context,
+                            'Lozinka promijenjena. Preusmjeravanje...',
                           );
 
                           await Future.delayed(const Duration(seconds: 2));

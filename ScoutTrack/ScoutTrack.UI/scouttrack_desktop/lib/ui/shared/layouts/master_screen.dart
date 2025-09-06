@@ -73,13 +73,16 @@ class _MasterScreenState extends State<MasterScreen> {
           // Sidebar
           Container(
             width: 240,
-            padding: const EdgeInsets.symmetric(vertical: 24),
             color: const Color(0xFF4F8055),
             child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 40),
-                  child: Text(
+                // Fixed header
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
+                  child: const Text(
                     'ScoutTrack',
                     style: TextStyle(
                       fontSize: 22,
@@ -89,249 +92,273 @@ class _MasterScreenState extends State<MasterScreen> {
                   ),
                 ),
 
-                // Common item
-                _SidebarItem(
-                  icon: Icons.home,
-                  label: 'Početna',
-                  selected: selectedLabel == 'Početna',
-                  onTap: () => _handleTap('Početna', () {
-                    Navigator.of(context).pushReplacement(
-                      _fadeRoute(
-                        widget.role == 'Admin'
-                            ? AdminHomePage(username: 'Admin')
-                            : TroopHomePage(username: 'Troop'),
-                      ),
-                    );
-                  }),
-                ),
-
-                if (widget.role == 'Admin') ...[
-                  _SidebarItem(
-                    icon: Icons.groups,
-                    label: 'Odredi',
-                    selected: selectedLabel == 'Odredi',
-                    onTap: () => _handleTap('Odredi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const TroopListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.group,
-                    label: 'Članovi',
-                    selected: selectedLabel == 'Članovi',
-                    onTap: () => _handleTap('Članovi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const MemberListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.event,
-                    label: 'Aktivnosti',
-                    selected: selectedLabel == 'Aktivnosti',
-                    onTap: () => _handleTap('Aktivnosti', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const ActivityListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.emoji_events,
-                    label: 'Vještarstva',
-                    selected: selectedLabel == 'Vještarstva',
-                    onTap: () => _handleTap('Vještarstva', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const BadgeListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.hiking,
-                    label: 'Tipovi aktivnosti',
-                    selected: selectedLabel == 'Tipovi aktivnosti',
-                    onTap: () => _handleTap('Tipovi aktivnosti', () {
-                      Navigator.of(context).pushReplacement(
-                        _fadeRoute(const ActivityTypeListScreen()),
-                      );
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.backpack,
-                    label: 'Oprema',
-                    selected: selectedLabel == 'Oprema',
-                    onTap: () => _handleTap('Oprema', () {
-                      Navigator.of(context).pushReplacement(
-                        _fadeRoute(const EquipmentListScreen()),
-                      );
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.location_city,
-                    label: 'Gradovi',
-                    selected: selectedLabel == 'Gradovi',
-                    onTap: () => _handleTap('Gradovi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const CityListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.description,
-                    label: 'Dokumenti',
-                    selected: selectedLabel == 'Dokumenti',
-                    onTap: () => _handleTap('Dokumenti', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const DocumentListScreen()));
-                    }),
-                  ),
-                ],
-
-                if (widget.role == 'Troop') ...[
-                  _SidebarItem(
-                    icon: Icons.groups,
-                    label: 'Odredi',
-                    selected: selectedLabel == 'Odredi',
-                    onTap: () => _handleTap('Odredi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const TroopListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.group,
-                    label: 'Članovi',
-                    selected: selectedLabel == 'Članovi',
-                    onTap: () => _handleTap('Članovi', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const MemberListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.event,
-                    label: 'Aktivnosti',
-                    selected: selectedLabel == 'Aktivnosti',
-                    onTap: () => _handleTap('Aktivnosti', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const ActivityListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.emoji_events,
-                    label: 'Vještarstva',
-                    selected: selectedLabel == 'Vještarstva',
-                    onTap: () => _handleTap('Vještarstva', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const BadgeListScreen()));
-                    }),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.description,
-                    label: 'Dokumenti',
-                    selected: selectedLabel == 'Dokumenti',
-                    onTap: () => _handleTap('Dokumenti', () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const DocumentListScreen()));
-                    }),
-                  ),
-                ],
-
-                const Spacer(),
-
-              
-                _SidebarItem(
-                  icon: Icons.notifications,
-                  label: 'Obavještenja',
-                  selected: selectedLabel == 'Obavještenja',
-                  onTap: () => _handleTap('Obavještenja', () {
-                    Navigator.of(
-                      context,
-                    ).pushReplacement(_fadeRoute(const NotificationScreen()));
-                  }),
-                ),
-                if (widget.role == 'Admin') ...[
-                  _SidebarItem(
-                    icon: Icons.account_circle,
-                    label: 'Moj profil',
-                    selected: selectedLabel == 'Moj profil',
-                    onTap: () async {
-                      final authProvider = Provider.of<AuthProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final userInfo = await authProvider.getCurrentUserInfo();
-
-                      if (userInfo != null && userInfo['id'] != null) {
-                        final adminId = userInfo['id'] as int;
-
-                        final adminProvider = Provider.of<AdminProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final admin = await adminProvider.getById(adminId);
-
-                        _handleTap('Moj profil', () {
-                          Navigator.of(context).pushReplacement(
-                            _fadeRoute(AdminDetailsScreen(admin: admin)),
-                          );
-                        });
-                      }
-                    },
-                  ),
-                ] else if (widget.role == 'Troop') ...[
-                  _SidebarItem(
-                    icon: Icons.account_circle,
-                    label: 'Moj profil',
-                    selected: selectedLabel == 'Moj profil',
-                    onTap: () async {
-                      final authProvider = Provider.of<AuthProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final userInfo = await authProvider.getCurrentUserInfo();
-
-                      if (userInfo != null && userInfo['id'] != null) {
-                        final troopId = userInfo['id'] as int;
-
-                        final troopProvider = Provider.of<TroopProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final troop = await troopProvider.getById(troopId);
-
-                        _handleTap('Moj profil', () {
-                          Navigator.of(context).pushReplacement(
-                            _fadeRoute(
-                              TroopDetailsScreen(
-                                troop: troop,
-                                role: widget.role,
-                                loggedInUserId: troopId,
-                                selectedMenu: 'Moj profil',
+                // Scrollable menu items
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      children: [
+                        // Common item
+                        _SidebarItem(
+                          icon: Icons.home,
+                          label: 'Početna',
+                          selected: selectedLabel == 'Početna',
+                          onTap: () => _handleTap('Početna', () {
+                            Navigator.of(context).pushReplacement(
+                              _fadeRoute(
+                                widget.role == 'Admin'
+                                    ? AdminHomePage(username: 'Admin')
+                                    : TroopHomePage(username: 'Troop'),
                               ),
-                            ),
-                          );
-                        });
-                      }
-                    },
+                            );
+                          }),
+                        ),
+
+                        if (widget.role == 'Admin') ...[
+                          _SidebarItem(
+                            icon: Icons.groups,
+                            label: 'Odredi',
+                            selected: selectedLabel == 'Odredi',
+                            onTap: () => _handleTap('Odredi', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const TroopListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.group,
+                            label: 'Članovi',
+                            selected: selectedLabel == 'Članovi',
+                            onTap: () => _handleTap('Članovi', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const MemberListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.event,
+                            label: 'Aktivnosti',
+                            selected: selectedLabel == 'Aktivnosti',
+                            onTap: () => _handleTap('Aktivnosti', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const ActivityListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.emoji_events,
+                            label: 'Vještarstva',
+                            selected: selectedLabel == 'Vještarstva',
+                            onTap: () => _handleTap('Vještarstva', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const BadgeListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.hiking,
+                            label: 'Tipovi aktivnosti',
+                            selected: selectedLabel == 'Tipovi aktivnosti',
+                            onTap: () => _handleTap('Tipovi aktivnosti', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const ActivityTypeListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.backpack,
+                            label: 'Oprema',
+                            selected: selectedLabel == 'Oprema',
+                            onTap: () => _handleTap('Oprema', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const EquipmentListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.location_city,
+                            label: 'Gradovi',
+                            selected: selectedLabel == 'Gradovi',
+                            onTap: () => _handleTap('Gradovi', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const CityListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.description,
+                            label: 'Dokumenti',
+                            selected: selectedLabel == 'Dokumenti',
+                            onTap: () => _handleTap('Dokumenti', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const DocumentListScreen()),
+                              );
+                            }),
+                          ),
+                        ],
+
+                        if (widget.role == 'Troop') ...[
+                          _SidebarItem(
+                            icon: Icons.groups,
+                            label: 'Odredi',
+                            selected: selectedLabel == 'Odredi',
+                            onTap: () => _handleTap('Odredi', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const TroopListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.group,
+                            label: 'Članovi',
+                            selected: selectedLabel == 'Članovi',
+                            onTap: () => _handleTap('Članovi', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const MemberListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.event,
+                            label: 'Aktivnosti',
+                            selected: selectedLabel == 'Aktivnosti',
+                            onTap: () => _handleTap('Aktivnosti', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const ActivityListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.emoji_events,
+                            label: 'Vještarstva',
+                            selected: selectedLabel == 'Vještarstva',
+                            onTap: () => _handleTap('Vještarstva', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const BadgeListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.description,
+                            label: 'Dokumenti',
+                            selected: selectedLabel == 'Dokumenti',
+                            onTap: () => _handleTap('Dokumenti', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const DocumentListScreen()),
+                              );
+                            }),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
-                _SidebarItem(
-                  icon: Icons.logout,
-                  label: 'Odjava',
-                  selected: false,
-                  onTap: () async {
-                    await authProvider.logout();
-                    if (context.mounted) {
-                      Navigator.of(
-                        context,
-                      ).pushReplacement(_fadeRoute(const LoginPage()));
-                    }
-                  },
+                ),
+
+                // Fixed bottom items
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    children: [
+                      _SidebarItem(
+                        icon: Icons.notifications,
+                        label: 'Obavještenja',
+                        selected: selectedLabel == 'Obavještenja',
+                        onTap: () => _handleTap('Obavještenja', () {
+                          Navigator.of(context).pushReplacement(
+                            _fadeRoute(const NotificationScreen()),
+                          );
+                        }),
+                      ),
+                      if (widget.role == 'Admin') ...[
+                        _SidebarItem(
+                          icon: Icons.account_circle,
+                          label: 'Moj profil',
+                          selected: selectedLabel == 'Moj profil',
+                          onTap: () async {
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final userInfo = await authProvider
+                                .getCurrentUserInfo();
+
+                            if (userInfo != null && userInfo['id'] != null) {
+                              final adminId = userInfo['id'] as int;
+
+                              final adminProvider = Provider.of<AdminProvider>(
+                                context,
+                                listen: false,
+                              );
+                              final admin = await adminProvider.getById(
+                                adminId,
+                              );
+
+                              _handleTap('Moj profil', () {
+                                Navigator.of(context).pushReplacement(
+                                  _fadeRoute(AdminDetailsScreen(admin: admin)),
+                                );
+                              });
+                            }
+                          },
+                        ),
+                      ] else if (widget.role == 'Troop') ...[
+                        _SidebarItem(
+                          icon: Icons.account_circle,
+                          label: 'Moj profil',
+                          selected: selectedLabel == 'Moj profil',
+                          onTap: () async {
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final userInfo = await authProvider
+                                .getCurrentUserInfo();
+
+                            if (userInfo != null && userInfo['id'] != null) {
+                              final troopId = userInfo['id'] as int;
+
+                              final troopProvider = Provider.of<TroopProvider>(
+                                context,
+                                listen: false,
+                              );
+                              final troop = await troopProvider.getById(
+                                troopId,
+                              );
+
+                              _handleTap('Moj profil', () {
+                                Navigator.of(context).pushReplacement(
+                                  _fadeRoute(
+                                    TroopDetailsScreen(
+                                      troop: troop,
+                                      role: widget.role,
+                                      loggedInUserId: troopId,
+                                      selectedMenu: 'Moj profil',
+                                    ),
+                                  ),
+                                );
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      _SidebarItem(
+                        icon: Icons.logout,
+                        label: 'Odjava',
+                        selected: false,
+                        onTap: () async {
+                          await authProvider.logout();
+                          if (context.mounted) {
+                            Navigator.of(
+                              context,
+                            ).pushReplacement(_fadeRoute(const LoginPage()));
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

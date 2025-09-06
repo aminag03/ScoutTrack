@@ -201,10 +201,9 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         await _badgeProvider.delete(badge.id);
         _fetchBadges();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Vještarstvo "${badge.name}" je uspješno obrisano'),
-            ),
+          showSuccessSnackbar(
+            context,
+            'Vještarstvo "${badge.name}" je uspješno obrisano',
           );
         }
       } catch (e) {
@@ -256,34 +255,22 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -389,7 +376,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                                 )
                               : const Icon(Icons.picture_as_pdf),
                           label: Text(
-                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            _loading ? 'Generisanje...' : 'Generiši izvještaj',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,

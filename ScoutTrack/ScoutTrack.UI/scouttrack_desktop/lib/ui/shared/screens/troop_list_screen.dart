@@ -299,7 +299,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                   : const Icon(Icons.picture_as_pdf),
                               label: Text(
                                 _loading
-                                    ? 'Generiranje...'
+                                    ? 'Generisanje...'
                                     : 'Generiši izvještaj',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -628,9 +628,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
           await _fetchTroops();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Odred ${troop.name} je obrisan.')),
-        );
+        showSuccessSnackbar(context, 'Odred ${troop.name} je obrisan.');
       } catch (e) {
         showErrorSnackbar(context, e);
       }
@@ -1221,12 +1219,12 @@ class _TroopListScreenState extends State<TroopListScreen> {
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
                                 if (selectedLocation == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
+                                  showCustomSnackbar(
+                                    context,
+                                    message:
                                         'Molimo odaberite lokaciju na mapi',
-                                      ),
-                                    ),
+                                    backgroundColor: Colors.orange,
+                                    icon: Icons.location_on,
                                   );
                                   return;
                                 }
@@ -1263,12 +1261,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                       troop!.id,
                                       requestBody,
                                     );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Odred "${troop.name}" je ažuriran.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Odred "${troop.name}" je ažuriran.',
                                     );
                                     await _fetchTroops(page: currentPage);
                                   } else {
@@ -1283,10 +1278,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                           );
                                     }
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Odred je dodan.'),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Odred je dodan.',
                                     );
 
                                     final newTotalCount =
@@ -1344,34 +1338,22 @@ class _TroopListScreenState extends State<TroopListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generisan!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -1390,11 +1372,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
 
   void _onSendNotification() {
     if (_troops?.items == null || _troops!.items!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nema odreda za slanje obavještenja.'),
-          backgroundColor: Colors.orange,
-        ),
+      showCustomSnackbar(
+        context,
+        message: 'Nema odreda za slanje obavještenja.',
+        backgroundColor: Colors.orange,
+        icon: Icons.warning,
       );
       return;
     }
@@ -1507,13 +1489,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Obavještenje je uspješno poslano sljedećem broju odreda: $troopCount.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Obavještenje je uspješno poslano sljedećem broju odreda: $troopCount.',
         );
       }
     } catch (e) {

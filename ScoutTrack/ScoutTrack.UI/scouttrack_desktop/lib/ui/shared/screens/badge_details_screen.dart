@@ -228,9 +228,7 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
         await _badgeRequirementProvider.delete(requirement.id);
         _loadRequirements();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Uslov je uspješno obrisan')),
-          );
+          showSuccessSnackbar(context, 'Uslov je uspješno obrisan');
         }
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -1013,9 +1011,7 @@ class _BadgeRequirementFormDialogState
           description: _descriptionController.text.trim(),
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Uslov je uspješno kreiran')),
-          );
+          showSuccessSnackbar(context, 'Uslov je uspješno kreiran');
         }
       } else {
         await requirementProvider.updateBadgeRequirement(
@@ -1024,9 +1020,7 @@ class _BadgeRequirementFormDialogState
           description: _descriptionController.text.trim(),
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Uslov je uspješno ažuriran')),
-          );
+          showSuccessSnackbar(context, 'Uslov je uspješno ažuriran');
         }
       }
 
@@ -1239,14 +1233,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         );
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Greška: Nije moguće učitati podatke o članu "${widget.memberBadge.memberFullName}"',
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
+          showErrorSnackbar(
+            context,
+            'Greška: Nije moguće učitati podatke o članu "${widget.memberBadge.memberFullName}"',
           );
         }
       }
@@ -1321,9 +1310,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onProgressUpdated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vještarstvo je uspješno dodijeljeno')),
-        );
+        showSuccessSnackbar(context, 'Vještarstvo je uspješno dodijeljeno');
       }
     } catch (e) {
       showErrorSnackbar(context, e);
@@ -1343,10 +1330,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onProgressUpdated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vještarstvo je vraćeno u status "U toku"'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Vještarstvo je vraćeno u status "U toku"',
         );
       }
     } catch (e) {
@@ -1385,10 +1371,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         if (mounted) {
           Navigator.of(context).pop();
           widget.onProgressUpdated();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Član je uspješno obrisan iz vještarstva'),
-            ),
+          showSuccessSnackbar(
+            context,
+            'Član je uspješno obrisan iz vještarstva',
           );
         }
       } catch (e) {
@@ -1808,10 +1793,9 @@ class _CreateMemberBadgeDialogState extends State<CreateMemberBadgeDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onMemberBadgeCreated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vještarstvo je uspješno dodijeljeno članu'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Vještarstvo je uspješno dodijeljeno članu',
         );
       }
     } catch (e) {

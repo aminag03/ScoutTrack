@@ -188,14 +188,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _member.isActive
-                  ? 'Član je uspješno aktiviran.'
-                  : 'Član je uspješno deaktiviran.',
-            ),
-          ),
+        showSuccessSnackbar(
+          context,
+          _member.isActive
+              ? 'Član je uspješno aktiviran.'
+              : 'Član je uspješno deaktiviran.',
         );
       }
     } catch (e) {
@@ -570,12 +567,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                   isUpdated = true;
 
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Član "${refreshedMember.firstName} ${refreshedMember.lastName}" je ažuriran.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Član "${refreshedMember.firstName} ${refreshedMember.lastName}" je ažuriran.',
                                     );
                                   }
 
@@ -768,10 +762,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profilna fotografija je uspješno promijenjena.'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Profilna fotografija je uspješno promijenjena.',
         );
       }
     } catch (e) {
@@ -1025,14 +1018,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                             });
 
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(
+                                              showSuccessSnackbar(
                                                 context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Profilna fotografija je uspješno obrisana.',
-                                                  ),
-                                                ),
+                                                'Profilna fotografija je uspješno obrisana.',
                                               );
                                             }
                                           } catch (e) {

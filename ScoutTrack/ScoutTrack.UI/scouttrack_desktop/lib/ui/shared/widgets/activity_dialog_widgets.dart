@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scouttrack_desktop/models/equipment.dart';
 import 'package:scouttrack_desktop/models/activity_equipment.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
-
+import 'package:scouttrack_desktop/utils/error_utils.dart';
 
 class ActivityDialogWidgets {
   static Future<dynamic> showEquipmentSelectionDialog({
@@ -132,37 +132,16 @@ class ActivityDialogWidgets {
                     if (newEquipment != null) {
                       Navigator.of(context).pop(newEquipment);
                     } else {
-                      await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Greška'),
-                          content: const Text(
+                      showCustomSnackbar(
+                        context,
+                        message:
                             'Greška pri kreiranju opreme. Možda već postoji oprema s tim nazivom.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('U redu'),
-                            ),
-                          ],
-                        ),
+                        backgroundColor: Colors.red,
+                        icon: Icons.error,
                       );
                     }
                   } catch (e) {
-                    final msg = e.toString().replaceFirst('Exception: ', '');
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Greška'),
-                        content: Text(msg),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('U redu'),
-                          ),
-                        ],
-                      ),
-                    );
+                    showErrorSnackbar(context, e);
                   }
                 }
               },

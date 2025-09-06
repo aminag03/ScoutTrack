@@ -167,12 +167,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         await _loadUnreadCount();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Obavještenje je uspješno obrisano.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSuccessSnackbar(context, 'Obavještenje je uspješno obrisano.');
         }
       }
     } catch (e) {
@@ -218,11 +213,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         await _loadUnreadCount();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sva obavještenja su uspješno obrisana.'),
-              backgroundColor: Colors.green,
-            ),
+          showSuccessSnackbar(
+            context,
+            'Sva obavještenja su uspješno obrisana.',
           );
         }
       }

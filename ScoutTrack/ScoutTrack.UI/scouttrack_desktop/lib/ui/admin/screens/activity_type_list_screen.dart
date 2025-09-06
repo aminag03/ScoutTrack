@@ -140,34 +140,22 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -235,7 +223,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                         )
                       : const Icon(Icons.picture_as_pdf),
                   label: Text(
-                    _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                    _loading ? 'Generisanje...' : 'Generiši izvještaj',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -495,10 +483,9 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
           await _fetchActivityTypes();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tip aktivnosti ${activityType.name} je obrisan.'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Tip aktivnosti ${activityType.name} je obrisan.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -616,19 +603,15 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                                   activityType!.id,
                                   requestBody,
                                 );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Tip aktivnosti "${activityType.name}" je ažuriran.',
-                                    ),
-                                  ),
+                                showSuccessSnackbar(
+                                  context,
+                                  'Tip aktivnosti "${activityType.name}" je ažuriran.',
                                 );
                               } else {
                                 await _activityTypeProvider.insert(requestBody);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Tip aktivnosti je dodan.'),
-                                  ),
+                                showSuccessSnackbar(
+                                  context,
+                                  'Tip aktivnosti je dodan.',
                                 );
                               }
                               final newTotalCount =

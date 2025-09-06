@@ -199,7 +199,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                         )
                       : const Icon(Icons.picture_as_pdf),
                   label: Text(
-                    _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                    _loading ? 'Generisanje...' : 'Generiši izvještaj',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -581,9 +581,7 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
           await _fetchEquipment();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Oprema ${equipment.name} je obrisana.')),
-        );
+        showSuccessSnackbar(context, 'Oprema ${equipment.name} je obrisana.');
       } catch (e) {
         showErrorSnackbar(context, e);
       }
@@ -618,10 +616,9 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
       try {
         await _equipmentProvider.makeGlobal(equipment.id);
         await _fetchEquipment();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Oprema "${equipment.name}" je sada globalna.'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Oprema "${equipment.name}" je sada globalna.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -737,19 +734,15 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                                   equipment!.id,
                                   requestBody,
                                 );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Oprema "${equipment.name}" je ažurirana.',
-                                    ),
-                                  ),
+                                showSuccessSnackbar(
+                                  context,
+                                  'Oprema "${equipment.name}" je ažurirana.',
                                 );
                               } else {
                                 await _equipmentProvider.insert(requestBody);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Oprema je dodana.'),
-                                  ),
+                                showSuccessSnackbar(
+                                  context,
+                                  'Oprema je dodana.',
                                 );
                               }
                               final newTotalCount =
@@ -794,34 +787,22 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }

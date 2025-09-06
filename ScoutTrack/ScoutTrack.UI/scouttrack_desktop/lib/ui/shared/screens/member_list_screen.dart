@@ -413,7 +413,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                 )
                               : const Icon(Icons.picture_as_pdf),
                           label: Text(
-                            _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                            _loading ? 'Generisanje...' : 'Generiši izvještaj',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -585,12 +585,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
           await _fetchMembers();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Član ${member.firstName} ${member.lastName} je obrisan.',
-            ),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Član ${member.firstName} ${member.lastName} je obrisan.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -694,9 +691,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
           _profilePictureUrl = updatedMember.profilePictureUrl;
         });
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Slika je uspješno promijenjena.')),
-          );
+          showSuccessSnackbar(context, 'Slika je uspješno promijenjena.');
         }
       } catch (e) {
         if (context.mounted) showErrorSnackbar(context, e);
@@ -1212,20 +1207,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       member!.id,
                                       requestBody,
                                     );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Član "${firstNameController.text} ${lastNameController.text}" je ažuriran.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Član "${firstNameController.text} ${lastNameController.text}" je ažuriran.',
                                     );
                                     await _fetchMembers(page: currentPage);
                                   } else {
                                     await _memberProvider.insert(requestBody);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Član je dodan.'),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Član je dodan.',
                                     );
                                     final newTotalCount =
                                         (_members?.totalCount ?? 0) + 1;
@@ -1288,11 +1279,11 @@ class _MemberListScreenState extends State<MemberListScreen> {
     int memberCount = _members?.items?.length ?? 0;
 
     if (memberCount == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nema članova za slanje obavještenja.'),
-          backgroundColor: Colors.orange,
-        ),
+      showCustomSnackbar(
+        context,
+        message: 'Nema članova za slanje obavještenja.',
+        backgroundColor: Colors.orange,
+        icon: Icons.warning,
       );
       return;
     }
@@ -1409,13 +1400,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Obavještenje je uspješno poslano sljedećem broju članova: $memberCount.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Obavještenje je uspješno poslano sljedećem broju članova: $memberCount.',
         );
       }
     } catch (e) {
@@ -1464,34 +1451,22 @@ class _MemberListScreenState extends State<MemberListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }

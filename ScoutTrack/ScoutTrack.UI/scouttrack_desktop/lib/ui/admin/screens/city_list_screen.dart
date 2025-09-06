@@ -140,34 +140,22 @@ class _CityListScreenState extends State<CityListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -235,7 +223,7 @@ class _CityListScreenState extends State<CityListScreen> {
                         )
                       : const Icon(Icons.picture_as_pdf),
                   label: Text(
-                    _loading ? 'Generiranje...' : 'Generiši izvještaj',
+                    _loading ? 'Generisanje...' : 'Generiši izvještaj',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -475,9 +463,7 @@ class _CityListScreenState extends State<CityListScreen> {
           await _fetchCities();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Grad ${city.name} je obrisan.')),
-        );
+        showSuccessSnackbar(context, 'Grad ${city.name} je obrisan.');
       } catch (e) {
         showErrorSnackbar(context, e);
       }
@@ -645,12 +631,12 @@ class _CityListScreenState extends State<CityListScreen> {
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
                                 if (selectedLocation == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
+                                  showCustomSnackbar(
+                                    context,
+                                    message:
                                         'Molimo odaberite lokaciju na mapi',
-                                      ),
-                                    ),
+                                    backgroundColor: Colors.orange,
+                                    icon: Icons.location_on,
                                   );
                                   return;
                                 }
@@ -667,20 +653,16 @@ class _CityListScreenState extends State<CityListScreen> {
                                       city!.id,
                                       requestBody,
                                     );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Grad "${city.name}" je ažuriran.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Grad "${city.name}" je ažuriran.',
                                     );
                                     await _fetchCities(page: currentPage);
                                   } else {
                                     await _cityProvider.insert(requestBody);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Grad je dodan.'),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Grad je dodan.',
                                     );
                                     final newTotalCount =
                                         (_cities?.totalCount ?? 0) + 1;

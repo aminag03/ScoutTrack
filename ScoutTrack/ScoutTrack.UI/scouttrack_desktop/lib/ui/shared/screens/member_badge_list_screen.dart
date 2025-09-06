@@ -357,34 +357,22 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('PDF izvještaj je uspješno generiran!'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Datoteka spremljena u: $filePath',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          showCustomSnackbar(
+            context,
+            message:
+                'PDF izvještaj je uspješno generisan!\nDatoteka spremljena u: $filePath',
+            backgroundColor: Colors.green,
+            icon: Icons.picture_as_pdf,
+            duration: const Duration(seconds: 5),
           );
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nema podataka za generiranje izvještaja.'),
-              backgroundColor: Colors.orange,
-            ),
+          showCustomSnackbar(
+            context,
+            message: 'Nema podataka za generisanje izvještaja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
           );
         }
       }
@@ -1074,14 +1062,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         );
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Greška: Nije moguće učitati podatke o članu "${widget.memberBadge.memberFullName}"',
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
+          showErrorSnackbar(
+            context,
+            'Greška: Nije moguće učitati podatke o članu "${widget.memberBadge.memberFullName}"',
           );
         }
       }
@@ -1157,9 +1140,7 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onProgressUpdated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vještarstvo je uspješno dodijeljeno')),
-        );
+        showSuccessSnackbar(context, 'Vještarstvo je uspješno dodijeljeno');
       }
     } catch (e) {
       showErrorSnackbar(context, e);
@@ -1179,10 +1160,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         widget.onProgressUpdated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vještarstvo je vraćeno u status "U toku"'),
-          ),
+        showSuccessSnackbar(
+          context,
+          'Vještarstvo je vraćeno u status "U toku"',
         );
       }
     } catch (e) {
@@ -1218,10 +1198,9 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
         if (mounted) {
           Navigator.of(context).pop();
           widget.onProgressUpdated();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Član je uspješno obrisan iz vještarstva'),
-            ),
+          showSuccessSnackbar(
+            context,
+            'Član je uspješno obrisan iz vještarstva',
           );
         }
       } catch (e) {
