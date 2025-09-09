@@ -25,17 +25,31 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   }
 
   Future<void> _getCityFromLatLng(LatLng latLng) async {
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
-      final placemarks = await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
+      final placemarks = await placemarkFromCoordinates(
+        latLng.latitude,
+        latLng.longitude,
+      );
       final place = placemarks.first;
-      setState(() {
-        _city = place.locality ?? place.subAdministrativeArea ?? place.administrativeArea ?? '';
-      });
+      if (mounted) {
+        setState(() {
+          _city =
+              place.locality ??
+              place.subAdministrativeArea ??
+              place.administrativeArea ??
+              '';
+        });
+      }
     } catch (e) {
-      setState(() => _city = '');
+      if (mounted) {
+        setState(() => _city = '');
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -61,7 +75,8 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    urlTemplate:
+                        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                     userAgentPackageName: 'com.example.scouttrack_desktop',
                   ),
                   MarkerLayer(
@@ -70,8 +85,12 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                         point: _selectedLocation,
                         width: 60,
                         height: 60,
-                        child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-                      )
+                        child: const Icon(
+                          Icons.location_pin,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -83,7 +102,9 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                 children: [
                   _loading
                       ? const CircularProgressIndicator()
-                      : Text('Odabrani grad: ${_city.isNotEmpty ? _city : 'Nepoznato'}'),
+                      : Text(
+                          'Odabrani grad: ${_city.isNotEmpty ? _city : 'Nepoznato'}',
+                        ),
                   const SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () {
@@ -94,10 +115,10 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                       });
                     },
                     child: const Text('Potvrdi lokaciju'),
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

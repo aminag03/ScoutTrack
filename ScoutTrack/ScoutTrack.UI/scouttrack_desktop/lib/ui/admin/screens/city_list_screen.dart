@@ -9,7 +9,6 @@ import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
-import 'package:scouttrack_desktop/ui/shared/widgets/map_picker_dialog.dart';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 import 'package:flutter_map/flutter_map.dart';
@@ -38,6 +37,7 @@ class _CityListScreenState extends State<CityListScreen> {
   int currentPage = 1;
   int pageSize = 10;
   int totalPages = 1;
+  String? _selectedSort;
 
   @override
   void didChangeDependencies() {
@@ -66,9 +66,12 @@ class _CityListScreenState extends State<CityListScreen> {
   Future<void> _loadInitialData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = await authProvider.getUserRole();
-    setState(() {
-      _role = role;
-    });
+
+    if (mounted) {
+      setState(() {
+        _role = role;
+      });
+    }
 
     if (role == 'Admin') {
       await _fetchCities();
@@ -78,20 +81,24 @@ class _CityListScreenState extends State<CityListScreen> {
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        currentPage = 1;
-      });
-      _fetchCities();
+      if (mounted) {
+        setState(() {
+          currentPage = 1;
+        });
+        _fetchCities();
+      }
     });
   }
 
   Future<void> _fetchCities({int? page}) async {
     if (_loading) return;
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       var filter = {
@@ -99,35 +106,44 @@ class _CityListScreenState extends State<CityListScreen> {
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
         "IncludeTotalCount": true,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
       };
 
       var result = await _cityProvider.get(filter: filter);
 
-      setState(() {
-        _cities = result;
-        currentPage = page ?? currentPage;
-        totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
-        if (totalPages == 0) totalPages = 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
-      });
+      if (mounted) {
+        setState(() {
+          _cities = result;
+          currentPage = page ?? currentPage;
+          totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
+          if (totalPages == 0) totalPages = 1;
+          if (currentPage > totalPages) currentPage = totalPages;
+          if (currentPage < 1) currentPage = 1;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _cities = null;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _cities = null;
+        });
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _generateReport() async {
     try {
-      setState(() {
-        _loading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = true;
+        });
+      }
 
       var filter = {"RetrieveAll": true, "IncludeTotalCount": true};
 
@@ -209,6 +225,63 @@ class _CityListScreenState extends State<CityListScreen> {
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                       isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedSort,
+                      decoration: const InputDecoration(
+                        labelText: 'Sortiraj',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                      isExpanded: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSort = value;
+                          currentPage = 1;
+                        });
+                        _fetchCities();
+                      },
+                      items: const [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('Bez sortiranja'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'name',
+                          child: Text('Naziv (A-Ž)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-name',
+                          child: Text('Naziv (Ž-A)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'troopcount',
+                          child: Text('Broj odreda (rastuće)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-troopcount',
+                          child: Text('Broj odreda (opadajuće)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'membercount',
+                          child: Text('Broj članova (rastuće)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-membercount',
+                          child: Text('Broj članova (opadajuće)'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -305,24 +378,60 @@ class _CityListScreenState extends State<CityListScreen> {
   }
 
   Widget _buildResultView() {
-    if (_loading && _cities == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Greška pri učitavanju: $_error',
-          style: const TextStyle(color: Colors.red),
+    if (_loading || _cities == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
         ),
       );
     }
 
-    if (_cities == null || _cities!.items == null || _cities!.items!.isEmpty) {
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'Greška pri učitavanju: $_error',
+                style: TextStyle(color: Colors.red.shade700, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadInitialData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Pokušaj ponovo'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_cities!.items == null || _cities!.items!.isEmpty) {
       return const Center(
-        child: Text(
-          'Nema dostupnih gradova',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_city_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'Nema dostupnih gradova',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -343,12 +452,14 @@ class _CityListScreenState extends State<CityListScreen> {
               controller: _horizontalScrollController,
               scrollDirection: Axis.horizontal,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 900),
+                constraints: const BoxConstraints(minWidth: 1200),
                 child: DataTable(
                   headingRowColor: MaterialStateColor.resolveWith(
                     (states) => Colors.grey.shade100,
                   ),
                   columnSpacing: 32,
+                  dataRowMinHeight: 48,
+                  dataRowMaxHeight: 48,
                   columns: const [
                     DataColumn(
                       label: Padding(
@@ -359,7 +470,13 @@ class _CityListScreenState extends State<CityListScreen> {
                     DataColumn(
                       label: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('VRIJEME KREIRANJA'),
+                        child: Text('BROJ ODREDA'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('BROJ ČLANOVA'),
                       ),
                     ),
                     DataColumn(
@@ -383,7 +500,19 @@ class _CityListScreenState extends State<CityListScreen> {
                         DataCell(
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(formatDateTime(city.createdAt)),
+                            child: Text(
+                              '${city.troopCount}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              '${city.memberCount}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           ),
                         ),
                         DataCell(
@@ -454,8 +583,6 @@ class _CityListScreenState extends State<CityListScreen> {
         await _cityProvider.delete(city.id);
 
         final currentItemsOnPage = _cities?.items?.length ?? 0;
-        final newTotalCount = (_cities?.totalCount ?? 0) - 1;
-        final newTotalPages = (newTotalCount / pageSize).ceil();
 
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchCities(page: currentPage - 1);
@@ -478,7 +605,7 @@ class _CityListScreenState extends State<CityListScreen> {
 
     LatLng selectedLocation =
         (city?.latitude != null && city?.longitude != null)
-        ? LatLng(city!.latitude!, city.longitude!)
+        ? LatLng(city!.latitude, city.longitude)
         : LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
 
     final isEdit = city != null;
@@ -488,25 +615,6 @@ class _CityListScreenState extends State<CityListScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            Future<void> _openMapPicker() async {
-              final initialLocation = selectedLocation;
-
-              final result = await showDialog<Map<String, double>>(
-                context: context,
-                builder: (context) =>
-                    MapPickerDialog(initialLocation: initialLocation),
-              );
-
-              if (result != null) {
-                setState(() {
-                  selectedLocation = LatLng(
-                    result['latitude']!,
-                    result['longitude']!,
-                  );
-                });
-              }
-            }
-
             return Dialog(
               insetPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -565,19 +673,15 @@ class _CityListScreenState extends State<CityListScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              selectedLocation != null
-                                  ? 'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}'
-                                  : 'Nije odabrana lokacija',
+                              'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}',
                             ),
                             const SizedBox(height: 8),
                             SizedBox(
                               height: 300,
                               child: FlutterMap(
                                 options: MapOptions(
-                                  center:
-                                      selectedLocation ??
-                                      const LatLng(43.8563, 18.4131),
-                                  zoom: selectedLocation != null ? 10 : 6,
+                                  center: selectedLocation,
+                                  zoom: 10,
                                   onTap: (tapPosition, point) {
                                     setState(() {
                                       selectedLocation = point;
@@ -591,21 +695,20 @@ class _CityListScreenState extends State<CityListScreen> {
                                     userAgentPackageName:
                                         'com.example.scouttrack_desktop',
                                   ),
-                                  if (selectedLocation != null)
-                                    MarkerLayer(
-                                      markers: [
-                                        Marker(
-                                          point: selectedLocation!,
-                                          width: 40,
-                                          height: 40,
-                                          child: const Icon(
-                                            Icons.location_pin,
-                                            color: Colors.red,
-                                            size: 40,
-                                          ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: selectedLocation,
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(
+                                          Icons.location_pin,
+                                          color: Colors.red,
+                                          size: 40,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -630,27 +733,16 @@ class _CityListScreenState extends State<CityListScreen> {
                             ),
                             onPressed: () async {
                               if (_formKey.currentState?.validate() ?? false) {
-                                if (selectedLocation == null) {
-                                  showCustomSnackbar(
-                                    context,
-                                    message:
-                                        'Molimo odaberite lokaciju na mapi',
-                                    backgroundColor: Colors.orange,
-                                    icon: Icons.location_on,
-                                  );
-                                  return;
-                                }
-
                                 try {
                                   final requestBody = {
                                     "name": nameController.text.trim(),
-                                    "latitude": selectedLocation!.latitude,
-                                    "longitude": selectedLocation!.longitude,
+                                    "latitude": selectedLocation.latitude,
+                                    "longitude": selectedLocation.longitude,
                                   };
 
                                   if (isEdit) {
                                     await _cityProvider.update(
-                                      city!.id,
+                                      city.id,
                                       requestBody,
                                     );
                                     showSuccessSnackbar(
@@ -664,11 +756,7 @@ class _CityListScreenState extends State<CityListScreen> {
                                       context,
                                       'Grad je dodan.',
                                     );
-                                    final newTotalCount =
-                                        (_cities?.totalCount ?? 0) + 1;
-                                    final newTotalPages =
-                                        (newTotalCount / pageSize).ceil();
-                                    await _fetchCities(page: newTotalPages);
+                                    await _fetchCities();
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {

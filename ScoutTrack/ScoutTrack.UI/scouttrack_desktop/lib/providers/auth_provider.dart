@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _currentUser;
+  bool _isRefreshing = false;
+  final List<Completer<bool>> _refreshCompleters = [];
 
   Future<Map<String, dynamic>?> fetchCurrentUser({
     bool forceRefresh = false,
@@ -25,8 +28,16 @@ class AuthProvider with ChangeNotifier {
     );
 
     if (response.statusCode == 200) {
-      _currentUser = jsonDecode(response.body);
-      return _currentUser;
+      try {
+        if (response.body.isEmpty) {
+          print('Empty response body from /Auth/me endpoint');
+          return null;
+        }
+        _currentUser = jsonDecode(response.body);
+        return _currentUser;
+      } catch (e) {
+        return null;
+      }
     } else if (response.statusCode == 401 && await refreshToken()) {
       final retryResponse = await http.get(
         Uri.parse('${baseUrl}Auth/me'),
@@ -37,8 +48,18 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (retryResponse.statusCode == 200) {
-        _currentUser = jsonDecode(retryResponse.body);
-        return _currentUser;
+        try {
+          if (retryResponse.body.isEmpty) {
+            print('Empty response body from retry /Auth/me endpoint');
+            return null;
+          }
+          _currentUser = jsonDecode(retryResponse.body);
+          return _currentUser;
+        } catch (e) {
+          print('JSON decode error in fetchCurrentUser() retry: $e');
+          print('Response body: ${retryResponse.body}');
+          return null;
+        }
       }
     }
 
@@ -90,6 +111,22 @@ class AuthProvider with ChangeNotifier {
   bool get isLoggedIn => _accessToken != null;
   String? get accessToken => _accessToken;
   String? get username => _username;
+
+  Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString('accessToken');
+    _refreshToken = prefs.getString('refreshToken');
+    _role = prefs.getString('role');
+    _username = prefs.getString('username');
+
+    if (_accessToken != null) {
+      try {
+        await fetchCurrentUser();
+      } catch (e) {
+        await logout();
+      }
+    }
+  }
 
   Future<void> login(String usernameOrEmail, String password) async {
     final baseUrl = const String.fromEnvironment(
@@ -143,31 +180,79 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> refreshToken() async {
+    if (_isRefreshing) {
+      final completer = Completer<bool>();
+      _refreshCompleters.add(completer);
+      return await completer.future;
+    }
+
     if (_refreshToken == null) return false;
 
-    final baseUrl = const String.fromEnvironment(
-      "BASE_URL",
-      defaultValue: "http://localhost:5164/",
-    );
-    final response = await http.post(
-      Uri.parse('${baseUrl}Auth/refresh'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'refreshToken': _refreshToken}),
-    );
+    _isRefreshing = true;
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      _accessToken = data['accessToken'];
-      _refreshToken = data['refreshToken'];
-      _currentUser = null;
-      await fetchCurrentUser(forceRefresh: true);
-      notifyListeners();
-      return true;
-    } else {
+    try {
+      final baseUrl = const String.fromEnvironment(
+        "BASE_URL",
+        defaultValue: "http://localhost:5164/",
+      );
+      final response = await http.post(
+        Uri.parse('${baseUrl}Auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': _refreshToken}),
+      );
+
+      bool success = false;
+      if (response.statusCode == 200) {
+        try {
+          if (response.body.isEmpty) {
+            print('Empty response body from refresh endpoint');
+            success = false;
+          } else {
+            final data = jsonDecode(response.body);
+            _accessToken = data['accessToken'];
+            _refreshToken = data['refreshToken'];
+            _currentUser = null;
+            await fetchCurrentUser(forceRefresh: true);
+            notifyListeners();
+            print('Token refreshed successfully');
+            success = true;
+          }
+        } catch (e) {
+          print('JSON decode error during token refresh: $e');
+          print('Response body: ${response.body}');
+          _accessToken = null;
+          _refreshToken = null;
+          notifyListeners();
+          success = false;
+        }
+      } else {
+        _accessToken = null;
+        _refreshToken = null;
+        notifyListeners();
+        print('Failed to refresh token: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        success = false;
+      }
+
+      for (final completer in _refreshCompleters) {
+        completer.complete(success);
+      }
+      _refreshCompleters.clear();
+
+      return success;
+    } catch (e) {
       _accessToken = null;
       _refreshToken = null;
       notifyListeners();
+
+      for (final completer in _refreshCompleters) {
+        completer.complete(false);
+      }
+      _refreshCompleters.clear();
+
       return false;
+    } finally {
+      _isRefreshing = false;
     }
   }
 

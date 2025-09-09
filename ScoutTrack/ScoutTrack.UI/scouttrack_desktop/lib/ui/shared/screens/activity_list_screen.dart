@@ -91,27 +91,37 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final role = await authProvider.getUserRole();
-    final userId = await authProvider.getUserIdFromToken();
-
-    if (!mounted) return;
-    setState(() {
-      _role = role;
-      _loggedInUserId = userId;
-    });
-
     try {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = true;
+      });
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final activityTypeProvider = ActivityTypeProvider(authProvider);
       final troopProvider = TroopProvider(authProvider);
       final equipmentProvider = EquipmentProvider(authProvider);
-      var filter = {"RetrieveAll": true};
-      final activityTypeResult = await activityTypeProvider.get(filter: filter);
-      final troopResult = await troopProvider.get(filter: filter);
-      final equipmentResult = await equipmentProvider.get(filter: filter);
+
+      final futures = await Future.wait([
+        authProvider.getUserRole(),
+        authProvider.getUserIdFromToken(),
+        activityTypeProvider.get(filter: {"RetrieveAll": true}),
+        troopProvider.get(filter: {"RetrieveAll": true}),
+        equipmentProvider.get(filter: {"RetrieveAll": true}),
+      ]);
 
       if (!mounted) return;
+
+      final role = futures[0] as String;
+      final userId = futures[1] as int;
+      final activityTypeResult = futures[2] as SearchResult<ActivityType>;
+      final troopResult = futures[3] as SearchResult<Troop>;
+      final equipmentResult = futures[4] as SearchResult<Equipment>;
+
       setState(() {
+        _role = role;
+        _loggedInUserId = userId;
         _activityTypes = activityTypeResult.items ?? [];
         _troops = troopResult.items ?? [];
         _equipment = equipmentResult.items ?? [];
@@ -125,6 +135,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             _showOnlyMyActivities = false;
           }
         }
+        _loading = false;
       });
 
       if (!mounted) return;
@@ -135,6 +146,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           e.toString().contains("Niste autorizovani")) {
         setState(() {
           _error = "Sesija je istekla. Molimo prijavite se ponovo.";
+          _loading = false;
         });
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -143,6 +155,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       } else {
         setState(() {
           _error = e.toString();
+          _loading = false;
         });
       }
     }
@@ -595,7 +608,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             listen: false,
           );
 
-          // Check and refresh token if needed
           try {
             final token = authProvider.accessToken;
             if (token != null) {
@@ -655,20 +667,24 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           (eq) => eq?.id == result.id,
         );
         if (!alreadySelected) {
-          setState(() {
-            equipmentList.add(result.name);
-            selectedEquipment.add(result);
-            equipmentControllers.add(TextEditingController(text: result.name));
-            newlyAddedEquipmentIds.add(result.id);
-          });
+          if (mounted) {
+            setState(() {
+              equipmentList.add(result.name);
+              selectedEquipment.add(result);
+              equipmentControllers.add(
+                TextEditingController(text: result.name),
+              );
+              newlyAddedEquipmentIds.add(result.id);
+            });
 
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              setState(() {
-                newlyAddedEquipmentIds.remove(result.id);
-              });
-            }
-          });
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                setState(() {
+                  newlyAddedEquipmentIds.remove(result.id);
+                });
+              }
+            });
+          }
         } else {
           showCustomSnackbar(
             context,
@@ -1954,22 +1970,60 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   Widget _buildResultView() {
-    if (_loading && _activities == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Greška pri učitavanju: $_error',
-          style: const TextStyle(color: Colors.red),
+    if (_loading || _activities == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
         ),
       );
     }
-    if (_activities?.items?.isEmpty ?? true) {
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'Greška pri učitavanju: $_error',
+                style: TextStyle(color: Colors.red.shade700, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadInitialData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Pokušaj ponovo'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_activities!.items == null || _activities!.items!.isEmpty) {
       return const Center(
-        child: Text(
-          'Nema dostupnih aktivnosti',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.event_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'Nema dostupnih aktivnosti',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

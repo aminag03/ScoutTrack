@@ -14,6 +14,7 @@ ActivityType _$ActivityTypeFromJson(Map<String, dynamic> json) => ActivityType(
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
+  activityCount: (json['activityCount'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$ActivityTypeToJson(ActivityType instance) =>
@@ -23,4 +24,5 @@ Map<String, dynamic> _$ActivityTypeToJson(ActivityType instance) =>
       'description': instance.description,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'activityCount': instance.activityCount,
     };

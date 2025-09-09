@@ -5,6 +5,7 @@ import 'package:scouttrack_desktop/models/troop.dart';
 import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/models/activity_registration.dart';
 import 'package:scouttrack_desktop/models/member_badge.dart';
+import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
@@ -22,6 +23,7 @@ import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/badge_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_details_screen.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
 import 'package:scouttrack_desktop/models/badge.dart';
 import 'package:scouttrack_desktop/models/activity.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
@@ -54,6 +56,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     with TickerProviderStateMixin {
   late Member _member;
   bool _isLoading = false;
+  String? _error;
   late String _role;
   late int _loggedInUserId;
   List<City> _cities = [];
@@ -84,6 +87,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
   bool get isTroop => _role == 'Troop';
   bool get canEdit =>
       isAdmin || (isTroop && _loggedInUserId == _member.troopId);
+  bool get canChangePassword =>
+      isAdmin || (isTroop && _loggedInUserId == _member.troopId);
 
   @override
   void initState() {
@@ -104,6 +109,12 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
 
   Future<void> _loadInitialData() async {
     try {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = true;
+      });
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cityProvider = CityProvider(authProvider);
       final troopProvider = TroopProvider(authProvider);
@@ -112,27 +123,33 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       );
       final memberBadgeProvider = MemberBadgeProvider(authProvider);
 
-      var filter = {"RetrieveAll": true};
-      final cityResult = await cityProvider.get(filter: filter);
-      final troopResult = await troopProvider.get(filter: filter);
+      final futures = await Future.wait([
+        cityProvider.get(filter: {"RetrieveAll": true}),
+        troopProvider.get(filter: {"RetrieveAll": true}),
+        activityRegistrationProvider.get(
+          filter: {
+            "memberId": _member.id,
+            "page": 0,
+            "pageSize": _registrationsPageSize,
+            "includeTotalCount": true,
+          },
+        ),
+        memberBadgeProvider.get(
+          filter: {
+            "memberId": _member.id,
+            "page": 0,
+            "pageSize": _badgesPageSize,
+            "includeTotalCount": true,
+          },
+        ),
+      ]);
 
-      final registrationsFilter = {
-        "memberId": _member.id,
-        "page": 0,
-        "pageSize": _registrationsPageSize,
-        "includeTotalCount": true,
-      };
-      final registrationsResult = await activityRegistrationProvider.get(
-        filter: registrationsFilter,
-      );
+      if (!mounted) return;
 
-      final badgesFilter = {
-        "memberId": _member.id,
-        "page": 0,
-        "pageSize": _badgesPageSize,
-        "includeTotalCount": true,
-      };
-      final badgesResult = await memberBadgeProvider.get(filter: badgesFilter);
+      final cityResult = futures[0] as dynamic;
+      final troopResult = futures[1] as dynamic;
+      final registrationsResult = futures[2] as dynamic;
+      final badgesResult = futures[3] as dynamic;
 
       setState(() {
         _cities = cityResult.items ?? [];
@@ -141,8 +158,15 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
         _memberBadges = badgesResult.items ?? [];
         _totalRegistrations = registrationsResult.totalCount ?? 0;
         _totalBadges = badgesResult.totalCount ?? 0;
+        _isLoading = false;
       });
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
       if (context.mounted) showErrorSnackbar(context, e);
     }
   }
@@ -172,9 +196,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
 
     if (confirm != true) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final memberProvider = Provider.of<MemberProvider>(
@@ -183,9 +209,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       );
       final updatedMember = await memberProvider.activate(_member.id);
 
-      setState(() {
-        _member = updatedMember;
-      });
+      if (mounted) {
+        setState(() {
+          _member = updatedMember;
+        });
+      }
 
       if (context.mounted) {
         showSuccessSnackbar(
@@ -198,9 +226,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -738,6 +768,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     if (shouldSave == true && _selectedImageFile != null) {
       await _uploadImage(_selectedImageFile!);
     }
+
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageFile = null;
+    });
   }
 
   Future<void> _uploadImage(File imageFile) async {
@@ -757,9 +792,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
 
       final refreshedMember = await memberProvider.getById(_member.id);
 
-      setState(() {
-        _member = refreshedMember;
-      });
+      if (mounted) {
+        setState(() {
+          _member = refreshedMember;
+        });
+      }
 
       if (context.mounted) {
         showSuccessSnackbar(
@@ -770,10 +807,245 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
     } finally {
-      setState(() {
-        _isImageLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isImageLoading = false;
+        });
+      }
     }
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final oldPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    bool oldPasswordVisible = false;
+    bool newPasswordVisible = false;
+    bool confirmPasswordVisible = false;
+
+    final formKey = GlobalKey<FormState>();
+    String? generalError;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Promijeni lozinku'),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 500,
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (generalError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Column(
+                              children: [
+                                Text(
+                                  generalError!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                            ),
+                          ),
+                        if (!isAdmin && _loggedInUserId == _member.id) ...[
+                          TextFormField(
+                            controller: oldPassController,
+                            obscureText: !oldPasswordVisible,
+                            decoration: InputDecoration(
+                              labelText: 'Stara lozinka',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  oldPasswordVisible
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    oldPasswordVisible = !oldPasswordVisible;
+                                  });
+                                },
+                              ),
+                            ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Unesite staru lozinku'
+                                : null,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        TextFormField(
+                          controller: newPassController,
+                          obscureText: !newPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: 'Nova lozinka',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                newPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  newPasswordVisible = !newPasswordVisible;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Lozinka je obavezna.';
+                            }
+                            if (v.length < 8) {
+                              return 'Lozinka mora imati najmanje 8 znakova.';
+                            }
+                            if (!RegExp(
+                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
+                            ).hasMatch(v)) {
+                              return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                            }
+                            return null;
+                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: confirmPassController,
+                          obscureText: !confirmPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: 'Potvrdi lozinku',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                confirmPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  confirmPasswordVisible =
+                                      !confirmPasswordVisible;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (v) => v != newPassController.text
+                              ? 'Lozinke se ne poklapaju'
+                              : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Odustani'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      try {
+                        final provider = Provider.of<MemberProvider>(
+                          context,
+                          listen: false,
+                        );
+
+                        if (isAdmin || _loggedInUserId != _member.id) {
+                          await provider.adminChangePassword(_member.id, {
+                            'newPassword': newPassController.text,
+                            'confirmNewPassword': confirmPassController.text,
+                          });
+                        } else {
+                          await provider.changePassword(_member.id, {
+                            'oldPassword': oldPassController.text,
+                            'newPassword': newPassController.text,
+                            'confirmNewPassword': confirmPassController.text,
+                          });
+                        }
+
+                        if (context.mounted) {
+                          showSuccessSnackbar(
+                            context,
+                            (isAdmin || _loggedInUserId != _member.id)
+                                ? 'Lozinka je uspješno promijenjena.'
+                                : 'Lozinka promijenjena. Preusmjeravanje...',
+                          );
+
+                          if (_loggedInUserId == _member.id) {
+                            await Future.delayed(const Duration(seconds: 2));
+
+                            if (!context.mounted) return;
+
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
+                            await authProvider.logout();
+
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const LoginPage(),
+                              ),
+                              (route) => false,
+                            );
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          setState(() {
+                            final message = e.toString();
+                            if (message.contains(
+                              'Stara lozinka nije ispravna',
+                            )) {
+                              generalError = 'Stara lozinka nije ispravna.';
+                            } else if (message.contains(
+                              'Nova lozinka ne smije biti ista kao stara.',
+                            )) {
+                              generalError =
+                                  'Nova lozinka ne smije biti ista kao stara.';
+                            } else if (message.contains(
+                              'Lozinke se ne poklapaju',
+                            )) {
+                              generalError = 'Lozinke se ne poklapaju.';
+                            } else {
+                              generalError = message.replaceFirst(
+                                'Greška: ',
+                                '',
+                              );
+                            }
+                          });
+
+                          Future.delayed(const Duration(seconds: 4), () {
+                            if (context.mounted) {
+                              setState(() {
+                                generalError = null;
+                              });
+                            }
+                          });
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('Spremi'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   String _getTroopName(int? troopId) {
@@ -902,432 +1174,506 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       selectedMenu: widget.selectedMenu,
       role: _role,
       title: 'Član "${_member.firstName} ${_member.lastName}"',
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        trackVisibility: true,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Container(
-                width: screenWidth * 0.7,
-                margin: const EdgeInsets.symmetric(vertical: 20),
+      child: _isLoading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              trackVisibility: true,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Column(
-                          children: [
-                            Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: Colors.grey.shade300,
-                                  child:
-                                      _member.profilePictureUrl?.isNotEmpty ==
-                                          true
-                                      ? ClipOval(
-                                          child: Image.network(
-                                            _member.profilePictureUrl!,
-                                            width: 120,
-                                            height: 120,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                                  return const Icon(
-                                                    Icons.person,
-                                                    size: 50,
-                                                    color: Colors.white,
-                                                  );
-                                                },
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: Colors.white,
-                                        ),
-                                ),
-                                if (canEdit &&
-                                    _member.profilePictureUrl?.isNotEmpty ==
-                                        true &&
-                                    !_isImageLoading)
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text(
-                                              'Obriši profilnu fotografiju',
-                                            ),
-                                            content: const Text(
-                                              'Jeste li sigurni da želite obrisati profilnu fotografiju?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(false),
-                                                child: const Text('Odustani'),
+                    Container(
+                      width: screenWidth * 0.7,
+                      margin: const EdgeInsets.symmetric(vertical: 20),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Column(
+                                children: [
+                                  Stack(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 60,
+                                        backgroundColor: Colors.grey.shade300,
+                                        child:
+                                            _member
+                                                    .profilePictureUrl
+                                                    ?.isNotEmpty ==
+                                                true
+                                            ? ClipOval(
+                                                child: Image.network(
+                                                  _member.profilePictureUrl!,
+                                                  width: 120,
+                                                  height: 120,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) {
+                                                        return const Icon(
+                                                          Icons.person,
+                                                          size: 50,
+                                                          color: Colors.white,
+                                                        );
+                                                      },
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.person,
+                                                size: 50,
+                                                color: Colors.white,
                                               ),
-                                              TextButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(true),
-                                                child: const Text(
-                                                  'Obriši',
-                                                  style: TextStyle(
-                                                    color: Colors.red,
+                                      ),
+                                      if (canEdit &&
+                                          _member
+                                                  .profilePictureUrl
+                                                  ?.isNotEmpty ==
+                                              true &&
+                                          !_isImageLoading)
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: GestureDetector(
+                                            onTap: () async {
+                                              final confirm = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: const Text(
+                                                    'Obriši profilnu fotografiju',
                                                   ),
+                                                  content: const Text(
+                                                    'Jeste li sigurni da želite obrisati profilnu fotografiju?',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            context,
+                                                          ).pop(false),
+                                                      child: const Text(
+                                                        'Odustani',
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            context,
+                                                          ).pop(true),
+                                                      child: const Text(
+                                                        'Obriši',
+                                                        style: TextStyle(
+                                                          color: Colors.red,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+
+                                              if (confirm == true) {
+                                                try {
+                                                  setState(() {
+                                                    _isImageLoading = true;
+                                                  });
+
+                                                  final memberProvider =
+                                                      Provider.of<
+                                                        MemberProvider
+                                                      >(context, listen: false);
+                                                  await memberProvider
+                                                      .updateProfilePicture(
+                                                        _member.id,
+                                                        null,
+                                                      );
+
+                                                  final refreshedMember =
+                                                      await memberProvider
+                                                          .getById(_member.id);
+
+                                                  setState(() {
+                                                    _member = refreshedMember;
+                                                  });
+
+                                                  if (context.mounted) {
+                                                    showSuccessSnackbar(
+                                                      context,
+                                                      'Profilna fotografija je uspješno obrisana.',
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (context.mounted)
+                                                    showErrorSnackbar(
+                                                      context,
+                                                      e,
+                                                    );
+                                                } finally {
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isImageLoading = false;
+                                                    });
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 2,
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                        );
-
-                                        if (confirm == true) {
-                                          try {
-                                            setState(() {
-                                              _isImageLoading = true;
-                                            });
-
-                                            final memberProvider =
-                                                Provider.of<MemberProvider>(
-                                                  context,
-                                                  listen: false,
-                                                );
-                                            await memberProvider
-                                                .updateProfilePicture(
-                                                  _member.id,
-                                                  null,
-                                                );
-
-                                            final refreshedMember =
-                                                await memberProvider.getById(
-                                                  _member.id,
-                                                );
-
-                                            setState(() {
-                                              _member = refreshedMember;
-                                            });
-
-                                            if (context.mounted) {
-                                              showSuccessSnackbar(
-                                                context,
-                                                'Profilna fotografija je uspješno obrisana.',
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted)
-                                              showErrorSnackbar(context, e);
-                                          } finally {
-                                            setState(() {
-                                              _isImageLoading = false;
-                                            });
-                                          }
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
+                                              child: const Icon(
+                                                Icons.delete,
+                                                size: 16,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                        child: const Icon(
-                                          Icons.delete,
-                                          size: 16,
-                                          color: Colors.white,
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  if (canEdit)
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.image, size: 16),
+                                      label: const Text(
+                                        'Promijeni fotografiju',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(160, 40),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
                                         ),
                                       ),
+                                      onPressed: _showImagePickerDialog,
                                     ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (canEdit)
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.image, size: 16),
-                                label: const Text('Promijeni fotografiju'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(160, 40),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: _showImagePickerDialog,
+                                ],
                               ),
-                          ],
-                        ),
 
-                        const SizedBox(width: 40),
+                              const SizedBox(width: 40),
 
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${_member.firstName} ${_member.lastName}',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _member.cityName,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                UIComponents.buildInfoChip(
-                                  _member.gender == 0 ? 'Muški' : 'Ženski',
-                                  _member.gender == 0
-                                      ? Icons.male
-                                      : Icons.female,
-                                  color: _member.gender == 0
-                                      ? Colors.blue
-                                      : Colors.pink,
-                                ),
-                                const SizedBox(width: 16),
-                                UIComponents.buildInfoChip(
-                                  _member.isActive ? 'Aktivan' : 'Neaktivan',
-                                  _member.isActive
-                                      ? Icons.check_circle
-                                      : Icons.block,
-                                  color: _member.isActive
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(width: 40),
-
-                        if (canEdit)
-                          Column(
-                            children: [
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.edit, size: 20),
-                                label: const Text('Uredi podatke'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(180, 48),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${_member.firstName} ${_member.lastName}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                                onPressed: () async {
-                                  await _onEdit();
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                icon: Icon(
-                                  _member.isActive
-                                      ? Icons.block
-                                      : Icons.check_circle,
-                                ),
-                                label: Text(
-                                  _member.isActive
-                                      ? 'Deaktiviraj'
-                                      : 'Aktiviraj',
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(180, 48),
-                                  backgroundColor: _member.isActive
-                                      ? Colors.red
-                                      : Colors.green,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _member.cityName.isNotEmpty
+                                        ? _member.cityName
+                                        : '-',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(color: Colors.grey[600]),
                                   ),
-                                ),
-                                onPressed: _isLoading
-                                    ? null
-                                    : _toggleActivation,
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    children: [
+                                      UIComponents.buildInfoChip(
+                                        _member.gender == 0
+                                            ? 'Muški'
+                                            : 'Ženski',
+                                        _member.gender == 0
+                                            ? Icons.male
+                                            : Icons.female,
+                                        color: _member.gender == 0
+                                            ? Colors.blue
+                                            : Colors.pink,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      UIComponents.buildInfoChip(
+                                        _member.isActive
+                                            ? 'Aktivan'
+                                            : 'Neaktivan',
+                                        _member.isActive
+                                            ? Icons.check_circle
+                                            : Icons.block,
+                                        color: _member.isActive
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
+
+                              const SizedBox(width: 40),
+
+                              if (canEdit)
+                                Column(
+                                  children: [
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      label: const Text('Uredi podatke'),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(180, 48),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        await _onEdit();
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    if (canChangePassword)
+                                      ElevatedButton.icon(
+                                        icon: const Icon(
+                                          Icons.password,
+                                          size: 20,
+                                        ),
+                                        label: const Text('Promijeni lozinku'),
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(180, 48),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                        onPressed: _showChangePasswordDialog,
+                                      ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      icon: Icon(
+                                        _member.isActive
+                                            ? Icons.block
+                                            : Icons.check_circle,
+                                      ),
+                                      label: Text(
+                                        _member.isActive
+                                            ? 'Deaktiviraj'
+                                            : 'Aktiviraj',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(180, 48),
+                                        backgroundColor: _member.isActive
+                                            ? Colors.red
+                                            : Colors.green,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      onPressed: _isLoading
+                                          ? null
+                                          : _toggleActivation,
+                                    ),
+                                  ],
+                                ),
                             ],
                           ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              UIComponents.buildDetailSection('Lični podaci', [
+                                UIComponents.buildDetailRow(
+                                  'Ime',
+                                  _member.firstName.isNotEmpty
+                                      ? _member.firstName
+                                      : '-',
+                                  Icons.person,
+                                ),
+                                UIComponents.buildDetailRow(
+                                  'Prezime',
+                                  _member.lastName.isNotEmpty
+                                      ? _member.lastName
+                                      : '-',
+                                  Icons.person,
+                                ),
+                                UIComponents.buildDetailRow(
+                                  'Korisničko ime',
+                                  _member.username.isNotEmpty
+                                      ? _member.username
+                                      : '-',
+                                  Icons.account_circle,
+                                ),
+                                UIComponents.buildDetailRow(
+                                  'Datum rođenja',
+                                  _member.birthDate != null
+                                      ? formatDate(_member.birthDate!)
+                                      : '-',
+                                  Icons.calendar_today,
+                                ),
+                              ]),
+
+                              const SizedBox(height: 30),
+
+                              UIComponents.buildDetailSection(
+                                'Kontakt informacije',
+                                [
+                                  UIComponents.buildDetailRow(
+                                    'E-mail',
+                                    _member.email.isNotEmpty
+                                        ? _member.email
+                                        : '-',
+                                    Icons.email,
+                                  ),
+                                  UIComponents.buildDetailRow(
+                                    'Telefon',
+                                    _member.contactPhone.isNotEmpty
+                                        ? _member.contactPhone
+                                        : '-',
+                                    Icons.phone,
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 30),
+
+                              UIComponents.buildDetailSection('Pripadnost', [
+                                UIComponents.buildDetailRow(
+                                  'Grad',
+                                  _member.cityName.isNotEmpty
+                                      ? _member.cityName
+                                      : '-',
+                                  Icons.location_city,
+                                ),
+                                _buildClickableTroopRow(),
+                              ]),
+
+                              const SizedBox(height: 30),
+                              if (canEdit)
+                                UIComponents.buildDetailSection(
+                                  'Sistem informacije',
+                                  [
+                                    UIComponents.buildDetailRow(
+                                      'Kreiran',
+                                      formatDateTime(_member.createdAt),
+                                    ),
+                                    if (_member.updatedAt != null)
+                                      UIComponents.buildDetailRow(
+                                        'Izmijenjen',
+                                        formatDateTime(_member.updatedAt!),
+                                      ),
+                                    if (_member.lastLoginAt != null)
+                                      UIComponents.buildDetailRow(
+                                        'Zadnja prijava',
+                                        formatDateTime(_member.lastLoginAt!),
+                                      ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 40),
+
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              minHeight: 500,
+                              maxHeight: 800,
+                            ),
+                            padding: const EdgeInsets.all(24.0),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: _tabController.length == 2
+                                ? Column(
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(8),
+                                            topRight: Radius.circular(8),
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.grey.withOpacity(
+                                                0.1,
+                                              ),
+                                              spreadRadius: 1,
+                                              blurRadius: 3,
+                                              offset: const Offset(0, -1),
+                                            ),
+                                          ],
+                                        ),
+                                        child: TabBar(
+                                          controller: _tabController,
+                                          labelColor: const Color(0xFF4F8055),
+                                          unselectedLabelColor: Colors.grey,
+                                          indicatorColor: const Color(
+                                            0xFF4F8055,
+                                          ),
+                                          indicatorWeight: 3,
+                                          labelStyle: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                          unselectedLabelStyle: const TextStyle(
+                                            fontWeight: FontWeight.normal,
+                                            fontSize: 14,
+                                          ),
+                                          tabs: const [
+                                            Tab(text: 'Registracije'),
+                                            Tab(text: 'Vještarstva'),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Expanded(
+                                        child: TabBarView(
+                                          controller: _tabController,
+                                          children: [
+                                            _buildRegistrationsTab(),
+                                            _buildBadgesTab(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 40),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        UIComponents.buildDetailSection('Lični podaci', [
-                          UIComponents.buildDetailRow(
-                            'Ime',
-                            _member.firstName,
-                            Icons.person,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Prezime',
-                            _member.lastName,
-                            Icons.person,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Korisničko ime',
-                            _member.username,
-                            Icons.account_circle,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Datum rođenja',
-                            formatDate(_member.birthDate),
-                            Icons.calendar_today,
-                          ),
-                        ]),
-
-                        const SizedBox(height: 30),
-
-                        UIComponents.buildDetailSection('Kontakt informacije', [
-                          UIComponents.buildDetailRow(
-                            'E-mail',
-                            _member.email,
-                            Icons.email,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Telefon',
-                            _member.contactPhone,
-                            Icons.phone,
-                          ),
-                        ]),
-
-                        const SizedBox(height: 30),
-
-                        UIComponents.buildDetailSection('Pripadnost', [
-                          UIComponents.buildDetailRow(
-                            'Grad',
-                            _member.cityName,
-                            Icons.location_city,
-                          ),
-                          _buildClickableTroopRow(),
-                        ]),
-
-                        const SizedBox(height: 30),
-                        if (canEdit)
-                          UIComponents.buildDetailSection(
-                            'Sistem informacije',
-                            [
-                              UIComponents.buildDetailRow(
-                                'Kreiran',
-                                formatDateTime(_member.createdAt),
-                              ),
-                              if (_member.updatedAt != null)
-                                UIComponents.buildDetailRow(
-                                  'Izmijenjen',
-                                  formatDateTime(_member.updatedAt!),
-                                ),
-                              if (_member.lastLoginAt != null)
-                                UIComponents.buildDetailRow(
-                                  'Zadnja prijava',
-                                  formatDateTime(_member.lastLoginAt!),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 40),
-
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        minHeight: 500,
-                        maxHeight: 800,
-                      ),
-                      padding: const EdgeInsets.all(24.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _tabController.length == 2
-                          ? Column(
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(8),
-                                      topRight: Radius.circular(8),
-                                    ),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        spreadRadius: 1,
-                                        blurRadius: 3,
-                                        offset: const Offset(0, -1),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TabBar(
-                                    controller: _tabController,
-                                    labelColor: const Color(0xFF4F8055),
-                                    unselectedLabelColor: Colors.grey,
-                                    indicatorColor: const Color(0xFF4F8055),
-                                    indicatorWeight: 3,
-                                    labelStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    unselectedLabelStyle: const TextStyle(
-                                      fontWeight: FontWeight.normal,
-                                      fontSize: 14,
-                                    ),
-                                    tabs: const [
-                                      Tab(text: 'Registracije'),
-                                      Tab(text: 'Vještarstva'),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Expanded(
-                                  child: TabBarView(
-                                    controller: _tabController,
-                                    children: [
-                                      _buildRegistrationsTab(),
-                                      _buildBadgesTab(),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            )
-                          : const Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

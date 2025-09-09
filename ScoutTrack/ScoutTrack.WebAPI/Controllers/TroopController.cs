@@ -87,6 +87,16 @@ namespace ScoutTrack.WebAPI.Controllers
             return Ok(result);
         }
 
+        [HttpPatch("{id}/admin-change-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminChangePassword(int id, [FromBody] AdminChangePasswordRequest request)
+        {
+            var result = await _troopService.AdminChangePasswordAsync(id, request);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
+        }
+
         [HttpPost("{id}/update-logo")]
         [Authorize(Roles = "Admin,Troop")]
         public async Task<IActionResult> UpdateLogo(int id, [FromForm] ImageUploadRequest? request, [FromServices] IWebHostEnvironment env)

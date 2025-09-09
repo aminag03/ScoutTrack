@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/login_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/admin_home_screen.dart';
+import 'package:scouttrack_desktop/ui/troop/screens/troop_home_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/troop_provider.dart';
 import 'providers/admin_provider.dart';
@@ -14,11 +16,16 @@ import 'providers/badge_requirement_provider.dart';
 import 'providers/member_badge_provider.dart';
 import 'providers/member_badge_progress_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final authProvider = AuthProvider();
+  await authProvider.initialize();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => authProvider),
         ChangeNotifierProxyProvider<AuthProvider, TroopProvider>(
           create: (context) =>
               TroopProvider(Provider.of<AuthProvider>(context, listen: false)),
@@ -125,7 +132,47 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const LoginPage(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        if (authProvider.isLoggedIn) {
+          // User is logged in, determine which screen to show based on role
+          return FutureBuilder<String?>(
+            future: authProvider.getUserRole(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final role = snapshot.data;
+              final username = authProvider.username ?? '';
+
+              if (role == 'Admin') {
+                return AdminHomePage(username: username);
+              } else if (role == 'Troop') {
+                return TroopHomePage(username: username);
+              } else {
+                // Unknown role, show login
+                return const LoginPage();
+              }
+            },
+          );
+        } else {
+          // User is not logged in, show login screen
+          return const LoginPage();
+        }
+      },
     );
   }
 }

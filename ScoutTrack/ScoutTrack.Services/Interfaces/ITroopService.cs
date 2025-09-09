@@ -10,6 +10,7 @@ namespace ScoutTrack.Services.Interfaces
     {
         Task<TroopResponse?> DeActivateAsync(int id);
         Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request);
+        Task<bool?> AdminChangePasswordAsync(int id, AdminChangePasswordRequest request);
         Task<TroopResponse?> UpdateLogoAsync(int id, string logoUrl);
     }
 } 

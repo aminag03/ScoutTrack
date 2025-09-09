@@ -32,11 +32,20 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       final response = await http.get(Uri.parse(url), headers: headers);
 
       if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return SearchResult<T>(
-          totalCount: data['totalCount'],
-          items: List<T>.from(data['items'].map((e) => fromJson(e))),
-        );
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return SearchResult<T>(
+            totalCount: data['totalCount'],
+            items: List<T>.from(data['items'].map((e) => fromJson(e))),
+          );
+        } catch (e) {
+          print('JSON decode error in get(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
       } else {
         throw Exception("Nepoznata greška.");
       }
@@ -52,8 +61,17 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       );
 
       if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return fromJson(data);
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return fromJson(data);
+        } catch (e) {
+          print('JSON decode error in getById(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
       } else {
         throw Exception("Greška: Neuspješno dohvaćanje podataka.");
       }
@@ -70,8 +88,17 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       );
 
       if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return fromJson(data);
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return fromJson(data);
+        } catch (e) {
+          print('JSON decode error in insert(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
       } else {
         throw Exception("Nepoznata greška.");
       }
@@ -88,8 +115,17 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       );
 
       if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return fromJson(data);
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return fromJson(data);
+        } catch (e) {
+          print('JSON decode error in update(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
       } else {
         throw Exception("Unknown error");
       }
@@ -296,9 +332,13 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           if (success) {
             return await requestFn();
           } else {
-            throw Exception("Greška: Token nije moguće osvježiti.");
+            await authProvider!.logout();
+            throw Exception(
+              "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
+            );
           }
         } catch (refreshError) {
+          await authProvider!.logout();
           throw Exception(
             "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
           );

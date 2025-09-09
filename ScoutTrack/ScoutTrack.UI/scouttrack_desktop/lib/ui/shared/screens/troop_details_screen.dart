@@ -136,14 +136,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _troop.isActive
-                  ? 'Odred je uspješno aktiviran.'
-                  : 'Odred je uspješno deaktiviran.',
-            ),
-          ),
+        showSuccessSnackbar(
+          context,
+          _troop.isActive
+              ? 'Odred je uspješno aktiviran.'
+              : 'Odred je uspješno deaktiviran.',
         );
       }
     } catch (e) {
@@ -563,12 +560,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   isUpdated = true;
 
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Odred "${refreshedTroop.name}" je ažuriran.',
-                                        ),
-                                      ),
+                                    showSuccessSnackbar(
+                                      context,
+                                      'Odred "${refreshedTroop.name}" je ažuriran.',
                                     );
                                   }
 
@@ -637,7 +631,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Promijeni lozinku'),
+              title: Text('Promijeni lozinku'),
               content: SingleChildScrollView(
                 child: SizedBox(
                   width: 500,
@@ -659,30 +653,33 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               ],
                             ),
                           ),
-                        TextFormField(
-                          controller: oldPassController,
-                          obscureText: !oldPasswordVisible,
-                          decoration: InputDecoration(
-                            labelText: 'Stara lozinka',
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                oldPasswordVisible
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
+                        if (!isAdmin) ...[
+                          TextFormField(
+                            controller: oldPassController,
+                            obscureText: !oldPasswordVisible,
+                            decoration: InputDecoration(
+                              labelText: 'Stara lozinka',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  oldPasswordVisible
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    oldPasswordVisible = !oldPasswordVisible;
+                                  });
+                                },
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  oldPasswordVisible = !oldPasswordVisible;
-                                });
-                              },
                             ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Unesite staru lozinku'
+                                : null,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
                           ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Unesite staru lozinku'
-                              : null,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                        const SizedBox(height: 8),
+                          const SizedBox(height: 8),
+                        ],
                         TextFormField(
                           controller: newPassController,
                           obscureText: !newPasswordVisible,
@@ -757,37 +754,47 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                           context,
                           listen: false,
                         );
-                        await provider.changePassword(_troop.id, {
-                          'oldPassword': oldPassController.text,
-                          'newPassword': newPassController.text,
-                          'confirmNewPassword': confirmPassController.text,
-                        });
+                        if (isAdmin) {
+                          await provider.adminChangePassword(_troop.id, {
+                            'newPassword': newPassController.text,
+                            'confirmNewPassword': confirmPassController.text,
+                          });
+                        } else {
+                          await provider.changePassword(_troop.id, {
+                            'oldPassword': oldPassController.text,
+                            'newPassword': newPassController.text,
+                            'confirmNewPassword': confirmPassController.text,
+                          });
+                        }
 
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Lozinka promijenjena. Preusmjeravanje...',
-                              ),
-                            ),
-                          );
-
-                          await Future.delayed(const Duration(seconds: 2));
-
-                          if (!context.mounted) return;
-
-                          final authProvider = Provider.of<AuthProvider>(
+                          showSuccessSnackbar(
                             context,
-                            listen: false,
+                            isAdmin
+                                ? 'Lozinka je uspješno promijenjena.'
+                                : 'Lozinka promijenjena. Preusmjeravanje...',
                           );
-                          await authProvider.logout();
 
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) => const LoginPage(),
-                            ),
-                            (route) => false,
-                          );
+                          if (!isAdmin) {
+                            await Future.delayed(const Duration(seconds: 2));
+
+                            if (!context.mounted) return;
+
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
+                            await authProvider.logout();
+
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const LoginPage(),
+                              ),
+                              (route) => false,
+                            );
+                          } else {
+                            Navigator.of(context).pop();
+                          }
                         }
                       } catch (e) {
                         if (context.mounted) {
@@ -833,10 +840,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         );
       },
     );
-
-    oldPassController.dispose();
-    newPassController.dispose();
-    confirmPassController.dispose();
   }
 
   Future<void> _showImagePickerDialog() async {
@@ -845,7 +848,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Promijeni sliku odreda'),
+            title: const Text('Promijeni logo odreda'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -858,10 +861,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                           width: 200,
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(100),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(100),
                             child: _selectedImageBytes != null
                                 ? Image.memory(
                                     _selectedImageBytes!,
@@ -894,7 +897,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                       width: 200,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(100),
                       ),
                       child: Center(
                         child: Icon(
@@ -928,7 +931,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                         });
                       }
                     },
-                    child: const Text('Odaberi sliku'),
+                    child: const Text('Odaberi fotografiju'),
                   ),
                 ],
               ),
@@ -963,6 +966,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     if (shouldSave == true && _selectedImageFile != null) {
       await _uploadImage(_selectedImageFile!);
     }
+
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageFile = null;
+    });
   }
 
   Future<void> _uploadImage(File imageFile) async {
@@ -984,9 +992,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       });
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Slika je uspješno promijenjena.')),
-        );
+        showSuccessSnackbar(context, 'Slika je uspješno promijenjena.');
       }
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
@@ -1116,14 +1122,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                             });
 
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(
+                                              showSuccessSnackbar(
                                                 context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Logo je uspješno obrisan.',
-                                                  ),
-                                                ),
+                                                'Logo je uspješno obrisan.',
                                               );
                                             }
                                           } catch (e) {
@@ -1160,7 +1161,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             if (isAdmin || isViewingOwnProfile)
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.image, size: 16),
-                                label: const Text('Promijeni sliku'),
+                                label: const Text('Promijeni logo'),
                                 style: ElevatedButton.styleFrom(
                                   minimumSize: const Size(160, 40),
                                   padding: const EdgeInsets.symmetric(
@@ -1185,7 +1186,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _troop.cityName,
+                              _troop.cityName.isNotEmpty
+                                  ? _troop.cityName
+                                  : '-',
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.grey[600]),
                             ),
@@ -1231,7 +1234,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                 },
                               ),
                               const SizedBox(height: 16),
-                              if (isViewingOwnProfile)
+                              if (isAdmin || isViewingOwnProfile)
                                 ElevatedButton.icon(
                                   icon: const Icon(Icons.password, size: 20),
                                   label: const Text('Promijeni lozinku'),
@@ -1244,31 +1247,35 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   ),
                                   onPressed: _showChangePasswordDialog,
                                 ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                icon: Icon(
-                                  _troop.isActive
-                                      ? Icons.block
-                                      : Icons.check_circle,
-                                ),
-                                label: Text(
-                                  _troop.isActive ? 'Deaktiviraj' : 'Aktiviraj',
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(180, 48),
-                                  backgroundColor: _troop.isActive
-                                      ? Colors.red
-                                      : Colors.green,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                              if (isAdmin) ...[
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  icon: Icon(
+                                    _troop.isActive
+                                        ? Icons.block
+                                        : Icons.check_circle,
                                   ),
+                                  label: Text(
+                                    _troop.isActive
+                                        ? 'Deaktiviraj'
+                                        : 'Aktiviraj',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(180, 48),
+                                    backgroundColor: _troop.isActive
+                                        ? Colors.red
+                                        : Colors.green,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onPressed: _isLoading
+                                      ? null
+                                      : _toggleActivation,
                                 ),
-                                onPressed: _isLoading
-                                    ? null
-                                    : _toggleActivation,
-                              ),
+                              ],
                             ],
                           ),
                       ],
@@ -1290,32 +1297,40 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                         UIComponents.buildDetailSection('Kontakt informacije', [
                           UIComponents.buildDetailRow(
                             'E-mail',
-                            _troop.email,
+                            _troop.email.isNotEmpty ? _troop.email : '-',
                             Icons.email,
                           ),
                           UIComponents.buildDetailRow(
                             'Telefon',
-                            _troop.contactPhone,
+                            _troop.contactPhone.isNotEmpty
+                                ? _troop.contactPhone
+                                : '-',
                             Icons.phone,
                           ),
                           UIComponents.buildDetailRow(
                             'Korisničko ime',
-                            _troop.username,
+                            _troop.username.isNotEmpty ? _troop.username : '-',
                             Icons.person,
                           ),
                           UIComponents.buildDetailRow(
                             'Starješina',
-                            _troop.scoutMaster,
+                            _troop.scoutMaster.isNotEmpty
+                                ? _troop.scoutMaster
+                                : '-',
                             Icons.person,
                           ),
                           UIComponents.buildDetailRow(
                             'Načelnik',
-                            _troop.troopLeader,
+                            _troop.troopLeader.isNotEmpty
+                                ? _troop.troopLeader
+                                : '-',
                             Icons.person,
                           ),
                           UIComponents.buildDetailRow(
                             'Datum osnivanja',
-                            formatDate(_troop.foundingDate),
+                            _troop.foundingDate != null
+                                ? formatDate(_troop.foundingDate!)
+                                : '-',
                             Icons.calendar_today,
                           ),
                         ]),

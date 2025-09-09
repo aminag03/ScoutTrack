@@ -15,7 +15,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
 
   Future<Troop> activate(int id) async {
     return await handleWithRefresh(() async {
-      final uri = Uri.parse("${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/de-activate");
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/de-activate",
+      );
       final headers = await createHeaders();
 
       final response = await http.patch(uri, headers: headers);
@@ -30,7 +32,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
 
   Future<void> changePassword(int id, Map<String, String> request) async {
     await handleWithRefresh(() async {
-      final uri = Uri.parse("${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/change-password");
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/change-password",
+      );
       final headers = await createHeaders();
 
       final response = await http.patch(
@@ -45,7 +49,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
           final errors = error['errors'];
           String errorMessage = 'Greška pri promjeni lozinke';
 
-          if (errors != null && errors['userError'] is List && errors['userError'].isNotEmpty) {
+          if (errors != null &&
+              errors['userError'] is List &&
+              errors['userError'].isNotEmpty) {
             errorMessage = errors['userError'][0];
           } else if (error['title'] != null) {
             errorMessage = error['title'];
@@ -53,14 +59,67 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
 
           if (errorMessage == 'Old password is not valid.') {
             throw Exception('Stara lozinka nije ispravna.');
-          } else if (errorMessage == 'New password cannot be same as old password.') {
+          } else if (errorMessage ==
+              'New password cannot be same as old password.') {
             throw Exception('Nova lozinka ne smije biti ista kao stara.');
-          } else if (errorMessage == 'New password must have at least 8 characters.') {
+          } else if (errorMessage ==
+              'New password must have at least 8 characters.') {
             throw Exception('Nova lozinka mora imati najmanje 8 karaktera.');
-          } else if (errorMessage == 'New password and confirmation do not match.') {
+          } else if (errorMessage ==
+              'New password and confirmation do not match.') {
             throw Exception('Nova lozinka i potvrda se ne poklapaju.');
           } else if (errorMessage.contains('Password must contain')) {
-            throw Exception('Lozinka mora sadržavati veliko i malo slovo, broj i specijalan znak.');
+            throw Exception(
+              'Lozinka mora sadržavati veliko i malo slovo, broj i specijalan znak.',
+            );
+          }
+
+          throw Exception(errorMessage);
+        } catch (e) {
+          throw Exception(e.toString().replaceFirst('Exception: ', '').trim());
+        }
+      }
+    });
+  }
+
+  Future<void> adminChangePassword(int id, Map<String, String> request) async {
+    await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/admin-change-password",
+      );
+      final headers = await createHeaders();
+
+      final response = await http.patch(
+        uri,
+        headers: headers,
+        body: jsonEncode(request),
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          final errors = error['errors'];
+          String errorMessage = 'Greška pri promjeni lozinke';
+
+          if (errors != null &&
+              errors['userError'] is List &&
+              errors['userError'].isNotEmpty) {
+            errorMessage = errors['userError'][0];
+          } else if (error['title'] != null) {
+            errorMessage = error['title'];
+          }
+
+          if (errorMessage == 'New password must have at least 8 characters.') {
+            throw Exception('Nova lozinka mora imati najmanje 8 karaktera.');
+          } else if (errorMessage ==
+              'New password and confirmation do not match.') {
+            throw Exception('Nova lozinka i potvrda se ne poklapaju.');
+          } else if (errorMessage.contains('Password must contain')) {
+            throw Exception(
+              'Lozinka mora sadržavati veliko i malo slovo, broj i specijalan znak.',
+            );
           }
 
           throw Exception(errorMessage);
@@ -73,7 +132,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
 
   Future<Troop> updateLogo(int troopId, File? imageFile) async {
     return await handleWithRefresh(() async {
-      final uri = Uri.parse("${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$troopId/update-logo");
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$troopId/update-logo",
+      );
 
       if (imageFile == null) {
         final response = await http.post(
@@ -91,7 +152,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
       } else {
         final request = http.MultipartRequest('POST', uri)
           ..headers['Authorization'] = 'Bearer ${authProvider?.accessToken}'
-          ..files.add(await http.MultipartFile.fromPath('Image', imageFile.path));
+          ..files.add(
+            await http.MultipartFile.fromPath('Image', imageFile.path),
+          );
 
         final response = await request.send();
 
@@ -107,7 +170,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
         } else {
           final body = await response.stream.bytesToString();
           final error = jsonDecode(body);
-          throw Exception(error['title'] ?? 'Greška prilikom učitavanja slike.');
+          throw Exception(
+            error['title'] ?? 'Greška prilikom učitavanja slike.',
+          );
         }
       }
     });

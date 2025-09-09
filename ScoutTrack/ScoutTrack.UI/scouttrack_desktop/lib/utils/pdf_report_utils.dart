@@ -480,7 +480,7 @@ class PdfReportUtils {
 
   static pw.Widget _buildActivityTypeTable(List<ActivityType> activityTypes) {
     return pw.Table.fromTextArray(
-      headers: ['Naziv', 'Opis', 'Vrijeme kreiranja'],
+      headers: ['Naziv', 'Opis', 'Broj aktivnosti', 'Vrijeme kreiranja'],
       data: activityTypes
           .map(
             (type) => [
@@ -488,6 +488,7 @@ class PdfReportUtils {
               _convertToAscii(
                 type.description.isNotEmpty ? type.description : '-',
               ),
+              '${type.activityCount}',
               formatDateTime(type.createdAt),
             ],
           )
@@ -509,22 +510,26 @@ class PdfReportUtils {
         0: const pw.FixedColumnWidth(120),
         1: const pw.FixedColumnWidth(200),
         2: const pw.FixedColumnWidth(100),
+        3: const pw.FixedColumnWidth(100),
       },
       cellAlignments: {
         0: pw.Alignment.centerLeft,
         1: pw.Alignment.centerLeft,
         2: pw.Alignment.center,
+        3: pw.Alignment.center,
       },
     );
   }
 
   static pw.Widget _buildCityTable(List<City> cities) {
     return pw.Table.fromTextArray(
-      headers: ['Naziv', 'Vrijeme kreiranja'],
+      headers: ['Naziv', 'Broj odreda', 'Broj clanova', 'Vrijeme kreiranja'],
       data: cities
           .map(
             (city) => [
               _convertToAscii(city.name),
+              '${city.troopCount}',
+              '${city.memberCount}',
               formatDateTime(city.createdAt),
             ],
           )
@@ -545,8 +550,15 @@ class PdfReportUtils {
       columnWidths: {
         0: const pw.FixedColumnWidth(200),
         1: const pw.FixedColumnWidth(100),
+        2: const pw.FixedColumnWidth(100),
+        3: const pw.FixedColumnWidth(100),
       },
-      cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.center},
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.center,
+        2: pw.Alignment.center,
+        3: pw.Alignment.center,
+      },
     );
   }
 

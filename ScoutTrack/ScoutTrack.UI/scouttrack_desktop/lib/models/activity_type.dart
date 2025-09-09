@@ -9,6 +9,7 @@ class ActivityType {
   final String description;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final int activityCount;
 
   ActivityType({
     this.id = 0,
@@ -16,6 +17,7 @@ class ActivityType {
     this.description = '',
     required this.createdAt,
     this.updatedAt,
+    this.activityCount = 0,
   });
 
   factory ActivityType.fromJson(Map<String, dynamic> json) =>

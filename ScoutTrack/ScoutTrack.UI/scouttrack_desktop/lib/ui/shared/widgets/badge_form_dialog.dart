@@ -87,9 +87,7 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
           imageUrl: finalImageUrl,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vještarstvo je uspješno kreirano')),
-          );
+          showSuccessSnackbar(context, 'Vještarstvo je uspješno kreirano');
         }
       } else {
         // Update existing badge
@@ -100,9 +98,7 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
           imageUrl: finalImageUrl,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vještarstvo je uspješno ažurirano')),
-          );
+          showSuccessSnackbar(context, 'Vještarstvo je uspješno ažurirano');
         }
       }
 

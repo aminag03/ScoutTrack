@@ -62,5 +62,75 @@ namespace ScoutTrack.Services
             if (hasTroops || hasMembers)
                 throw new UserException("Cannot delete city: it is referenced by one or more Troops or Members.");
         }
+
+        public override async Task<PagedResult<CityResponse>> GetAsync(CitySearchObject search)
+        {
+            var baseQuery = _context.Set<City>().AsQueryable();
+            baseQuery = ApplyFilter(baseQuery, search);
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await baseQuery.CountAsync();
+            }
+
+            var entities = await baseQuery.ToListAsync();
+
+            var responseList = entities.Select(c => new CityResponse
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Latitude = c.Latitude,
+                Longitude = c.Longitude,
+                CreatedAt = c.CreatedAt,
+                UpdatedAt = c.UpdatedAt,
+                TroopCount = _context.Troops.Count(t => t.CityId == c.Id),
+                MemberCount = _context.Members.Count(m => m.CityId == c.Id)
+            }).ToList();
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                var orderBy = search.OrderBy.ToLower();
+                var descending = orderBy.StartsWith("-");
+                if (descending)
+                {
+                    orderBy = orderBy.Substring(1);
+                }
+
+                responseList = orderBy switch
+                {
+                    "name" => descending
+                        ? responseList.OrderByDescending(x => x.Name).ToList()
+                        : responseList.OrderBy(x => x.Name).ToList(),
+                    "createdat" => descending
+                        ? responseList.OrderByDescending(x => x.CreatedAt).ToList()
+                        : responseList.OrderBy(x => x.CreatedAt).ToList(),
+                    "updatedat" => descending
+                        ? responseList.OrderByDescending(x => x.UpdatedAt).ToList()
+                        : responseList.OrderBy(x => x.UpdatedAt).ToList(),
+                    "troopcount" => descending
+                        ? responseList.OrderByDescending(x => x.TroopCount).ToList()
+                        : responseList.OrderBy(x => x.TroopCount).ToList(),
+                    "membercount" => descending
+                        ? responseList.OrderByDescending(x => x.MemberCount).ToList()
+                        : responseList.OrderBy(x => x.MemberCount).ToList(),
+                    _ => responseList
+                };
+            }
+
+            if (!search.RetrieveAll && search.Page.HasValue && search.PageSize.HasValue)
+            {
+                responseList = responseList
+                    .Skip(search.Page.Value * search.PageSize.Value)
+                    .Take(search.PageSize.Value)
+                    .ToList();
+            }
+
+            return new PagedResult<CityResponse>
+            {
+                Items = responseList,
+                TotalCount = totalCount
+            };
+        }
     }
 } 

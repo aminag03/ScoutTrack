@@ -393,12 +393,6 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
         );
       },
     );
-
-    if (result != null || !mounted) {
-      oldPassController.dispose();
-      newPassController.dispose();
-      confirmPassController.dispose();
-    }
   }
 
   @override

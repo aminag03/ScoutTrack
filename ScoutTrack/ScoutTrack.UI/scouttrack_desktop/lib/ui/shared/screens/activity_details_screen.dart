@@ -359,13 +359,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               'Galerija je trenutno nedostupna. Pokušajte ponovo kasnije.';
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        showErrorSnackbar(context, errorMessage);
       }
     }
   }
@@ -1328,11 +1322,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Odobri'),
           ),
         ],
@@ -1346,13 +1346,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           await _refreshActivity();
         }
         await _loadRegistrations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Registracija za ${registration.memberName} je odobrena.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Registracija za ${registration.memberName} je odobrena.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -1371,11 +1367,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Odbij'),
           ),
         ],
@@ -1389,13 +1391,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           await _refreshActivity();
         }
         await _loadRegistrations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Registracija za ${registration.memberName} je odbijena.',
-            ),
-            backgroundColor: Colors.red,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Registracija za ${registration.memberName} je odbijena.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -1416,11 +1414,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Završi'),
           ),
         ],
@@ -1434,13 +1438,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           await _refreshActivity();
         }
         await _loadRegistrations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Registracija za ${registration.memberName} je označena kao završena.',
-            ),
-            backgroundColor: Colors.blue,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Registracija za ${registration.memberName} je označena kao završena.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -1460,11 +1460,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Obriši'),
           ),
         ],
@@ -1478,13 +1484,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           await _refreshActivity();
         }
         await _loadRegistrations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Registracija za ${registration.memberName} je obrisana.',
-            ),
-            backgroundColor: Colors.red,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Registracija za ${registration.memberName} je obrisana.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -1844,11 +1846,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Obriši'),
           ),
         ],
@@ -1859,11 +1867,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       try {
         await _reviewProvider.delete(review.id);
         await _loadReviews();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Recenzija od ${review.memberName} je obrisana.'),
-            backgroundColor: Colors.red,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Recenzija od ${review.memberName} je obrisana.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -2112,11 +2118,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Zatvori registracije'),
           ),
         ],
@@ -2132,13 +2144,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           _activity = updatedActivity;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registracije su zatvorene. Aktivnost je sada u fazi zatvorenih registracija.',
-            ),
-            backgroundColor: Colors.orange,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Registracije su zatvorene. Aktivnost je sada u fazi zatvorenih registracija.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -2170,11 +2178,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otvori registracije'),
           ),
         ],
@@ -2188,13 +2202,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           _activity = updatedActivity;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Aktivnost je aktivirana. Registracije su sada otvorene.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Aktivnost je aktivirana. Registracije su sada otvorene.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -2227,11 +2237,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Završi aktivnost'),
           ),
         ],
@@ -2248,13 +2264,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         await _refreshActivity();
         await _loadRegistrations();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Aktivnost je završena. Sada možete dodavati recenzije i fotografije.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showSuccessSnackbar(
+          context,
+          'Aktivnost je završena. Sada možete dodavati recenzije i fotografije.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -2290,11 +2302,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži aktivnost'),
           ),
         ],
@@ -2310,12 +2328,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           _activity = updatedActivity;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Aktivnost je otkazana.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSuccessSnackbar(context, 'Aktivnost je otkazana.');
       } catch (e) {
         showErrorSnackbar(context, e);
       }
@@ -2341,6 +2354,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
@@ -2349,6 +2365,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               backgroundColor: _activity?.isPrivate == true
                   ? Colors.blue
                   : Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text(
               _activity?.isPrivate == true ? 'Učini javnom' : 'Učini privatnom',
@@ -2367,17 +2384,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           _activity = updatedActivity;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _activity?.isPrivate == true
-                  ? 'Aktivnost je sada privatna.'
-                  : 'Aktivnost je sada javna.',
-            ),
-            backgroundColor: _activity?.isPrivate == true
-                ? Colors.orange
-                : Colors.blue,
-          ),
+        showSuccessSnackbar(
+          context,
+          _activity?.isPrivate == true
+              ? 'Aktivnost je sada privatna.'
+              : 'Aktivnost je sada javna.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);
@@ -2430,6 +2441,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Otkaži'),
             ),
             ElevatedButton(
@@ -2445,17 +2462,18 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       _activity = updatedActivity;
                     });
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sažetak je sačuvan.'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    showSuccessSnackbar(context, 'Sažetak je sačuvan.');
                   } catch (e) {
                     showErrorSnackbar(context, e);
                   }
                 }
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Sačuvaj'),
             ),
           ],
@@ -2654,6 +2672,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
                   child: const Text('Otkaži'),
                 ),
                 ElevatedButton(
@@ -2662,13 +2686,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       : () async {
                           if (formKey.currentState?.validate() ?? false) {
                             if (selectedImages.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Molimo odaberite barem jednu fotografiju.',
-                                  ),
-                                  backgroundColor: Colors.orange,
-                                ),
+                              showErrorSnackbar(
+                                context,
+                                'Molimo odaberite barem jednu fotografiju.',
                               );
                               return;
                             }
@@ -2693,11 +2713,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                               await _loadPosts();
 
                               Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Objava je uspješno dodana!'),
-                                  backgroundColor: Colors.green,
-                                ),
+                              showSuccessSnackbar(
+                                context,
+                                'Objava je uspješno dodana!',
                               );
                             } catch (e) {
                               setState(() {
@@ -2707,6 +2725,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                             }
                           }
                         },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
                   child: const Text('Objavi'),
                 ),
               ],
@@ -3485,6 +3509,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
                   child: const Text('Odustani'),
                 ),
                 ElevatedButton(
@@ -3493,13 +3523,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       : () async {
                           if (existingImageUrls.isEmpty &&
                               selectedImages.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Objava mora imati najmanje jednu fotografiju.',
-                                ),
-                                backgroundColor: Colors.orange,
-                              ),
+                            showErrorSnackbar(
+                              context,
+                              'Objava mora imati najmanje jednu fotografiju.',
                             );
                             return;
                           }
@@ -3531,24 +3557,23 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                             await _loadPosts();
 
                             Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Objava je uspješno ažurirana.'),
-                                backgroundColor: Colors.green,
-                              ),
+                            showSuccessSnackbar(
+                              context,
+                              'Objava je uspješno ažurirana.',
                             );
                           } catch (e) {
                             setState(() {
                               isUploading = false;
                             });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Greška: ${e.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            showErrorSnackbar(context, e);
                           }
                         },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
                   child: const Text('Spremi'),
                 ),
               ],
@@ -3571,6 +3596,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Odustani'),
             ),
             ElevatedButton(
@@ -3581,24 +3612,18 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   await _loadPosts();
 
                   Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Objava je uspješno obrisana.'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  showSuccessSnackbar(context, 'Objava je uspješno obrisana.');
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Greška: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  showErrorSnackbar(context, e);
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               child: const Text('Obriši'),
             ),
@@ -3794,6 +3819,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Zatvori'),
             ),
           ],
@@ -3948,6 +3979,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Otkaži'),
             ),
             ElevatedButton(
@@ -3971,6 +4008,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   }
                 }
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
               child: const Text('Spremi'),
             ),
           ],
@@ -3993,11 +4036,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Otkaži'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('Obriši'),
           ),
         ],

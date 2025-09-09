@@ -88,6 +88,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
     setState(() {
       _role = role;
     });
+
     final cityProvider = CityProvider(authProvider);
     var filter = {"RetrieveAll": true};
     final cityResult = await cityProvider.get(filter: filter);
@@ -95,6 +96,9 @@ class _TroopListScreenState extends State<TroopListScreen> {
     setState(() {
       _cities = cityResult.items ?? [];
     });
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
     await _fetchTroops();
   }
 
@@ -420,22 +424,60 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Widget _buildResultView() {
-    if (_loading && _troops == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Greška pri učitavanju: $_error',
-          style: const TextStyle(color: Colors.red),
+    if (_loading || _troops == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
         ),
       );
     }
-    if (_troops == null || _troops!.items == null || _troops!.items!.isEmpty) {
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'Greška pri učitavanju: $_error',
+                style: TextStyle(color: Colors.red.shade700, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadInitialData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Pokušaj ponovo'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_troops!.items == null || _troops!.items!.isEmpty) {
       return const Center(
-        child: Text(
-          'Nema dostupnih odreda',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.group_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'Nema dostupnih odreda',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

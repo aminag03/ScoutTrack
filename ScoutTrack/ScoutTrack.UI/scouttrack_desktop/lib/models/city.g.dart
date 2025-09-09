@@ -15,6 +15,8 @@ City _$CityFromJson(Map<String, dynamic> json) => City(
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
+  troopCount: (json['troopCount'] as num?)?.toInt() ?? 0,
+  memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$CityToJson(City instance) => <String, dynamic>{
@@ -24,4 +26,6 @@ Map<String, dynamic> _$CityToJson(City instance) => <String, dynamic>{
   'longitude': instance.longitude,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
+  'troopCount': instance.troopCount,
+  'memberCount': instance.memberCount,
 };

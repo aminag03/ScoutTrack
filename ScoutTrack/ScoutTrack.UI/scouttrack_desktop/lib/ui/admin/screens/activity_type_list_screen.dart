@@ -34,6 +34,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
   int currentPage = 1;
   int pageSize = 10;
   int totalPages = 1;
+  String? _selectedSort;
 
   @override
   void didChangeDependencies() {
@@ -95,6 +96,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
         "IncludeTotalCount": true,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
       };
 
       var result = await _activityTypeProvider.get(filter: filter);
@@ -209,6 +211,55 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                       isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: DropdownButtonFormField<String?>(
+                      value: _selectedSort,
+                      decoration: const InputDecoration(
+                        labelText: 'Sortiraj',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                      isExpanded: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSort = value;
+                          currentPage = 1;
+                        });
+                        _fetchActivityTypes();
+                      },
+                      items: const [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('Bez sortiranja'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'name',
+                          child: Text('Naziv (A-Ž)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-name',
+                          child: Text('Naziv (Ž-A)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'activitycount',
+                          child: Text('Broj aktivnosti (rastuće)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '-activitycount',
+                          child: Text('Broj aktivnosti (opadajuće)'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -348,6 +399,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                     (states) => Colors.grey.shade100,
                   ),
                   columnSpacing: 32,
+                  dataRowMinHeight: 48,
+                  dataRowMaxHeight: 48,
                   columns: const [
                     DataColumn(
                       label: Padding(
@@ -364,7 +417,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                     DataColumn(
                       label: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('VRIJEME KREIRANJA'),
+                        child: Text('BROJ AKTIVNOSTI'),
                       ),
                     ),
                     DataColumn(
@@ -400,7 +453,10 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                         DataCell(
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(formatDateTime(activityType.createdAt)),
+                            child: Text(
+                              '${activityType.activityCount}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           ),
                         ),
                         DataCell(
