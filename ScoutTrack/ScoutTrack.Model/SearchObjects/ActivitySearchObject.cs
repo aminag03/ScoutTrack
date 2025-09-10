@@ -10,5 +10,6 @@ namespace ScoutTrack.Model.SearchObjects
         public bool? IsPrivate { get; set; }
         public bool? ShowPublicAndOwn { get; set; }
         public int? OwnTroopId { get; set; }
+        public string? ActivityState { get; set; }
     }
 } 

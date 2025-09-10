@@ -22,6 +22,16 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
             throw new UserException("Cannot modify a cancelled activity.");
         }
 
+        public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpdateRequest request)
+        {
+            throw new UserException("Cannot modify a cancelled activity.");
+        }
+
+        public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpdateRequest request, int currentUserId)
+        {
+            throw new UserException("Cannot modify a cancelled activity.");
+        }
+
         public override async Task<ActivityResponse> ActivateAsync(int id)
         {
             throw new UserException("Cannot activate a cancelled activity.");

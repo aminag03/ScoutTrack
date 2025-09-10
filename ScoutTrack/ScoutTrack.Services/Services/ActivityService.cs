@@ -49,10 +49,6 @@ namespace ScoutTrack.Services
                 totalCount = await query.CountAsync();
             }
 
-            var entities = await query.ToListAsync();
-
-            var responseList = entities.Select(MapToResponse).ToList();
-
             if (!string.IsNullOrWhiteSpace(search.OrderBy))
             {
                 if (search.OrderBy.StartsWith("-"))
@@ -64,6 +60,9 @@ namespace ScoutTrack.Services
                     query = query.OrderByDynamic(search.OrderBy);
                 }
             }
+
+            var entities = await query.ToListAsync();
+            var responseList = entities.Select(MapToResponse).ToList();
 
             if (!string.IsNullOrWhiteSpace(search.OrderBy))
             {
@@ -145,9 +144,15 @@ namespace ScoutTrack.Services
             {
                 query = query.Where(a => a.isPrivate == search.IsPrivate.Value);
             }
+            if (!string.IsNullOrEmpty(search.ActivityState))
+            {
+                query = query.Where(a => a.ActivityState == search.ActivityState);
+            }
             if (search.ShowPublicAndOwn.HasValue && search.ShowPublicAndOwn.Value && search.OwnTroopId.HasValue)
             {
-                query = query.Where(a => !a.isPrivate || a.TroopId == search.OwnTroopId.Value);
+                query = query.Where(a => 
+                    (!a.isPrivate || a.TroopId == search.OwnTroopId.Value) && 
+                    ((a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState") || a.TroopId == search.OwnTroopId.Value));
             }
 
             query = query.Include(a => a.Troop);
@@ -183,6 +188,40 @@ namespace ScoutTrack.Services
 
             return await baseState.UpdateAsync(id, request);
             // return await base.UpdateAsync(id, request);
+        }
+
+        public async Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found");
+
+            var baseState = _baseActivityState.GetActivityState(entity.ActivityState);
+
+            if (!await _context.Troops.AnyAsync(t => t.Id == request.TroopId))
+                throw new UserException($"Troop with ID {request.TroopId} does not exist.");
+
+            if (!await _context.ActivityTypes.AnyAsync(at => at.Id == request.ActivityTypeId))
+                throw new UserException($"ActivityType with ID {request.ActivityTypeId} does not exist.");
+
+            return await baseState.UpdateAsync(id, request);
+        }
+
+        public async Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request, int currentUserId)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found");
+
+            var baseState = _baseActivityState.GetActivityState(entity.ActivityState);
+
+            if (!await _context.Troops.AnyAsync(t => t.Id == request.TroopId))
+                throw new UserException($"Troop with ID {request.TroopId} does not exist.");
+
+            if (!await _context.ActivityTypes.AnyAsync(at => at.Id == request.ActivityTypeId))
+                throw new UserException($"ActivityType with ID {request.ActivityTypeId} does not exist.");
+
+            return await baseState.UpdateAsync(id, request, currentUserId);
         }
 
         protected override async Task BeforeInsert(Activity entity, ActivityUpsertRequest request)

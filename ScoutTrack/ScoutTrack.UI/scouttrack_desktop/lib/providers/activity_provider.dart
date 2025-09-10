@@ -14,6 +14,33 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
     return Activity.fromJson(json);
   }
 
+  Future<Activity> updateWithNotifications(int id, dynamic request) async {
+    return await handleWithRefresh(() async {
+      final headers = await createHeaders();
+      final response = await http.put(
+        Uri.parse("${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/update"),
+        headers: headers,
+        body: jsonEncode(request),
+      );
+
+      if (isValidResponse(response)) {
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return fromJson(data);
+        } catch (e) {
+          print('JSON decode error in updateWithNotifications(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
+      } else {
+        throw Exception("Nepoznata greška.");
+      }
+    });
+  }
+
   Future<Activity> updateImage(int id, File? imageFile) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(

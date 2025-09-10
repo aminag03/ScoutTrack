@@ -7,6 +7,7 @@ using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services;
 using ScoutTrack.Services.Interfaces;
 using ScoutTrack.Services.Services;
+using System;
 
 namespace ScoutTrack.WebAPI.Controllers
 {
@@ -65,6 +66,34 @@ namespace ScoutTrack.WebAPI.Controllers
                 }
             }
             return await base.Update(id, request);
+        }
+
+        [HttpPut("{id}/update")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> UpdateWithNotifications(int id, [FromBody] ActivityUpdateRequest request)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return Forbid();
+                }
+            }
+
+            try
+            {
+                var currentUserId = _authService.GetUserId(User) ?? 0;
+                var result = await _activityService.UpdateAsync(id, request, currentUserId);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]

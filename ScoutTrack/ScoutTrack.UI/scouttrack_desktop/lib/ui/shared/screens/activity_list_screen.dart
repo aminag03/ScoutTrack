@@ -52,6 +52,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   int? _selectedTroopId;
   int? _selectedActivityTypeId;
   String? _selectedSort;
+  String? _selectedActivityState;
   bool _showOnlyMyActivities = false;
   List<ActivityType> _activityTypes = [];
   List<Troop> _troops = [];
@@ -192,6 +193,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         if (troopIdForFilter != null) "TroopId": troopIdForFilter,
         if (_selectedActivityTypeId != null)
           "ActivityTypeId": _selectedActivityTypeId,
+        if (_selectedActivityState != null)
+          "ActivityState": _selectedActivityState,
         if (_selectedSort != null) "OrderBy": _selectedSort,
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
@@ -245,6 +248,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 Expanded(flex: 3, child: _buildSearchField()),
                 Expanded(flex: 2, child: _buildTroopDropdown()),
                 Expanded(flex: 2, child: _buildActivityTypeDropdown()),
+                Expanded(flex: 2, child: _buildActivityStateDropdown()),
                 Expanded(flex: 2, child: _buildSortDropdown()),
                 if (_role == 'Admin' || _role == 'Troop')
                   Padding(
@@ -748,6 +752,40 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      if (isEdit &&
+                          (activity?.activityState == 'ActiveActivityState' ||
+                              activity?.activityState ==
+                                  'RegistrationsClosedActivityState')) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade700,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Uređivanje ove aktivnosti će obavijestiti sve registrovane članove o većim promjenama (vrijeme, lokacija, kotizacija).',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade700,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1460,11 +1498,35 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       "imagePath": _imagePath,
                                   };
                                   if (isEdit) {
+                                    final needsHybridWorkflow =
+                                        activity!.activityState ==
+                                            'ActiveActivityState' ||
+                                        activity.activityState ==
+                                            'RegistrationsClosedActivityState';
+
+                                    if (needsHybridWorkflow) {
+                                      final changeReason =
+                                          await _showChangeConfirmationDialog();
+                                      if (changeReason == null) {
+                                        return;
+                                      }
+                                      requestBody['changeReason'] =
+                                          changeReason;
+                                    }
+
                                     if (_selectedImageFile != null) {
-                                      await _activityProvider.update(
-                                        activity!.id,
-                                        requestBody,
-                                      );
+                                      if (needsHybridWorkflow) {
+                                        await _activityProvider
+                                            .updateWithNotifications(
+                                              activity!.id,
+                                              requestBody,
+                                            );
+                                      } else {
+                                        await _activityProvider.update(
+                                          activity!.id,
+                                          requestBody,
+                                        );
+                                      }
                                       await _activityProvider.updateImage(
                                         activity!.id,
                                         _selectedImageFile,
@@ -1476,10 +1538,31 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         activity!.id,
                                         null,
                                       );
-                                      await _activityProvider.update(
-                                        activity!.id,
-                                        requestBody,
-                                      );
+                                      if (needsHybridWorkflow) {
+                                        await _activityProvider
+                                            .updateWithNotifications(
+                                              activity!.id,
+                                              requestBody,
+                                            );
+                                      } else {
+                                        await _activityProvider.update(
+                                          activity!.id,
+                                          requestBody,
+                                        );
+                                      }
+                                    } else {
+                                      if (needsHybridWorkflow) {
+                                        await _activityProvider
+                                            .updateWithNotifications(
+                                              activity!.id,
+                                              requestBody,
+                                            );
+                                      } else {
+                                        await _activityProvider.update(
+                                          activity!.id,
+                                          requestBody,
+                                        );
+                                      }
                                     }
 
                                     await _saveActivityEquipment(
@@ -1663,6 +1746,49 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     );
   }
 
+  Widget _buildActivityStateDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: DropdownButtonFormField<String?>(
+        value: _selectedActivityState,
+        decoration: const InputDecoration(
+          labelText: 'Status',
+          border: OutlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+        isExpanded: true,
+        onChanged: (value) {
+          setState(() {
+            _selectedActivityState = value;
+            currentPage = 1;
+          });
+          _fetchActivities();
+        },
+        items: const [
+          DropdownMenuItem(value: null, child: Text('Svi statusi')),
+          DropdownMenuItem(value: 'DraftActivityState', child: Text('Nacrt')),
+          DropdownMenuItem(
+            value: 'ActiveActivityState',
+            child: Text('Aktivna'),
+          ),
+          DropdownMenuItem(
+            value: 'RegistrationsClosedActivityState',
+            child: Text('Prijave zatvorene'),
+          ),
+          DropdownMenuItem(
+            value: 'FinishedActivityState',
+            child: Text('Završena'),
+          ),
+          DropdownMenuItem(
+            value: 'CancelledActivityState',
+            child: Text('Otkazana'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSortDropdown() {
     return Padding(
       padding: const EdgeInsets.only(right: 12),
@@ -1717,7 +1843,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     if (!canEditOrDelete) return false;
 
-    return activity.activityState == 'DraftActivityState';
+    return activity.activityState == 'DraftActivityState' ||
+        activity.activityState == 'ActiveActivityState';
   }
 
   String _getEditDisabledReason(Activity activity) {
@@ -1731,9 +1858,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     switch (activity.activityState) {
       case 'ActiveActivityState':
-        return 'Aktivnost je aktivna i ne može se uređivati';
+        return 'Aktivnost je aktivna - uređivanje je dozvoljeno (veće promjene će obavijestiti registrovane članove)';
       case 'RegistrationsClosedActivityState':
-        return 'Prijave su zatvorene, aktivnost se ne može uređivati';
+        return 'Prijave su zatvorene - uređivanje nije dozvoljeno';
       case 'FinishedActivityState':
         return 'Aktivnost je završena, ne može se uređivati';
       case 'CancelledActivityState':
@@ -1909,6 +2036,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         if (troopIdForFilter != null) "TroopId": troopIdForFilter,
         if (_selectedActivityTypeId != null)
           "ActivityTypeId": _selectedActivityTypeId,
+        if (_selectedActivityState != null)
+          "ActivityState": _selectedActivityState,
         if (_selectedSort != null) "OrderBy": _selectedSort,
         "RetrieveAll": true,
         "IncludeTotalCount": true,
@@ -2101,6 +2230,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   DataColumn(label: Text('')),
                   DataColumn(label: Text('')),
                   DataColumn(label: Text('')),
+                  DataColumn(label: Text('')),
                 ],
                 rows: _activities!.items!
                     .map((activity) => _buildActivityRow(activity))
@@ -2199,6 +2329,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         DataCell(
           _canEditOrDeleteActivity(activity)
               ? IconButton(
+                  icon: Icon(
+                    activity.isPrivate ? Icons.public : Icons.lock,
+                    color: activity.isPrivate ? Colors.green : Colors.red,
+                  ),
+                  tooltip: activity.isPrivate
+                      ? 'Učini javnom'
+                      : 'Učini privatnom',
+                  onPressed: () => _onTogglePrivacy(activity),
+                )
+              : const SizedBox(),
+        ),
+        DataCell(
+          _canEditOrDeleteActivity(activity)
+              ? IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   tooltip: 'Obriši',
                   onPressed: () => _onDeleteActivity(activity),
@@ -2207,6 +2351,217 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         ),
       ],
     );
+  }
+
+  Future<String?> _showChangeConfirmationDialog() async {
+    final TextEditingController reasonController = TextEditingController();
+    String? result;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.orange.shade600),
+              const SizedBox(width: 8),
+              const Text('Potvrda promjena'),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.orange.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ova aktivnost ima registrovane članove. Veće promjene (vrijeme, lokacija, kotizacija) će im poslati obavještenje.',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Da li ste sigurni da želite nastaviti sa ažuriranjem?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Razlog promjene *',
+                    hintText: 'Opišite zašto ažurirate aktivnost...',
+                    border: OutlineInputBorder(),
+                    errorMaxLines: 3,
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Razlog promjene je obavezan';
+                    }
+                    if (value.length > 500) {
+                      return 'Razlog ne smije imati više od 500 znakova';
+                    }
+                    return null;
+                  },
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ovaj razlog će biti poslan registrovanim članovima kao objašnjenje promjena.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                result = null;
+              },
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.trim().isNotEmpty) {
+                  Navigator.of(context).pop();
+                  result = reasonController.text.trim();
+                } else {
+                  showCustomSnackbar(
+                    context,
+                    message: 'Molimo unesite razlog promjene',
+                    backgroundColor: Colors.red,
+                    icon: Icons.error,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Nastavi'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result;
+  }
+
+  Future<void> _onTogglePrivacy(Activity activity) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(activity.isPrivate ? 'Učini javnom' : 'Učini privatnom'),
+        content: Text(
+          activity.isPrivate
+              ? 'Jeste li sigurni da želite učiniti ovu aktivnost javnom?'
+              : 'Jeste li sigurni da želite učiniti ovu aktivnost privatnom?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: activity.isPrivate
+                  ? Colors.green
+                  : Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text(
+              activity.isPrivate ? 'Učini javnom' : 'Učini privatnom',
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.togglePrivacy(
+          activity.id,
+        );
+
+        setState(() {
+          final index = _activities!.items!.indexWhere(
+            (a) => a.id == activity.id,
+          );
+          if (index != -1) {
+            final originalActivity = _activities!.items![index];
+            final preservedActivity = Activity(
+              id: updatedActivity.id,
+              title: updatedActivity.title,
+              description: updatedActivity.description,
+              locationName: updatedActivity.locationName,
+              latitude: updatedActivity.latitude,
+              longitude: updatedActivity.longitude,
+              startTime: updatedActivity.startTime,
+              endTime: updatedActivity.endTime,
+              fee: updatedActivity.fee,
+              isPrivate: updatedActivity.isPrivate,
+              imagePath: updatedActivity.imagePath,
+              activityState: updatedActivity.activityState,
+              troopId: updatedActivity.troopId,
+              troopName: originalActivity.troopName,
+              activityTypeId: updatedActivity.activityTypeId,
+              activityTypeName:
+                  originalActivity.activityTypeName,
+              createdAt: updatedActivity.createdAt,
+              updatedAt: updatedActivity.updatedAt,
+              cityId: originalActivity.cityId,
+              cityName: originalActivity.cityName,
+              registrationCount: originalActivity.registrationCount,
+              summary: originalActivity.summary,
+            );
+            _activities!.items![index] = preservedActivity;
+          }
+        });
+
+        showSuccessSnackbar(
+          context,
+          activity.isPrivate
+              ? 'Aktivnost je sada javna.'
+              : 'Aktivnost je sada privatna.',
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
   Map<String, dynamic>? _decodeJwt(String token) {

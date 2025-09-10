@@ -178,6 +178,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   Future<void> _refreshActivity() async {
     try {
       final refreshedActivity = await _activityProvider.getById(_activity!.id);
+      if (!mounted) return;
       setState(() {
         _activity = refreshedActivity;
       });
@@ -216,6 +217,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       _currentPage = page;
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoadingRegistrations = true;
     });
@@ -236,6 +238,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         filter: filter,
       );
 
+      if (!mounted) return;
       setState(() {
         _registrations = registrations.items ?? [];
         _totalRegistrations = registrations.totalCount ?? 0;
@@ -243,6 +246,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         _applyStatusFilter();
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingRegistrations = false;
       });
@@ -267,6 +271,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       _currentReviewPage = page;
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoadingReviews = true;
     });
@@ -310,6 +315,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         averageRating = totalRating / allReviews.items!.length;
       }
 
+      if (!mounted) return;
       setState(() {
         _reviews = reviews.items ?? [];
         _totalReviews = reviews.totalCount ?? 0;
@@ -317,6 +323,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         _isLoadingReviews = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingReviews = false;
       });
@@ -325,17 +332,20 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _loadPosts() async {
+    if (!mounted) return;
     setState(() {
       _isLoadingPosts = true;
     });
 
     try {
       final posts = await _postProvider.getByActivity(_activity!.id);
+      if (!mounted) return;
       setState(() {
         _posts = posts;
         _isLoadingPosts = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingPosts = false;
       });
@@ -366,6 +376,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   Future<void> _checkCanCreatePost() async {
     if (_activity == null) {
+      if (!mounted) return;
       setState(() {
         _canCreatePost = false;
       });
@@ -376,6 +387,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     final userInfo = await authProvider.getCurrentUserInfo();
 
     if (userInfo == null) {
+      if (!mounted) return;
       setState(() {
         _canCreatePost = false;
       });
@@ -385,6 +397,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     final userRole = userInfo['role'] as String?;
     final userId = userInfo['id'] as int?;
 
+    if (!mounted) return;
     setState(() {
       _canCreatePost = PermissionUtils.canCreatePost(
         userRole,
@@ -1282,11 +1295,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           tooltip: 'Odbij',
           onPressed: () => _onRejectRegistration(registration),
         ),
-        IconButton(
-          icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
-          tooltip: 'Označi kao završeno',
-          onPressed: () => _onCompleteRegistration(registration),
-        ),
+        if (_activity?.activityState == 'FinishedActivityState')
+          IconButton(
+            icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
+            tooltip: 'Označi kao završeno',
+            onPressed: () => _onCompleteRegistration(registration),
+          ),
       ]);
     } else if (registration.status == 2) {
       actions.add(
@@ -1298,7 +1312,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       );
     }
 
-    if (_role == 'Admin') {
+    if (_canManageRegistrations) {
       actions.add(
         IconButton(
           icon: const Icon(Icons.delete, color: Colors.red, size: 20),
@@ -1455,7 +1469,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         title: const Text('Obriši registraciju'),
         content: Text(
           'Jeste li sigurni da želite obrisati registraciju za ${registration.memberName}?\n\n'
-          'Ova akcija je nepovratna i obrisat će registraciju iz sustava.',
+          'Ova akcija je nepovratna i obrisat će registraciju iz sistema.',
         ),
         actions: [
           TextButton(
@@ -1878,19 +1892,13 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Widget _buildActionButtons() {
-    if (!_canStartOrFinish) {
-      return const SizedBox.shrink();
-    }
-
     final activityState = _activity?.activityState ?? '';
+    List<Widget> buttons = [];
 
-    switch (activityState) {
-      case 'DraftActivityState':
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: [
+    if (_canStartOrFinish) {
+      switch (activityState) {
+        case 'DraftActivityState':
+          buttons.addAll([
             ElevatedButton.icon(
               onPressed: _onActivateActivity,
               icon: const Icon(Icons.play_arrow),
@@ -1909,31 +1917,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
             ElevatedButton.icon(
-              onPressed: _onTogglePrivacy,
-              icon: Icon(
-                _activity?.isPrivate == true ? Icons.public : Icons.lock,
-              ),
-              label: Text(
-                _activity?.isPrivate == true
-                    ? 'Učini javnom'
-                    : 'Učini privatnom',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _activity?.isPrivate == true
-                    ? Colors.blue
-                    : Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
               onPressed: _onCancelActivity,
               icon: const Icon(Icons.cancel),
               label: const Text('Otkaži aktivnost'),
@@ -1950,15 +1933,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-          ],
-        );
+          ]);
+          break;
 
-      case 'ActiveActivityState':
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: [
+        case 'ActiveActivityState':
+          buttons.addAll([
             ElevatedButton.icon(
               onPressed: _onCloseRegistrations,
               icon: const Icon(Icons.lock),
@@ -1977,31 +1956,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
             ElevatedButton.icon(
-              onPressed: _onTogglePrivacy,
-              icon: Icon(
-                _activity?.isPrivate == true ? Icons.public : Icons.lock,
-              ),
-              label: Text(
-                _activity?.isPrivate == true
-                    ? 'Učini javnom'
-                    : 'Učini privatnom',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _activity?.isPrivate == true
-                    ? Colors.blue
-                    : Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
               onPressed: _onCancelActivity,
               icon: const Icon(Icons.cancel),
               label: const Text('Otkaži aktivnost'),
@@ -2018,15 +1972,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-          ],
-        );
+          ]);
+          break;
 
-      case 'RegistrationsClosedActivityState':
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: [
+        case 'RegistrationsClosedActivityState':
+          buttons.addAll([
             ElevatedButton.icon(
               onPressed: _onFinishActivity,
               icon: const Icon(Icons.check_circle),
@@ -2045,31 +1995,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
             ElevatedButton.icon(
-              onPressed: _onTogglePrivacy,
-              icon: Icon(
-                _activity?.isPrivate == true ? Icons.public : Icons.lock,
-              ),
-              label: Text(
-                _activity?.isPrivate == true
-                    ? 'Učini javnom'
-                    : 'Učini privatnom',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _activity?.isPrivate == true
-                    ? Colors.blue
-                    : Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
               onPressed: _onCancelActivity,
               icon: const Icon(Icons.cancel),
               label: const Text('Otkaži aktivnost'),
@@ -2086,12 +2011,44 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 ),
               ),
             ),
-          ],
-        );
-
-      default:
-        return const SizedBox.shrink();
+          ]);
+          break;
+      }
     }
+
+    if (_canStartOrFinish) {
+      buttons.add(
+        ElevatedButton.icon(
+          onPressed: _onTogglePrivacy,
+          icon: Icon(_activity?.isPrivate == true ? Icons.public : Icons.lock),
+          label: Text(
+            _activity?.isPrivate == true ? 'Učini javnom' : 'Učini privatnom',
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _activity?.isPrivate == true
+                ? Colors.blue
+                : Colors.orange,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (buttons.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      alignment: WrapAlignment.center,
+      children: buttons,
+    );
   }
 
   Future<void> _onCloseRegistrations() async {
@@ -2140,6 +2097,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final updatedActivity = await _activityProvider.closeRegistrations(
           _activity!.id,
         );
+        if (!mounted) return;
         setState(() {
           _activity = updatedActivity;
         });
@@ -2198,6 +2156,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     if (confirm == true) {
       try {
         final updatedActivity = await _activityProvider.activate(_activity!.id);
+        if (!mounted) return;
         setState(() {
           _activity = updatedActivity;
         });
@@ -2257,6 +2216,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     if (confirm == true) {
       try {
         final updatedActivity = await _activityProvider.finish(_activity!.id);
+        if (!mounted) return;
         setState(() {
           _activity = updatedActivity;
         });
@@ -2324,6 +2284,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final updatedActivity = await _activityProvider.deactivate(
           _activity!.id,
         );
+        if (!mounted) return;
         setState(() {
           _activity = updatedActivity;
         });
@@ -2380,6 +2341,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final updatedActivity = await _activityProvider.togglePrivacy(
           _activity!.id,
         );
+        if (!mounted) return;
         setState(() {
           _activity = updatedActivity;
         });
@@ -2458,6 +2420,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                           _activity!.id,
                           summaryController.text.trim(),
                         );
+                    if (!mounted) return;
                     setState(() {
                       _activity = updatedActivity;
                     });

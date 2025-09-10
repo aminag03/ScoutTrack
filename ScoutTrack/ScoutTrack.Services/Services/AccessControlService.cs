@@ -94,6 +94,11 @@ namespace ScoutTrack.Services.Services
                 return registration.MemberId == userId;
             }
 
+            if (userRole == "Troop")
+            {
+                return registration.Activity.TroopId == userId;
+            }
+
             return false;
         }
 
@@ -161,7 +166,8 @@ namespace ScoutTrack.Services.Services
 
                 if (registration == null) return false;
 
-                return registration.Activity.TroopId == userId;
+                return registration.Activity.TroopId == userId && 
+                       registration.Activity.ActivityState == "FinishedActivityState";
             }
 
             return false;
