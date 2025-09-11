@@ -1012,435 +1012,565 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
       selectedMenu: widget.selectedMenu,
       role: _role,
       title: 'Odred izviđača "${_troop.name}"',
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        trackVisibility: true,
-        child: SingleChildScrollView(
+      child: Container(
+        color: Theme.of(context).colorScheme.surface,
+        child: Scrollbar(
           controller: _scrollController,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Container(
-                width: screenWidth * 0.7,
-                margin: const EdgeInsets.symmetric(vertical: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Column(
+          thumbVisibility: true,
+          trackVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: screenWidth * 0.7,
+                        margin: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
                           children: [
-                            Stack(
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: Colors.grey.shade300,
-                                  child: _troop.logoUrl.isNotEmpty
-                                      ? ClipOval(
-                                          child: Image.network(
-                                            _troop.logoUrl,
-                                            width: 120,
-                                            height: 120,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                                  return const Icon(
-                                                    Icons.group,
-                                                    size: 50,
-                                                    color: Colors.white,
-                                                  );
-                                                },
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.group,
-                                          size: 50,
-                                          color: Colors.white,
+                                Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 60,
+                                          backgroundColor: Colors.grey.shade300,
+                                          child: _troop.logoUrl.isNotEmpty
+                                              ? ClipOval(
+                                                  child: Image.network(
+                                                    _troop.logoUrl,
+                                                    width: 120,
+                                                    height: 120,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return const Icon(
+                                                            Icons.group,
+                                                            size: 50,
+                                                            color: Colors.white,
+                                                          );
+                                                        },
+                                                  ),
+                                                )
+                                              : const Icon(
+                                                  Icons.group,
+                                                  size: 50,
+                                                  color: Colors.white,
+                                                ),
                                         ),
-                                ),
-                                if ((isAdmin || isViewingOwnProfile) &&
-                                    _troop.logoUrl.isNotEmpty &&
-                                    !_isImageLoading)
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Obriši logo'),
-                                            content: const Text(
-                                              'Jeste li sigurni da želite obrisati logo odreda?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(false),
-                                                child: const Text('Odustani'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(true),
-                                                child: const Text(
-                                                  'Obriši',
-                                                  style: TextStyle(
-                                                    color: Colors.red,
+                                        if ((isAdmin || isViewingOwnProfile) &&
+                                            _troop.logoUrl.isNotEmpty &&
+                                            !_isImageLoading)
+                                          Positioned(
+                                            bottom: 0,
+                                            right: 0,
+                                            child: GestureDetector(
+                                              onTap: () async {
+                                                final confirm = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: const Text(
+                                                      'Obriši logo',
+                                                    ),
+                                                    content: const Text(
+                                                      'Jeste li sigurni da želite obrisati logo odreda?',
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(false),
+                                                        child: const Text(
+                                                          'Odustani',
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(true),
+                                                        child: const Text(
+                                                          'Obriši',
+                                                          style: TextStyle(
+                                                            color: Colors.red,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+
+                                                if (confirm == true) {
+                                                  try {
+                                                    setState(() {
+                                                      _isImageLoading = true;
+                                                    });
+
+                                                    final troopProvider =
+                                                        Provider.of<
+                                                          TroopProvider
+                                                        >(
+                                                          context,
+                                                          listen: false,
+                                                        );
+                                                    await troopProvider
+                                                        .updateLogo(
+                                                          _troop.id,
+                                                          null,
+                                                        );
+
+                                                    final refreshedTroop =
+                                                        await troopProvider
+                                                            .getById(_troop.id);
+
+                                                    setState(() {
+                                                      _troop = refreshedTroop;
+                                                    });
+
+                                                    if (context.mounted) {
+                                                      showSuccessSnackbar(
+                                                        context,
+                                                        'Logo je uspješno obrisan.',
+                                                      );
+                                                    }
+                                                  } catch (e) {
+                                                    if (context.mounted)
+                                                      showErrorSnackbar(
+                                                        context,
+                                                        e,
+                                                      );
+                                                  } finally {
+                                                    setState(() {
+                                                      _isImageLoading = false;
+                                                    });
+                                                  }
+                                                }
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2,
                                                   ),
                                                 ),
+                                                child: const Icon(
+                                                  Icons.delete,
+                                                  size: 16,
+                                                  color: Colors.white,
+                                                ),
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        );
-
-                                        if (confirm == true) {
-                                          try {
-                                            setState(() {
-                                              _isImageLoading = true;
-                                            });
-
-                                            final troopProvider =
-                                                Provider.of<TroopProvider>(
-                                                  context,
-                                                  listen: false,
-                                                );
-                                            await troopProvider.updateLogo(
-                                              _troop.id,
-                                              null,
-                                            );
-
-                                            final refreshedTroop =
-                                                await troopProvider.getById(
-                                                  _troop.id,
-                                                );
-
-                                            setState(() {
-                                              _troop = refreshedTroop;
-                                            });
-
-                                            if (context.mounted) {
-                                              showSuccessSnackbar(
-                                                context,
-                                                'Logo je uspješno obrisan.',
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted)
-                                              showErrorSnackbar(context, e);
-                                          } finally {
-                                            setState(() {
-                                              _isImageLoading = false;
-                                            });
-                                          }
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    if (isAdmin || isViewingOwnProfile)
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.image, size: 16),
+                                        label: const Text('Promijeni logo'),
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(160, 40),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
                                           ),
                                         ),
-                                        child: const Icon(
-                                          Icons.delete,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
+                                        onPressed: _showImagePickerDialog,
                                       ),
+                                  ],
+                                ),
+
+                                const SizedBox(width: 40),
+
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _troop.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (isAdmin || isViewingOwnProfile)
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.image, size: 16),
-                                label: const Text('Promijeni logo'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(160, 40),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: _showImagePickerDialog,
-                              ),
-                          ],
-                        ),
-
-                        const SizedBox(width: 40),
-
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _troop.name,
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _troop.cityName.isNotEmpty
-                                  ? _troop.cityName
-                                  : '-',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                UIComponents.buildInfoChip(
-                                  'Članovi: ${_troop.memberCount}',
-                                  Icons.people,
-                                ),
-                                const SizedBox(width: 16),
-                                UIComponents.buildInfoChip(
-                                  _troop.isActive ? 'Aktivan' : 'Neaktivan',
-                                  _troop.isActive
-                                      ? Icons.check_circle
-                                      : Icons.block,
-                                  color: _troop.isActive
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(width: 40),
-
-                        if (isAdmin || isViewingOwnProfile)
-                          Column(
-                            children: [
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.edit, size: 20),
-                                label: const Text('Uredi podatke'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(180, 48),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  _onEdit();
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              if (isAdmin || isViewingOwnProfile)
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.password, size: 20),
-                                  label: const Text('Promijeni lozinku'),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(180, 48),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _troop.cityName.isNotEmpty
+                                          ? _troop.cityName
+                                          : '-',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(color: Colors.grey[600]),
                                     ),
-                                  ),
-                                  onPressed: _showChangePasswordDialog,
-                                ),
-                              if (isAdmin) ...[
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  icon: Icon(
-                                    _troop.isActive
-                                        ? Icons.block
-                                        : Icons.check_circle,
-                                  ),
-                                  label: Text(
-                                    _troop.isActive
-                                        ? 'Deaktiviraj'
-                                        : 'Aktiviraj',
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(180, 48),
-                                    backgroundColor: _troop.isActive
-                                        ? Colors.red
-                                        : Colors.green,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  onPressed: _isLoading
-                                      ? null
-                                      : _toggleActivation,
-                                ),
-                              ],
-                            ],
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        UIComponents.buildDetailSection('Kontakt informacije', [
-                          UIComponents.buildDetailRow(
-                            'E-mail',
-                            _troop.email.isNotEmpty ? _troop.email : '-',
-                            Icons.email,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Telefon',
-                            _troop.contactPhone.isNotEmpty
-                                ? _troop.contactPhone
-                                : '-',
-                            Icons.phone,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Korisničko ime',
-                            _troop.username.isNotEmpty ? _troop.username : '-',
-                            Icons.person,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Starješina',
-                            _troop.scoutMaster.isNotEmpty
-                                ? _troop.scoutMaster
-                                : '-',
-                            Icons.person,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Načelnik',
-                            _troop.troopLeader.isNotEmpty
-                                ? _troop.troopLeader
-                                : '-',
-                            Icons.person,
-                          ),
-                          UIComponents.buildDetailRow(
-                            'Datum osnivanja',
-                            _troop.foundingDate != null
-                                ? formatDate(_troop.foundingDate!)
-                                : '-',
-                            Icons.calendar_today,
-                          ),
-                        ]),
-
-                        const SizedBox(height: 30),
-                        if (isAdmin || isViewingOwnProfile)
-                          UIComponents.buildDetailSection(
-                            'Sistem informacije',
-                            [
-                              UIComponents.buildDetailRow(
-                                'Kreiran',
-                                formatDateTime(_troop.createdAt),
-                              ),
-                              if (_troop.updatedAt != null)
-                                UIComponents.buildDetailRow(
-                                  'Izmijenjen',
-                                  formatDateTime(_troop.updatedAt!),
-                                ),
-                              if (_troop.lastLoginAt != null)
-                                UIComponents.buildDetailRow(
-                                  'Zadnja prijava',
-                                  formatDateTime(_troop.lastLoginAt!),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 40),
-
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 280,
-                          child: Card(
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: hasCoordinates
-                                  ? FlutterMap(
-                                      mapController: _mapController,
-                                      options: MapOptions(
-                                        center: _selectedLocation,
-                                        zoom: 13.0,
-                                      ),
+                                    const SizedBox(height: 20),
+                                    Row(
                                       children: [
-                                        TileLayer(
-                                          urlTemplate:
-                                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                          userAgentPackageName:
-                                              'com.example.scouttrack_desktop',
+                                        UIComponents.buildInfoChip(
+                                          'Članovi: ${_troop.memberCount}',
+                                          Icons.people,
                                         ),
-                                        MarkerLayer(
-                                          markers: [
-                                            Marker(
-                                              point: _selectedLocation!,
-                                              width: 50,
-                                              height: 50,
-                                              child: const Icon(
-                                                Icons.location_pin,
-                                                color: Colors.red,
-                                                size: 50,
+                                        const SizedBox(width: 16),
+                                        UIComponents.buildInfoChip(
+                                          _troop.isActive
+                                              ? 'Aktivan'
+                                              : 'Neaktivan',
+                                          _troop.isActive
+                                              ? Icons.check_circle
+                                              : Icons.block,
+                                          color: _troop.isActive
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(width: 40),
+
+                                if (isAdmin || isViewingOwnProfile)
+                                  Column(
+                                    children: [
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.edit, size: 20),
+                                        label: const Text('Uredi podatke'),
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(180, 48),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          _onEdit();
+                                        },
+                                      ),
+                                      const SizedBox(height: 16),
+                                      if (isAdmin || isViewingOwnProfile)
+                                        ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.password,
+                                            size: 20,
+                                          ),
+                                          label: const Text(
+                                            'Promijeni lozinku',
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            minimumSize: const Size(180, 48),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                          ),
+                                          onPressed: _showChangePasswordDialog,
+                                        ),
+                                      if (isAdmin) ...[
+                                        const SizedBox(height: 16),
+                                        ElevatedButton.icon(
+                                          icon: Icon(
+                                            _troop.isActive
+                                                ? Icons.block
+                                                : Icons.check_circle,
+                                          ),
+                                          label: Text(
+                                            _troop.isActive
+                                                ? 'Deaktiviraj'
+                                                : 'Aktiviraj',
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            minimumSize: const Size(180, 48),
+                                            backgroundColor: _troop.isActive
+                                                ? Colors.red
+                                                : Colors.green,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                          ),
+                                          onPressed: _isLoading
+                                              ? null
+                                              : _toggleActivation,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildColoredDetailSection(
+                                  'Kontakt informacije',
+                                  Colors.blue,
+                                  [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'E-mail',
+                                            _troop.email.isNotEmpty
+                                                ? _troop.email
+                                                : '-',
+                                            Icons.email,
+                                            Colors.blue,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'Telefon',
+                                            _troop.contactPhone.isNotEmpty
+                                                ? _troop.contactPhone
+                                                : '-',
+                                            Icons.phone,
+                                            Colors.green,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'Korisničko ime',
+                                            _troop.username.isNotEmpty
+                                                ? _troop.username
+                                                : '-',
+                                            Icons.person,
+                                            Colors.purple,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'Datum osnivanja',
+                                            _troop.foundingDate != null
+                                                ? formatDate(
+                                                    _troop.foundingDate!,
+                                                  )
+                                                : '-',
+                                            Icons.calendar_today,
+                                            Colors.indigo,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'Starješina',
+                                            _troop.scoutMaster.isNotEmpty
+                                                ? _troop.scoutMaster
+                                                : '-',
+                                            Icons.supervisor_account,
+                                            Colors.orange,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildColoredDetailRow(
+                                            'Načelnik',
+                                            _troop.troopLeader.isNotEmpty
+                                                ? _troop.troopLeader
+                                                : '-',
+                                            Icons.leaderboard,
+                                            Colors.teal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 30),
+                                if (isAdmin || isViewingOwnProfile)
+                                  _buildColoredDetailSection(
+                                    'Sistem informacije',
+                                    Colors.grey,
+                                    [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildColoredDetailRow(
+                                              'Kreiran',
+                                              formatDateTime(_troop.createdAt),
+                                              Icons.add_circle,
+                                              Colors.grey,
+                                            ),
+                                          ),
+                                          if (_troop.updatedAt != null) ...[
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: _buildColoredDetailRow(
+                                                'Izmijenjen',
+                                                formatDateTime(
+                                                  _troop.updatedAt!,
+                                                ),
+                                                Icons.edit,
+                                                Colors.amber,
                                               ),
                                             ),
                                           ],
-                                        ),
-                                      ],
-                                    )
-                                  : const Center(
-                                      child: Text(
-                                        'Nema dostupnih koordinata',
-                                        style: TextStyle(fontSize: 18),
+                                        ],
                                       ),
-                                    ),
+                                      if (_troop.lastLoginAt != null)
+                                        _buildColoredDetailRow(
+                                          'Zadnja prijava',
+                                          formatDateTime(_troop.lastLoginAt!),
+                                          Icons.login,
+                                          Colors.cyan,
+                                        ),
+                                    ],
+                                  ),
+                              ],
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 30),
+                          const SizedBox(width: 40),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            UIComponents.buildBigActionButton(
-                              icon: Icons.people,
-                              label: 'Članovi',
-                              color: Colors.blue,
-                              onPressed: _navigateToMembers,
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 280,
+                                  child: Card(
+                                    elevation: 6,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: hasCoordinates
+                                          ? FlutterMap(
+                                              mapController: _mapController,
+                                              options: MapOptions(
+                                                center: _selectedLocation,
+                                                zoom: 13.0,
+                                              ),
+                                              children: [
+                                                TileLayer(
+                                                  urlTemplate:
+                                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                                  userAgentPackageName:
+                                                      'com.example.scouttrack_desktop',
+                                                ),
+                                                MarkerLayer(
+                                                  markers: [
+                                                    Marker(
+                                                      point: _selectedLocation!,
+                                                      width: 50,
+                                                      height: 50,
+                                                      child: const Icon(
+                                                        Icons.location_pin,
+                                                        color: Colors.red,
+                                                        size: 50,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            )
+                                          : const Center(
+                                              child: Text(
+                                                'Nema dostupnih koordinata',
+                                                style: TextStyle(fontSize: 18),
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 30),
+
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    UIComponents.buildBigActionButton(
+                                      icon: Icons.people,
+                                      label: 'Članovi',
+                                      color: Colors.blue,
+                                      onPressed: _navigateToMembers,
+                                    ),
+                                    const SizedBox(width: 24),
+                                    UIComponents.buildBigActionButton(
+                                      icon: Icons.event,
+                                      label: 'Aktivnosti',
+                                      color: Colors.green,
+                                      onPressed: _navigateToActivities,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 24),
-                            UIComponents.buildBigActionButton(
-                              icon: Icons.event,
-                              label: 'Aktivnosti',
-                              color: Colors.green,
-                              onPressed: _navigateToActivities,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1461,5 +1591,128 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         builder: (context) => ActivityListScreen(initialTroopId: _troop.id),
       ),
     );
+  }
+
+  Widget _buildColoredDetailSection(
+    String title,
+    Color accentColor,
+    List<Widget> children,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getSectionIcon(title),
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColoredDetailRow(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getSectionIcon(String sectionTitle) {
+    switch (sectionTitle) {
+      case 'Kontakt informacije':
+        return Icons.contact_phone;
+      case 'Sistem informacije':
+        return Icons.info;
+      case 'Lični podaci':
+        return Icons.person;
+      case 'Pripadnost':
+        return Icons.group;
+      default:
+        return Icons.info;
+    }
   }
 }

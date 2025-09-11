@@ -1,4 +1,4 @@
-﻿using MapsterMapper;
+using MapsterMapper;
 using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services.Services.ActivityStateMachine
 {
-    public class ActiveActivityState : BaseActivityState
+    public class RegistrationsOpenActivityState : BaseActivityState
     {
-        public ActiveActivityState(IServiceProvider serviceProvider, ScoutTrackDbContext context, IMapper mapper) : base(serviceProvider, context, mapper)
+        public RegistrationsOpenActivityState(IServiceProvider serviceProvider, ScoutTrackDbContext context, IMapper mapper) : base(serviceProvider, context, mapper)
         {
         }
 
@@ -79,13 +79,23 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         public override async Task<ActivityResponse> CloseRegistrationsAsync(int id)
         {
             var entity = await _context.Activities.FindAsync(id);
-            Console.WriteLine($"ActiveActivityState: Closing registrations for activity {id}. Current state: {entity.ActivityState}");
+            Console.WriteLine($"RegistrationsOpenActivityState: Closing registrations for activity {id}. Current state: {entity.ActivityState}");
+            
+            var now = DateTime.Now;
+            if (entity.StartTime.HasValue && entity.StartTime.Value < now)
+            {
+                throw new UserException("Cannot close registrations: start time is in the past.");
+            }
+            if (entity.EndTime.HasValue && entity.EndTime.Value < now)
+            {
+                throw new UserException("Cannot close registrations: end time is in the past.");
+            }
             
             entity.ActivityState = nameof(RegistrationsClosedActivityState);
-            Console.WriteLine($"ActiveActivityState: Setting new state to: {entity.ActivityState}");
+            Console.WriteLine($"RegistrationsOpenActivityState: Setting new state to: {entity.ActivityState}");
 
             await _context.SaveChangesAsync();
-            Console.WriteLine($"ActiveActivityState: Saved changes. Final state: {entity.ActivityState}");
+            Console.WriteLine($"RegistrationsOpenActivityState: Saved changes. Final state: {entity.ActivityState}");
             
             return _mapper.Map<ActivityResponse>(entity);
         }

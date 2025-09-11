@@ -753,7 +753,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                         textAlign: TextAlign.center,
                       ),
                       if (isEdit &&
-                          (activity?.activityState == 'ActiveActivityState' ||
+                          (activity?.activityState ==
+                                  'RegistrationsOpenActivityState' ||
                               activity?.activityState ==
                                   'RegistrationsClosedActivityState')) ...[
                         const SizedBox(height: 8),
@@ -1500,7 +1501,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                   if (isEdit) {
                                     final needsHybridWorkflow =
                                         activity!.activityState ==
-                                            'ActiveActivityState' ||
+                                            'RegistrationsOpenActivityState' ||
                                         activity.activityState ==
                                             'RegistrationsClosedActivityState';
 
@@ -1769,8 +1770,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           DropdownMenuItem(value: null, child: Text('Svi statusi')),
           DropdownMenuItem(value: 'DraftActivityState', child: Text('Nacrt')),
           DropdownMenuItem(
-            value: 'ActiveActivityState',
-            child: Text('Aktivna'),
+            value: 'RegistrationsOpenActivityState',
+            child: Text('Prijave otvorene'),
           ),
           DropdownMenuItem(
             value: 'RegistrationsClosedActivityState',
@@ -1844,7 +1845,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     if (!canEditOrDelete) return false;
 
     return activity.activityState == 'DraftActivityState' ||
-        activity.activityState == 'ActiveActivityState';
+        activity.activityState == 'RegistrationsOpenActivityState';
   }
 
   String _getEditDisabledReason(Activity activity) {
@@ -1857,7 +1858,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     }
 
     switch (activity.activityState) {
-      case 'ActiveActivityState':
+      case 'RegistrationsOpenActivityState':
         return 'Aktivnost je aktivna - uređivanje je dozvoljeno (veće promjene će obavijestiti registrovane članove)';
       case 'RegistrationsClosedActivityState':
         return 'Prijave su zatvorene - uređivanje nije dozvoljeno';
@@ -1901,8 +1902,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         'color': Colors.grey.shade300,
         'textColor': Colors.black,
       },
-      'ActiveActivityState': {
-        'text': 'Aktivna',
+      'RegistrationsOpenActivityState': {
+        'text': 'Prijave otvorene',
         'color': Colors.green.shade100,
         'textColor': Colors.green,
       },
@@ -2539,8 +2540,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               troopId: updatedActivity.troopId,
               troopName: originalActivity.troopName,
               activityTypeId: updatedActivity.activityTypeId,
-              activityTypeName:
-                  originalActivity.activityTypeName,
+              activityTypeName: originalActivity.activityTypeName,
               createdAt: updatedActivity.createdAt,
               updatedAt: updatedActivity.updatedAt,
               cityId: originalActivity.cityId,

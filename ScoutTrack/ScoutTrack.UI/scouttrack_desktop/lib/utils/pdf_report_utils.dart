@@ -972,8 +972,8 @@ class PdfReportUtils {
     switch (state) {
       case 'DraftActivityState':
         return 'Nacrt';
-      case 'ActiveActivityState':
-        return 'Aktivna';
+      case 'RegistrationsOpenActivityState':
+        return 'Prijave otvorene';
       case 'RegistrationsClosedActivityState':
         return 'Prijave zatvorene';
       case 'FinishedActivityState':
@@ -1100,8 +1100,8 @@ class PdfReportUtils {
     switch (state) {
       case 'DraftActivityState':
         return 'Nacrt';
-      case 'ActiveActivityState':
-        return 'Aktivna';
+      case 'RegistrationsOpenActivityState':
+        return 'Prijave otvorene';
       case 'RegistrationsClosedActivityState':
         return 'Prijave zatvorene';
       case 'FinishedActivityState':

@@ -13,7 +13,7 @@ class DatePickerUtils {
     TextEditingController? controller,
   }) async {
     DateTime? selectedDate = initialDate;
-    
+
     if (controller != null && controller.text.isNotEmpty) {
       try {
         final parsedDate = parseDate(controller.text);
@@ -54,7 +54,7 @@ class DatePickerUtils {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, selectedDate),
-              child: const Text('Sačuvaj'),
+              child: const Text('Spremi'),
             ),
           ],
         ),

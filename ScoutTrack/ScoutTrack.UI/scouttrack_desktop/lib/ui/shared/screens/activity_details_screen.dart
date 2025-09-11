@@ -5,6 +5,9 @@ import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/models/activity.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/activity_provider.dart';
+import 'package:scouttrack_desktop/providers/member_provider.dart';
+import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/permission_utils.dart';
@@ -21,12 +24,12 @@ import 'package:scouttrack_desktop/models/post.dart';
 import 'package:scouttrack_desktop/providers/comment_provider.dart';
 import 'package:scouttrack_desktop/models/comment.dart';
 import 'package:scouttrack_desktop/providers/like_provider.dart';
-import 'package:scouttrack_desktop/models/like.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:scouttrack_desktop/ui/shared/screens/member_details_screen.dart';
 
 class ActivityDetailsScreen extends StatefulWidget {
   final Activity activity;
@@ -99,8 +102,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     switch (state) {
       case 'DraftActivityState':
         return 'Nacrt';
-      case 'ActiveActivityState':
-        return 'Aktivna';
+      case 'RegistrationsOpenActivityState':
+        return 'Prijave otvorene';
       case 'RegistrationsClosedActivityState':
         return 'Registracije zatvorene';
       case 'FinishedActivityState':
@@ -110,6 +113,139 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       default:
         return state;
     }
+  }
+
+  bool _isTimeInPast(DateTime? time) {
+    if (time == null) return false;
+    return time.isBefore(DateTime.now());
+  }
+
+  bool _canActivateActivity() {
+    if (_activity == null) return false;
+    return !_isTimeInPast(_activity!.startTime) &&
+        !_isTimeInPast(_activity!.endTime);
+  }
+
+  bool _canCloseRegistrations() {
+    if (_activity == null) return false;
+    return !_isTimeInPast(_activity!.startTime) &&
+        !_isTimeInPast(_activity!.endTime);
+  }
+
+  Future<void> _navigateToTroop(int troopId) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final troopProvider = TroopProvider(authProvider);
+      final troop = await troopProvider.getById(troopId);
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TroopDetailsScreen(
+              troop: troop,
+              role: _role ?? 'Member',
+              loggedInUserId: _loggedInUserId ?? 1,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'Nije moguće učitati podatke o odredu.';
+
+        if (e.toString().contains('404')) {
+          errorMessage = 'Odred nije pronađen.';
+        } else if (e.toString().contains('401') ||
+            e.toString().contains('403')) {
+          errorMessage = 'Nemate dozvolu za pristup podacima o odredu.';
+        } else if (e.toString().contains('Connection refused') ||
+            e.toString().contains('Failed host lookup')) {
+          errorMessage = 'Nije moguće povezati se s serverom.';
+        }
+
+        showErrorSnackbar(context, errorMessage);
+      }
+    }
+  }
+
+  Future<void> _navigateToMember(int memberId) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = MemberProvider(authProvider);
+      final member = await memberProvider.getById(memberId);
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MemberDetailsScreen(
+              member: member,
+              role: _role ?? '',
+              loggedInUserId: _loggedInUserId ?? 0,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, 'Nije moguće učitati podatke o članu: $e');
+      }
+    }
+  }
+
+  Future<String?> _getMemberProfilePicture(int memberId) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = MemberProvider(authProvider);
+      final member = await memberProvider.getById(memberId);
+      return member.profilePictureUrl.isNotEmpty
+          ? member.profilePictureUrl
+          : null;
+    } catch (e) {
+      print(
+        'DEBUG: Error fetching member profile picture for ID $memberId: $e',
+      );
+      return null;
+    }
+  }
+
+  Widget _buildClickableTroopRow() {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _navigateToTroop(_activity!.troopId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.group, size: 20, color: Colors.grey[600]),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120,
+                child: Text(
+                  'Odred',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _activity!.troopName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -576,11 +712,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                 const SizedBox(height: 24),
               ],
 
-              UIComponents.buildDetailRow(
-                'Odred',
-                _activity!.troopName,
-                Icons.group,
-              ),
+              _buildClickableTroopRow(),
               UIComponents.buildDetailRow(
                 'Lokacija',
                 _activity!.locationName,
@@ -1152,10 +1284,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                       (registration) => DataRow(
                                         cells: [
                                           DataCell(
-                                            Text(
-                                              registration.memberName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w500,
+                                            MouseRegion(
+                                              cursor: SystemMouseCursors.click,
+                                              child: GestureDetector(
+                                                onTap: () => _navigateToMember(
+                                                  registration.memberId,
+                                                ),
+                                                child: Text(
+                                                  registration.memberName,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -1664,16 +1805,39 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                           children: [
                             Row(
                               children: [
-                                CircleAvatar(
-                                  backgroundColor: Colors.grey.shade300,
-                                  child: Text(
-                                    review.memberName.isNotEmpty
-                                        ? review.memberName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                FutureBuilder<String?>(
+                                  future: _getMemberProfilePicture(
+                                    review.memberId,
                                   ),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData &&
+                                        snapshot.data != null &&
+                                        snapshot.data!.isNotEmpty) {
+                                      return CircleAvatar(
+                                        backgroundImage: NetworkImage(
+                                          snapshot.data!,
+                                        ),
+                                        onBackgroundImageError:
+                                            (exception, stackTrace) {
+                                              // Fallback to initials if image fails to load
+                                            },
+                                        child: null,
+                                      );
+                                    } else {
+                                      return CircleAvatar(
+                                        backgroundColor: Colors.grey.shade300,
+                                        child: Text(
+                                          review.memberName.isNotEmpty
+                                              ? review.memberName[0]
+                                                    .toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -1681,11 +1845,20 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        review.memberName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () => _navigateToMember(
+                                            review.memberId,
+                                          ),
+                                          child: Text(
+                                            review.memberName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.black,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       Row(
@@ -1898,13 +2071,14 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     if (_canStartOrFinish) {
       switch (activityState) {
         case 'DraftActivityState':
+          final canActivate = _canActivateActivity();
           buttons.addAll([
             ElevatedButton.icon(
-              onPressed: _onActivateActivity,
+              onPressed: canActivate ? _onActivateActivity : null,
               icon: const Icon(Icons.play_arrow),
               label: const Text('Otvori registracije'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: canActivate ? Colors.green : Colors.grey,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1934,16 +2108,50 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
           ]);
+
+          if (!canActivate) {
+            buttons.add(
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Ne možete aktivirati aktivnost jer je vrijeme u prošlosti. Molimo ažurirajte vremena aktivnosti.',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           break;
 
-        case 'ActiveActivityState':
+        case 'RegistrationsOpenActivityState':
+          final canClose = _canCloseRegistrations();
           buttons.addAll([
             ElevatedButton.icon(
-              onPressed: _onCloseRegistrations,
+              onPressed: canClose ? _onCloseRegistrations : null,
               icon: const Icon(Icons.lock),
               label: const Text('Zatvori registracije'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: canClose ? Colors.orange : Colors.grey,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1973,6 +2181,39 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
             ),
           ]);
+
+          if (!canClose) {
+            buttons.add(
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Ne možete zatvoriti registracije jer je vrijeme u prošlosti. Molimo ažurirajte vremena aktivnosti.',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           break;
 
         case 'RegistrationsClosedActivityState':
@@ -2052,6 +2293,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _onCloseRegistrations() async {
+    if (!_canCloseRegistrations()) {
+      String message = 'Ne možete zatvoriti registracije jer je ';
+      if (_isTimeInPast(_activity?.startTime)) {
+        message += 'vrijeme početka u prošlosti';
+      } else if (_isTimeInPast(_activity?.endTime)) {
+        message += 'vrijeme završetka u prošlosti';
+      }
+      message += '. Molimo ažurirajte vremena aktivnosti.';
+
+      showErrorSnackbar(context, message);
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -2113,6 +2367,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _onActivateActivity() async {
+    if (!_canActivateActivity()) {
+      String message = 'Ne možete aktivirati aktivnost jer je ';
+      if (_isTimeInPast(_activity?.startTime)) {
+        message += 'vrijeme početka u prošlosti';
+      } else if (_isTimeInPast(_activity?.endTime)) {
+        message += 'vrijeme završetka u prošlosti';
+      }
+      message += '. Molimo ažurirajte vremena aktivnosti.';
+
+      showErrorSnackbar(context, message);
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -2859,13 +3126,18 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                             fontSize: 16,
                                           ),
                                         ),
-                                        Text(
-                                          currentPost.createdByTroopName ?? '',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
+                                        if (currentPost.createdByTroopName !=
+                                                null &&
+                                            currentPost
+                                                .createdByTroopName!
+                                                .isNotEmpty)
+                                          Text(
+                                            currentPost.createdByTroopName!,
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 14,
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ),
@@ -3248,7 +3520,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         child: TextFormField(
                           controller: contentController,
                           decoration: const InputDecoration(
-                            labelText: 'Opis objave (opciono)',
+                            labelText: 'Opis objave (opcionalno)',
                             hintText: 'Napišite nešto o svojem iskustvu...',
                             border: OutlineInputBorder(),
                           ),
@@ -3762,11 +4034,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                 )
                               : null,
                         ),
-                        title: Text(like.createdByName),
+                        title: Text(
+                          like.createdByName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle:
                             like.createdByTroopName != null &&
                                 like.createdByTroopName!.isNotEmpty
-                            ? Text(like.createdByTroopName!)
+                            ? Text(
+                                like.createdByTroopName!,
+                                style: TextStyle(color: Colors.grey[600]),
+                              )
                             : null,
                         trailing: Text(
                           formatDate(like.likedAt),

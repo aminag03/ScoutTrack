@@ -1,4 +1,5 @@
 ﻿using MapsterMapper;
+using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Services.Database;
@@ -30,7 +31,18 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         public override async Task<ActivityResponse> ActivateAsync(int id)
         {
             var entity = await _context.Activities.FindAsync(id);
-            entity.ActivityState = nameof(ActiveActivityState);
+            
+            var now = DateTime.Now;
+            if (entity.StartTime.HasValue && entity.StartTime.Value < now)
+            {
+                throw new UserException("Cannot activate activity: start time is in the past.");
+            }
+            if (entity.EndTime.HasValue && entity.EndTime.Value < now)
+            {
+                throw new UserException("Cannot activate activity: end time is in the past.");
+            }
+            
+            entity.ActivityState = nameof(RegistrationsOpenActivityState);
 
             await _context.SaveChangesAsync();
             return _mapper.Map<ActivityResponse>(entity);

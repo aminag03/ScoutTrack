@@ -81,8 +81,8 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
                     if (draftState == null) throw new Exception($"State {stateName} is not registered in DI container.");
                     return draftState;
                     
-                case nameof(ActiveActivityState):
-                    var activeState = _serviceProvider.GetService<ActiveActivityState>();
+                case nameof(RegistrationsOpenActivityState):
+                    var activeState = _serviceProvider.GetService<RegistrationsOpenActivityState>();
                     if (activeState == null) throw new Exception($"State {stateName} is not registered in DI container.");
                     return activeState;
                     

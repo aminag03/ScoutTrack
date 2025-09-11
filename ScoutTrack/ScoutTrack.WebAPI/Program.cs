@@ -43,7 +43,7 @@ builder.Services.AddTransient<INotificationService, NotificationService>();
 builder.Services.AddTransient<BaseActivityState>();
 builder.Services.AddTransient<InitialActivityState>();
 builder.Services.AddTransient<DraftActivityState>();
-builder.Services.AddTransient<ActiveActivityState>();
+builder.Services.AddTransient<RegistrationsOpenActivityState>();
 builder.Services.AddTransient<RegistrationsClosedActivityState>();
 builder.Services.AddTransient<CancelledActivityState>();
 builder.Services.AddTransient<FinishedActivityState>();

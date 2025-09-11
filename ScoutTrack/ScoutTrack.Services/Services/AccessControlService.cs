@@ -140,7 +140,7 @@ namespace ScoutTrack.Services.Services
 
                 if (registration.MemberId != userId) return false;
 
-                if (registration.Activity.ActivityState != "ActiveActivityState")
+                if (registration.Activity.ActivityState != "RegistrationsOpenActivityState")
                 {
                     return false;
                 }
@@ -218,7 +218,7 @@ namespace ScoutTrack.Services.Services
 
                 if (activity == null) return false;
 
-                if (activity.ActivityState != "ActiveActivityState")
+                if (activity.ActivityState != "RegistrationsOpenActivityState")
                 {
                     return false;
                 }

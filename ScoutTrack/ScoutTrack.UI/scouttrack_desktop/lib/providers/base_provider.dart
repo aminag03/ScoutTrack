@@ -318,7 +318,8 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       final unauthorized =
           message.contains("Greška: Niste autorizovani.") ||
           message.contains("Unauthorized") ||
-          message.contains("401");
+          message.contains("401") ||
+          message.contains("Prazan odgovor od servera");
 
       if (unauthorized) {
         if (authProvider == null || !authProvider!.isLoggedIn) {

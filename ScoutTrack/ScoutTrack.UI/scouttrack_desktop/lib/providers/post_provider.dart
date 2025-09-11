@@ -22,10 +22,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
         "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/activity/$activityId",
       ).replace(queryParameters: filter);
 
-      final response = await http.get(
-        uri,
-        headers: await createHeaders(),
-      );
+      final response = await http.get(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -81,8 +78,6 @@ class PostProvider extends BaseProvider<Post, dynamic> {
     });
   }
 
-  // Note: Like/unlike functionality is now handled by LikeProvider
-  // These methods are kept for backward compatibility but will be removed
   @Deprecated('Use LikeProvider.likePost instead')
   Future<Post> likePost(int postId) async {
     throw UnimplementedError('Use LikeProvider.likePost instead');
@@ -138,12 +133,28 @@ class PostProvider extends BaseProvider<Post, dynamic> {
       );
 
       if (response.statusCode == 200) {
-        return Post.fromJson(jsonDecode(response.body));
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          return Post.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          print('JSON decode error in updatePost(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['message'] ?? 'Greška prilikom ažuriranja objave.',
-        );
+        try {
+          final error = jsonDecode(response.body);
+          throw Exception(
+            error['message'] ?? 'Greška prilikom ažuriranja objave.',
+          );
+        } catch (e) {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          throw Exception('Greška prilikom ažuriranja objave.');
+        }
       }
     });
   }
@@ -154,10 +165,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
         "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
       );
 
-      final response = await http.delete(
-        uri,
-        headers: await createHeaders(),
-      );
+      final response = await http.delete(uri, headers: await createHeaders());
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;

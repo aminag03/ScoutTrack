@@ -1181,496 +1181,676 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                 child: CircularProgressIndicator(),
               ),
             )
-          : Scrollbar(
-              controller: _scrollController,
-              thumbVisibility: true,
-              trackVisibility: true,
-              child: SingleChildScrollView(
+          : Container(
+              color: Theme.of(context).colorScheme.surface,
+              child: Scrollbar(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Container(
-                      width: screenWidth * 0.7,
-                      margin: const EdgeInsets.symmetric(vertical: 20),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Column(
+                thumbVisibility: true,
+                trackVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: screenWidth * 0.7,
+                              margin: const EdgeInsets.symmetric(vertical: 20),
+                              child: Column(
                                 children: [
-                                  Stack(
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      CircleAvatar(
-                                        radius: 60,
-                                        backgroundColor: Colors.grey.shade300,
-                                        child:
-                                            _member
-                                                    .profilePictureUrl
-                                                    ?.isNotEmpty ==
-                                                true
-                                            ? ClipOval(
-                                                child: Image.network(
-                                                  _member.profilePictureUrl!,
-                                                  width: 120,
-                                                  height: 120,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) {
-                                                        return const Icon(
-                                                          Icons.person,
-                                                          size: 50,
-                                                          color: Colors.white,
-                                                        );
-                                                      },
-                                                ),
-                                              )
-                                            : const Icon(
-                                                Icons.person,
-                                                size: 50,
-                                                color: Colors.white,
+                                      Column(
+                                        children: [
+                                          Stack(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 60,
+                                                backgroundColor:
+                                                    Colors.grey.shade300,
+                                                child:
+                                                    _member
+                                                            .profilePictureUrl
+                                                            ?.isNotEmpty ==
+                                                        true
+                                                    ? ClipOval(
+                                                        child: Image.network(
+                                                          _member
+                                                              .profilePictureUrl!,
+                                                          width: 120,
+                                                          height: 120,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (
+                                                                context,
+                                                                error,
+                                                                stackTrace,
+                                                              ) {
+                                                                return const Icon(
+                                                                  Icons.person,
+                                                                  size: 50,
+                                                                  color: Colors
+                                                                      .white,
+                                                                );
+                                                              },
+                                                        ),
+                                                      )
+                                                    : const Icon(
+                                                        Icons.person,
+                                                        size: 50,
+                                                        color: Colors.white,
+                                                      ),
                                               ),
-                                      ),
-                                      if (canEdit &&
-                                          _member
-                                                  .profilePictureUrl
-                                                  ?.isNotEmpty ==
-                                              true &&
-                                          !_isImageLoading)
-                                        Positioned(
-                                          bottom: 0,
-                                          right: 0,
-                                          child: GestureDetector(
-                                            onTap: () async {
-                                              final confirm = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: const Text(
-                                                    'Obriši profilnu fotografiju',
-                                                  ),
-                                                  content: const Text(
-                                                    'Jeste li sigurni da želite obrisati profilnu fotografiju?',
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.of(
-                                                            context,
-                                                          ).pop(false),
-                                                      child: const Text(
-                                                        'Odustani',
+                                              if (canEdit &&
+                                                  _member
+                                                          .profilePictureUrl
+                                                          ?.isNotEmpty ==
+                                                      true &&
+                                                  !_isImageLoading)
+                                                Positioned(
+                                                  bottom: 0,
+                                                  right: 0,
+                                                  child: GestureDetector(
+                                                    onTap: () async {
+                                                      final confirm = await showDialog<bool>(
+                                                        context: context,
+                                                        builder: (context) => AlertDialog(
+                                                          title: const Text(
+                                                            'Obriši profilnu fotografiju',
+                                                          ),
+                                                          content: const Text(
+                                                            'Jeste li sigurni da želite obrisati profilnu fotografiju?',
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(false),
+                                                              child: const Text(
+                                                                'Odustani',
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(true),
+                                                              child: const Text(
+                                                                'Obriši',
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .red,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+
+                                                      if (confirm == true) {
+                                                        try {
+                                                          setState(() {
+                                                            _isImageLoading =
+                                                                true;
+                                                          });
+
+                                                          final memberProvider =
+                                                              Provider.of<
+                                                                MemberProvider
+                                                              >(
+                                                                context,
+                                                                listen: false,
+                                                              );
+                                                          await memberProvider
+                                                              .updateProfilePicture(
+                                                                _member.id,
+                                                                null,
+                                                              );
+
+                                                          final refreshedMember =
+                                                              await memberProvider
+                                                                  .getById(
+                                                                    _member.id,
+                                                                  );
+
+                                                          setState(() {
+                                                            _member =
+                                                                refreshedMember;
+                                                          });
+
+                                                          if (context.mounted) {
+                                                            showSuccessSnackbar(
+                                                              context,
+                                                              'Profilna fotografija je uspješno obrisana.',
+                                                            );
+                                                          }
+                                                        } catch (e) {
+                                                          if (context.mounted)
+                                                            showErrorSnackbar(
+                                                              context,
+                                                              e,
+                                                            );
+                                                        } finally {
+                                                          if (mounted) {
+                                                            setState(() {
+                                                              _isImageLoading =
+                                                                  false;
+                                                            });
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.red,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 2,
+                                                        ),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.delete,
+                                                        size: 16,
+                                                        color: Colors.white,
                                                       ),
                                                     ),
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.of(
-                                                            context,
-                                                          ).pop(true),
-                                                      child: const Text(
-                                                        'Obriši',
-                                                        style: TextStyle(
-                                                          color: Colors.red,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          if (canEdit)
+                                            ElevatedButton.icon(
+                                              icon: const Icon(
+                                                Icons.image,
+                                                size: 16,
+                                              ),
+                                              label: const Text(
+                                                'Promijeni fotografiju',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                minimumSize: const Size(
+                                                  160,
+                                                  40,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12,
+                                                    ),
+                                              ),
+                                              onPressed: _showImagePickerDialog,
+                                            ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(width: 40),
+
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${_member.firstName} ${_member.lastName}',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            _member.cityName.isNotEmpty
+                                                ? _member.cityName
+                                                : '-',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineSmall
+                                                ?.copyWith(
+                                                  color: Colors.grey[600],
+                                                ),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Row(
+                                            children: [
+                                              UIComponents.buildInfoChip(
+                                                _member.gender == 0
+                                                    ? 'Muški'
+                                                    : 'Ženski',
+                                                _member.gender == 0
+                                                    ? Icons.male
+                                                    : Icons.female,
+                                                color: _member.gender == 0
+                                                    ? Colors.blue
+                                                    : Colors.pink,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              UIComponents.buildInfoChip(
+                                                _member.isActive
+                                                    ? 'Aktivan'
+                                                    : 'Neaktivan',
+                                                _member.isActive
+                                                    ? Icons.check_circle
+                                                    : Icons.block,
+                                                color: _member.isActive
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(width: 40),
+
+                                      if (canEdit)
+                                        Column(
+                                          children: [
+                                            ElevatedButton.icon(
+                                              icon: const Icon(
+                                                Icons.edit,
+                                                size: 20,
+                                              ),
+                                              label: const Text(
+                                                'Uredi podatke',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                minimumSize: const Size(
+                                                  180,
+                                                  48,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12,
+                                                    ),
+                                              ),
+                                              onPressed: () async {
+                                                await _onEdit();
+                                              },
+                                            ),
+                                            const SizedBox(height: 16),
+                                            if (canChangePassword)
+                                              ElevatedButton.icon(
+                                                icon: const Icon(
+                                                  Icons.password,
+                                                  size: 20,
+                                                ),
+                                                label: const Text(
+                                                  'Promijeni lozinku',
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  minimumSize: const Size(
+                                                    180,
+                                                    48,
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12,
+                                                      ),
+                                                ),
+                                                onPressed:
+                                                    _showChangePasswordDialog,
+                                              ),
+                                            const SizedBox(height: 16),
+                                            ElevatedButton.icon(
+                                              icon: Icon(
+                                                _member.isActive
+                                                    ? Icons.block
+                                                    : Icons.check_circle,
+                                              ),
+                                              label: Text(
+                                                _member.isActive
+                                                    ? 'Deaktiviraj'
+                                                    : 'Aktiviraj',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                minimumSize: const Size(
+                                                  180,
+                                                  48,
+                                                ),
+                                                backgroundColor:
+                                                    _member.isActive
+                                                    ? Colors.red
+                                                    : Colors.green,
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12,
+                                                    ),
+                                              ),
+                                              onPressed: _isLoading
+                                                  ? null
+                                                  : _toggleActivation,
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildColoredDetailSection(
+                                        'Lični podaci',
+                                        Colors.purple,
+                                        [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'Ime',
+                                                  _member.firstName.isNotEmpty
+                                                      ? _member.firstName
+                                                      : '-',
+                                                  Icons.person,
+                                                  Colors.purple,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'Prezime',
+                                                  _member.lastName.isNotEmpty
+                                                      ? _member.lastName
+                                                      : '-',
+                                                  Icons.person_outline,
+                                                  Colors.deepPurple,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'Korisničko ime',
+                                                  _member.username.isNotEmpty
+                                                      ? _member.username
+                                                      : '-',
+                                                  Icons.account_circle,
+                                                  Colors.indigo,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'Datum rođenja',
+                                                  _member.birthDate != null
+                                                      ? formatDate(
+                                                          _member.birthDate!,
+                                                        )
+                                                      : '-',
+                                                  Icons.calendar_today,
+                                                  Colors.pink,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 30),
+
+                                      _buildColoredDetailSection(
+                                        'Kontakt informacije',
+                                        Colors.blue,
+                                        [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'E-mail',
+                                                  _member.email.isNotEmpty
+                                                      ? _member.email
+                                                      : '-',
+                                                  Icons.email,
+                                                  Colors.blue,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: _buildColoredDetailRow(
+                                                  'Telefon',
+                                                  _member
+                                                          .contactPhone
+                                                          .isNotEmpty
+                                                      ? _member.contactPhone
+                                                      : '-',
+                                                  Icons.phone,
+                                                  Colors.green,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 30),
+
+                                      _buildColoredDetailSection(
+                                        'Pripadnost',
+                                        Colors.teal,
+                                        [
+                                          _buildColoredDetailRow(
+                                            'Grad',
+                                            _member.cityName.isNotEmpty
+                                                ? _member.cityName
+                                                : '-',
+                                            Icons.location_city,
+                                            Colors.teal,
+                                          ),
+                                          _buildClickableTroopRow(),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 30),
+                                      if (canEdit)
+                                        _buildColoredDetailSection(
+                                          'Sistem informacije',
+                                          Colors.grey,
+                                          [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildColoredDetailRow(
+                                                    'Kreiran',
+                                                    formatDateTime(
+                                                      _member.createdAt,
+                                                    ),
+                                                    Icons.add_circle,
+                                                    Colors.grey,
+                                                  ),
+                                                ),
+                                                if (_member.updatedAt !=
+                                                    null) ...[
+                                                  const SizedBox(width: 16),
+                                                  Expanded(
+                                                    child:
+                                                        _buildColoredDetailRow(
+                                                          'Izmijenjen',
+                                                          formatDateTime(
+                                                            _member.updatedAt!,
+                                                          ),
+                                                          Icons.edit,
+                                                          Colors.amber,
                                                         ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            if (_member.lastLoginAt != null)
+                                              _buildColoredDetailRow(
+                                                'Zadnja prijava',
+                                                formatDateTime(
+                                                  _member.lastLoginAt!,
+                                                ),
+                                                Icons.login,
+                                                Colors.cyan,
+                                              ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(width: 40),
+
+                                Expanded(
+                                  flex: 2,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 500,
+                                      maxHeight: 800,
+                                    ),
+                                    padding: const EdgeInsets.all(24.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          spreadRadius: 1,
+                                          blurRadius: 3,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _tabController.length == 2
+                                        ? Column(
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      const BorderRadius.only(
+                                                        topLeft:
+                                                            Radius.circular(8),
+                                                        topRight:
+                                                            Radius.circular(8),
+                                                      ),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade300,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.grey
+                                                          .withOpacity(0.1),
+                                                      spreadRadius: 1,
+                                                      blurRadius: 3,
+                                                      offset: const Offset(
+                                                        0,
+                                                        -1,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                              );
-
-                                              if (confirm == true) {
-                                                try {
-                                                  setState(() {
-                                                    _isImageLoading = true;
-                                                  });
-
-                                                  final memberProvider =
-                                                      Provider.of<
-                                                        MemberProvider
-                                                      >(context, listen: false);
-                                                  await memberProvider
-                                                      .updateProfilePicture(
-                                                        _member.id,
-                                                        null,
-                                                      );
-
-                                                  final refreshedMember =
-                                                      await memberProvider
-                                                          .getById(_member.id);
-
-                                                  setState(() {
-                                                    _member = refreshedMember;
-                                                  });
-
-                                                  if (context.mounted) {
-                                                    showSuccessSnackbar(
-                                                      context,
-                                                      'Profilna fotografija je uspješno obrisana.',
-                                                    );
-                                                  }
-                                                } catch (e) {
-                                                  if (context.mounted)
-                                                    showErrorSnackbar(
-                                                      context,
-                                                      e,
-                                                    );
-                                                } finally {
-                                                  if (mounted) {
-                                                    setState(() {
-                                                      _isImageLoading = false;
-                                                    });
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 2,
+                                                child: TabBar(
+                                                  controller: _tabController,
+                                                  labelColor: const Color(
+                                                    0xFF4F8055,
+                                                  ),
+                                                  unselectedLabelColor:
+                                                      Colors.grey,
+                                                  indicatorColor: const Color(
+                                                    0xFF4F8055,
+                                                  ),
+                                                  indicatorWeight: 3,
+                                                  labelStyle: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                  unselectedLabelStyle:
+                                                      const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.normal,
+                                                        fontSize: 14,
+                                                      ),
+                                                  tabs: const [
+                                                    Tab(text: 'Registracije'),
+                                                    Tab(text: 'Vještarstva'),
+                                                  ],
                                                 ),
                                               ),
-                                              child: const Icon(
-                                                Icons.delete,
-                                                size: 16,
-                                                color: Colors.white,
+                                              const SizedBox(height: 16),
+                                              Expanded(
+                                                child: TabBarView(
+                                                  controller: _tabController,
+                                                  children: [
+                                                    _buildRegistrationsTab(),
+                                                    _buildBadgesTab(),
+                                                  ],
+                                                ),
                                               ),
-                                            ),
+                                            ],
+                                          )
+                                        : const Center(
+                                            child: CircularProgressIndicator(),
                                           ),
-                                        ),
-                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                  if (canEdit)
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.image, size: 16),
-                                      label: const Text(
-                                        'Promijeni fotografiju',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(160, 40),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      onPressed: _showImagePickerDialog,
-                                    ),
-                                ],
-                              ),
-
-                              const SizedBox(width: 40),
-
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${_member.firstName} ${_member.lastName}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _member.cityName.isNotEmpty
-                                        ? _member.cityName
-                                        : '-',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(color: Colors.grey[600]),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                    children: [
-                                      UIComponents.buildInfoChip(
-                                        _member.gender == 0
-                                            ? 'Muški'
-                                            : 'Ženski',
-                                        _member.gender == 0
-                                            ? Icons.male
-                                            : Icons.female,
-                                        color: _member.gender == 0
-                                            ? Colors.blue
-                                            : Colors.pink,
-                                      ),
-                                      const SizedBox(width: 16),
-                                      UIComponents.buildInfoChip(
-                                        _member.isActive
-                                            ? 'Aktivan'
-                                            : 'Neaktivan',
-                                        _member.isActive
-                                            ? Icons.check_circle
-                                            : Icons.block,
-                                        color: _member.isActive
-                                            ? Colors.green
-                                            : Colors.red,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(width: 40),
-
-                              if (canEdit)
-                                Column(
-                                  children: [
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      label: const Text('Uredi podatke'),
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(180, 48),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      onPressed: () async {
-                                        await _onEdit();
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                    if (canChangePassword)
-                                      ElevatedButton.icon(
-                                        icon: const Icon(
-                                          Icons.password,
-                                          size: 20,
-                                        ),
-                                        label: const Text('Promijeni lozinku'),
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(180, 48),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        onPressed: _showChangePasswordDialog,
-                                      ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
-                                      icon: Icon(
-                                        _member.isActive
-                                            ? Icons.block
-                                            : Icons.check_circle,
-                                      ),
-                                      label: Text(
-                                        _member.isActive
-                                            ? 'Deaktiviraj'
-                                            : 'Aktiviraj',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(180, 48),
-                                        backgroundColor: _member.isActive
-                                            ? Colors.red
-                                            : Colors.green,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      onPressed: _isLoading
-                                          ? null
-                                          : _toggleActivation,
-                                    ),
-                                  ],
                                 ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              UIComponents.buildDetailSection('Lični podaci', [
-                                UIComponents.buildDetailRow(
-                                  'Ime',
-                                  _member.firstName.isNotEmpty
-                                      ? _member.firstName
-                                      : '-',
-                                  Icons.person,
-                                ),
-                                UIComponents.buildDetailRow(
-                                  'Prezime',
-                                  _member.lastName.isNotEmpty
-                                      ? _member.lastName
-                                      : '-',
-                                  Icons.person,
-                                ),
-                                UIComponents.buildDetailRow(
-                                  'Korisničko ime',
-                                  _member.username.isNotEmpty
-                                      ? _member.username
-                                      : '-',
-                                  Icons.account_circle,
-                                ),
-                                UIComponents.buildDetailRow(
-                                  'Datum rođenja',
-                                  _member.birthDate != null
-                                      ? formatDate(_member.birthDate!)
-                                      : '-',
-                                  Icons.calendar_today,
-                                ),
-                              ]),
-
-                              const SizedBox(height: 30),
-
-                              UIComponents.buildDetailSection(
-                                'Kontakt informacije',
-                                [
-                                  UIComponents.buildDetailRow(
-                                    'E-mail',
-                                    _member.email.isNotEmpty
-                                        ? _member.email
-                                        : '-',
-                                    Icons.email,
-                                  ),
-                                  UIComponents.buildDetailRow(
-                                    'Telefon',
-                                    _member.contactPhone.isNotEmpty
-                                        ? _member.contactPhone
-                                        : '-',
-                                    Icons.phone,
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 30),
-
-                              UIComponents.buildDetailSection('Pripadnost', [
-                                UIComponents.buildDetailRow(
-                                  'Grad',
-                                  _member.cityName.isNotEmpty
-                                      ? _member.cityName
-                                      : '-',
-                                  Icons.location_city,
-                                ),
-                                _buildClickableTroopRow(),
-                              ]),
-
-                              const SizedBox(height: 30),
-                              if (canEdit)
-                                UIComponents.buildDetailSection(
-                                  'Sistem informacije',
-                                  [
-                                    UIComponents.buildDetailRow(
-                                      'Kreiran',
-                                      formatDateTime(_member.createdAt),
-                                    ),
-                                    if (_member.updatedAt != null)
-                                      UIComponents.buildDetailRow(
-                                        'Izmijenjen',
-                                        formatDateTime(_member.updatedAt!),
-                                      ),
-                                    if (_member.lastLoginAt != null)
-                                      UIComponents.buildDetailRow(
-                                        'Zadnja prijava',
-                                        formatDateTime(_member.lastLoginAt!),
-                                      ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 40),
-
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            constraints: const BoxConstraints(
-                              minHeight: 500,
-                              maxHeight: 800,
-                            ),
-                            padding: const EdgeInsets.all(24.0),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: _tabController.length == 2
-                                ? Column(
-                                    children: [
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(8),
-                                            topRight: Radius.circular(8),
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withOpacity(
-                                                0.1,
-                                              ),
-                                              spreadRadius: 1,
-                                              blurRadius: 3,
-                                              offset: const Offset(0, -1),
-                                            ),
-                                          ],
-                                        ),
-                                        child: TabBar(
-                                          controller: _tabController,
-                                          labelColor: const Color(0xFF4F8055),
-                                          unselectedLabelColor: Colors.grey,
-                                          indicatorColor: const Color(
-                                            0xFF4F8055,
-                                          ),
-                                          indicatorWeight: 3,
-                                          labelStyle: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                          unselectedLabelStyle: const TextStyle(
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 14,
-                                          ),
-                                          tabs: const [
-                                            Tab(text: 'Registracije'),
-                                            Tab(text: 'Vještarstva'),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Expanded(
-                                        child: TabBarView(
-                                          controller: _tabController,
-                                          children: [
-                                            _buildRegistrationsTab(),
-                                            _buildBadgesTab(),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1679,10 +1859,11 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
 
   Widget _buildClickableTroopRow() {
     if (_member.troopId == null) {
-      return UIComponents.buildDetailRow(
+      return _buildColoredDetailRow(
         'Odred',
         'Nepoznat odred',
         Icons.group,
+        Colors.grey,
       );
     }
 
@@ -1698,66 +1879,85 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
             onTap: _navigateToTroop,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                color: isHovered ? Colors.blue.shade50 : Colors.transparent,
                 border: Border.all(
-                  color: isHovered ? Colors.blue.shade200 : Colors.transparent,
-                  width: 1,
+                  color: isHovered ? Colors.teal : Colors.teal.withOpacity(0.2),
+                  width: isHovered ? 2 : 1,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isHovered
+                        ? Colors.teal.withOpacity(0.2)
+                        : Colors.teal.withOpacity(0.1),
+                    blurRadius: isHovered ? 8 : 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.group,
-                    size: 20,
-                    color: isHovered ? Colors.blue.shade600 : Colors.grey[600],
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      'Odred',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: isHovered
-                            ? Colors.blue.shade700
-                            : Colors.grey[700],
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isHovered
+                          ? Colors.teal.withOpacity(0.2)
+                          : Colors.teal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      Icons.group,
+                      size: 18,
+                      color: isHovered ? Colors.teal.shade700 : Colors.teal,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _getTroopName(_member.troopId),
+                          'Odred',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: isHovered
-                                ? Colors.blue.shade700
-                                : Colors.blue.shade600,
-                            decoration: TextDecoration.underline,
-                            fontWeight: isHovered
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+                                ? Colors.teal.shade700
+                                : Colors.teal,
+                            fontSize: 14,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        AnimatedRotation(
-                          turns: isHovered ? 0.125 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            Icons.open_in_new,
-                            size: 16,
-                            color: isHovered
-                                ? Colors.blue.shade700
-                                : Colors.blue.shade600,
-                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _getTroopName(_member.troopId),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: isHovered
+                                      ? Colors.teal.shade700
+                                      : Colors.teal.shade600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                            AnimatedRotation(
+                              turns: isHovered ? 0.125 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                Icons.open_in_new,
+                                size: 16,
+                                color: isHovered
+                                    ? Colors.teal.shade700
+                                    : Colors.teal.shade600,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -2291,6 +2491,129 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
           showErrorSnackbar(context, e);
         }
       }
+    }
+  }
+
+  Widget _buildColoredDetailSection(
+    String title,
+    Color accentColor,
+    List<Widget> children,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getSectionIcon(title),
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColoredDetailRow(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getSectionIcon(String sectionTitle) {
+    switch (sectionTitle) {
+      case 'Kontakt informacije':
+        return Icons.contact_phone;
+      case 'Sistem informacije':
+        return Icons.info;
+      case 'Lični podaci':
+        return Icons.person;
+      case 'Pripadnost':
+        return Icons.group;
+      default:
+        return Icons.info;
     }
   }
 }

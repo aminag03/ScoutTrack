@@ -361,13 +361,13 @@ namespace ScoutTrack.Services
             var state = _baseActivityState.GetActivityState(entity.ActivityState);
             _logger.LogInformation($"Retrieved state object of type: {state.GetType().Name}");
 
-            if (state is not ActiveActivityState activeState)
+            if (state is not RegistrationsOpenActivityState activeState)
             {
-                _logger.LogWarning($"Activity {id} has state '{entity.ActivityState}' but expected 'ActiveActivityState'. Actual state type: {state.GetType().Name}");
+                _logger.LogWarning($"Activity {id} has state '{entity.ActivityState}' but expected 'RegistrationsOpenActivityState'. Actual state type: {state.GetType().Name}");
                 throw new UserException($"Registrations can only be closed while active. Current state: {entity.ActivityState}");
             }
 
-            _logger.LogInformation($"Calling CloseRegistrationsAsync on ActiveActivityState for activity {id}");
+            _logger.LogInformation($"Calling CloseRegistrationsAsync on RegistrationsOpenActivityState for activity {id}");
             var result = await activeState.CloseRegistrationsAsync(id);
             _logger.LogInformation($"Successfully closed registrations for activity {id}. New state: {result.ActivityState}");
             
