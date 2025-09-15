@@ -63,6 +63,8 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
   Future<void> _loadInitialData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = await authProvider.getUserRole();
+
+    if (!mounted) return;
     setState(() {
       _role = role;
     });
@@ -75,6 +77,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       setState(() {
         currentPage = 1;
       });
@@ -85,6 +88,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
   Future<void> _fetchActivityTypes({int? page}) async {
     if (_loading) return;
 
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -101,6 +105,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
 
       var result = await _activityTypeProvider.get(filter: filter);
 
+      if (!mounted) return;
       setState(() {
         _activityTypes = result;
         currentPage = page ?? currentPage;
@@ -110,11 +115,13 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
         if (currentPage < 1) currentPage = 1;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _activityTypes = null;
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -232,6 +239,7 @@ class _ActivityTypeListScreenState extends State<ActivityTypeListScreen> {
                       ),
                       isExpanded: true,
                       onChanged: (value) {
+                        if (!mounted) return;
                         setState(() {
                           _selectedSort = value;
                           currentPage = 1;

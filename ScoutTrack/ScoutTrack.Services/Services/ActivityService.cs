@@ -1,3 +1,4 @@
+using Azure;
 using MapsterMapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,11 @@ using ScoutTrack.Services.Database.Entities;
 using ScoutTrack.Services.Extensions;
 using ScoutTrack.Services.Interfaces;
 using ScoutTrack.Services.Services.ActivityStateMachine;
-using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
@@ -188,6 +189,19 @@ namespace ScoutTrack.Services
 
             return await baseState.UpdateAsync(id, request);
             // return await base.UpdateAsync(id, request);
+        }
+
+        public override async Task<ActivityResponse?> GetByIdAsync(int id)
+        {
+            var entity = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (entity == null)
+                return null;
+
+            return MapToResponse(entity);
         }
 
         public async Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request)

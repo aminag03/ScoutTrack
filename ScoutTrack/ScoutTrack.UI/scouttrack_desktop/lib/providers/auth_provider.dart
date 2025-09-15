@@ -8,6 +8,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isRefreshing = false;
   final List<Completer<bool>> _refreshCompleters = [];
+  bool _shouldRedirectToLogin = false;
 
   Future<Map<String, dynamic>?> fetchCurrentUser({
     bool forceRefresh = false,
@@ -30,7 +31,6 @@ class AuthProvider with ChangeNotifier {
     if (response.statusCode == 200) {
       try {
         if (response.body.isEmpty) {
-          print('Empty response body from /Auth/me endpoint');
           return null;
         }
         _currentUser = jsonDecode(response.body);
@@ -50,20 +50,16 @@ class AuthProvider with ChangeNotifier {
       if (retryResponse.statusCode == 200) {
         try {
           if (retryResponse.body.isEmpty) {
-            print('Empty response body from retry /Auth/me endpoint');
             return null;
           }
           _currentUser = jsonDecode(retryResponse.body);
           return _currentUser;
         } catch (e) {
-          print('JSON decode error in fetchCurrentUser() retry: $e');
-          print('Response body: ${retryResponse.body}');
           return null;
         }
       }
     }
 
-    debugPrint('Failed to fetch current user: ${response.statusCode}');
     return null;
   }
 
@@ -100,16 +96,19 @@ class AuthProvider with ChangeNotifier {
 
     if (role == null || id == null) return null;
 
-    return {'id': id, 'role': role};
+    return {'id': id, 'role': role, 'username': _username};
   }
 
-  static String? _accessToken;
+  String? _accessToken;
   String? _refreshToken;
   String? _role;
   String? _username;
 
   bool get isLoggedIn => _accessToken != null;
-  String? get accessToken => _accessToken;
+  String? get accessToken {
+    return _accessToken;
+  }
+
   String? get username => _username;
 
   Future<void> initialize() async {
@@ -212,10 +211,13 @@ class AuthProvider with ChangeNotifier {
             _accessToken = data['accessToken'];
             _refreshToken = data['refreshToken'];
             _currentUser = null;
-            await fetchCurrentUser(forceRefresh: true);
-            notifyListeners();
+
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('accessToken', _accessToken!);
+            await prefs.setString('refreshToken', _refreshToken!);
             print('Token refreshed successfully');
             success = true;
+            notifyListeners();
           }
         } catch (e) {
           print('JSON decode error during token refresh: $e');
@@ -267,7 +269,19 @@ class AuthProvider with ChangeNotifier {
     _refreshToken = null;
     _role = null;
     _username = null;
+    _currentUser = null;
 
+    notifyListeners();
+  }
+
+  bool get shouldRedirectToLogin => _shouldRedirectToLogin;
+
+  void clearRedirectFlag() {
+    _shouldRedirectToLogin = false;
+  }
+
+  void triggerRedirectToLogin() {
+    _shouldRedirectToLogin = true;
     notifyListeners();
   }
 

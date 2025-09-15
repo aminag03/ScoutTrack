@@ -36,5 +36,15 @@ namespace ScoutTrack.WebAPI.Controllers
                 return NotFound();
             return Ok(result);
         }
+
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard([FromQuery] int? year = null, [FromQuery] int? timePeriodDays = null)
+        {
+            var dashboard = await _adminService.GetDashboardAsync(year, timePeriodDays);
+            if (dashboard == null)
+                return NotFound();
+
+            return Ok(dashboard);
+        }
     }
 } 

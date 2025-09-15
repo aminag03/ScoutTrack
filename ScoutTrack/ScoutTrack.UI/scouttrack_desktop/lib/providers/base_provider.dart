@@ -4,6 +4,16 @@ import 'package:http/http.dart' as http;
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 
+class _HttpError implements Exception {
+  final String message;
+  final http.Response response;
+
+  _HttpError(this.message, this.response);
+
+  @override
+  String toString() => message;
+}
+
 abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   @protected
   static String? baseUrl;
@@ -215,7 +225,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     if (response.statusCode < 299) {
       return true;
     } else if (response.statusCode == 401) {
-      throw Exception("Greška: Niste autorizovani.");
+      throw _HttpError("Greška: Niste autorizovani.", response);
     } else {
       String errorMsg = response.body;
       try {
@@ -233,32 +243,42 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
 
       if (errorMsg.contains('username') &&
           errorMsg.contains('already exists')) {
-        throw Exception('Korisničko ime već postoji.');
+        throw _HttpError('Korisničko ime već postoji.', response);
       }
       if (errorMsg.contains('email') && errorMsg.contains('already exists')) {
-        throw Exception('Email već postoji.');
+        throw _HttpError('Email već postoji.', response);
       }
       if (errorMsg.contains('name') && errorMsg.contains('already exists')) {
-        throw Exception('Naziv već postoji.');
+        throw _HttpError('Naziv već postoji.', response);
       }
       if (errorMsg.contains('description') &&
           errorMsg.contains('already exists')) {
-        throw Exception('Opis već postoji.');
+        throw _HttpError('Opis već postoji.', response);
       }
       if (errorMsg.contains('permission') && errorMsg.contains('activity')) {
-        throw Exception('Aktivnost je privatna. Nemate dozvolu za pristup.');
+        throw _HttpError(
+          'Aktivnost je privatna. Nemate dozvolu za pristup.',
+          response,
+        );
       }
       if (errorMsg.contains('permission')) {
-        throw Exception('Nemate dozvolu za ovu akciju.');
+        throw _HttpError('Nemate dozvolu za ovu akciju.', response);
       }
-      if (errorMsg.contains('Cannot delete') &&
+      if (errorMsg.contains('cannot delete') &&
           errorMsg.contains('using this record')) {
-        throw Exception(
+        throw _HttpError(
           'Ne možete obrisati ovaj zapis jer je povezan s drugim podacima.',
+          response,
+        );
+      }
+      if (errorMsg.contains('age range')) {
+        throw _HttpError(
+          'Starosni raspon se preklapa sa već postojećom kategorijom. Molimo odaberite drugi raspon.',
+          response,
         );
       }
 
-      throw Exception('Došlo je do problema. Pokušajte ponovo.');
+      throw _HttpError('Došlo je do problema. Pokušajte ponovo.', response);
     }
   }
 
@@ -269,6 +289,8 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
         authProvider!.isLoggedIn &&
         authProvider!.accessToken != null) {
       headers['Authorization'] = 'Bearer ${authProvider!.accessToken}';
+    } else {
+      print('No access token available for request');
     }
 
     return headers;
@@ -310,43 +332,126 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     return query;
   }
 
+  bool _isBusinessError(http.Response response) {
+    return response.statusCode == 400;
+  }
+
+  bool _isAuthError(String errorMessage) {
+    final authErrorPatterns = [
+      "Greška: Niste autorizovani",
+      "Unauthorized",
+      "401",
+      "Prazan odgovor od servera",
+    ];
+
+    for (final pattern in authErrorPatterns) {
+      if (errorMessage.contains(pattern)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<R> handleWithRefresh<R>(Future<R> Function() requestFn) async {
     try {
       return await requestFn();
     } catch (e) {
-      final message = e.toString();
-      final unauthorized =
-          message.contains("Greška: Niste autorizovani.") ||
-          message.contains("Unauthorized") ||
-          message.contains("401") ||
-          message.contains("Prazan odgovor od servera");
+      if (e is _HttpError) {
+        final httpError = e;
+        final message = httpError.message;
 
-      if (unauthorized) {
-        if (authProvider == null || !authProvider!.isLoggedIn) {
-          throw Exception(
-            "Greška: Niste autorizovani. Molimo prijavite se ponovo.",
-          );
+        if (_isBusinessError(httpError.response)) {
+          rethrow;
         }
 
-        try {
-          final success = await authProvider!.refreshToken();
-          if (success) {
-            return await requestFn();
-          } else {
-            await authProvider!.logout();
-            throw Exception(
-              "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
-            );
-          }
-        } catch (refreshError) {
-          await authProvider!.logout();
-          throw Exception(
-            "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
-          );
+        if (httpError.response.statusCode == 401) {
+          return await _handleAuthError(message, requestFn);
         }
-      } else {
+
         rethrow;
       }
+
+      final message = e.toString();
+
+      if (_isAuthError(message)) {
+        return await _handleAuthError(message, requestFn);
+      }
+
+      rethrow;
+    }
+  }
+
+  Future<R> _handleAuthError<R>(
+    String message,
+    Future<R> Function() requestFn,
+  ) async {
+    if (authProvider == null || !authProvider!.isLoggedIn) {
+      throw Exception(
+        "Greška: Niste autorizovani. Molimo prijavite se ponovo.",
+      );
+    }
+
+    try {
+      final success = await authProvider!.refreshToken();
+      if (success) {
+        await Future.delayed(Duration(milliseconds: 100));
+        try {
+          return await requestFn();
+        } catch (retryError) {
+          if (retryError is _HttpError) {
+            final retryHttpError = retryError;
+
+            if (retryHttpError.response.statusCode == 401) {
+              await authProvider!.logout();
+              authProvider!.triggerRedirectToLogin();
+              throw Exception(
+                "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
+              );
+            } else if (_isBusinessError(retryHttpError.response)) {
+              rethrow;
+            } else {
+              rethrow;
+            }
+          } else {
+            final retryMessage = retryError.toString();
+            if (_isAuthError(retryMessage)) {
+              await authProvider!.logout();
+              authProvider!.triggerRedirectToLogin();
+              throw Exception(
+                "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
+              );
+            } else {
+              rethrow;
+            }
+          }
+        }
+      } else {
+        await authProvider!.logout();
+        authProvider!.triggerRedirectToLogin();
+        throw Exception(
+          "Greška: Sesija je istekla. Molimo prijavite se ponovo.",
+        );
+      }
+    } catch (refreshError) {
+      if (refreshError is _HttpError &&
+          _isBusinessError(refreshError.response)) {
+        rethrow;
+      }
+
+      final refreshErrorMessage = refreshError.toString();
+      if (refreshErrorMessage.contains("već postoji") ||
+          refreshErrorMessage.contains("nije ispravna") ||
+          refreshErrorMessage.contains("ne smije biti") ||
+          refreshErrorMessage.contains("mora imati") ||
+          refreshErrorMessage.contains("se ne poklapaju") ||
+          refreshErrorMessage.contains("Greška prilikom") ||
+          refreshErrorMessage.contains("Greška: Neuspješno")) {
+        rethrow;
+      }
+
+      await authProvider!.logout();
+      authProvider!.triggerRedirectToLogin();
+      throw Exception("Greška: Sesija je istekla. Molimo prijavite se ponovo.");
     }
   }
 }

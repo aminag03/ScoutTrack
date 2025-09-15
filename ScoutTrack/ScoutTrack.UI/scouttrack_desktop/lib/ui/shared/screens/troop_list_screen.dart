@@ -82,24 +82,36 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final role = await authProvider.getUserRole();
-    if (!mounted) return;
-    setState(() {
-      _role = role;
-    });
+    try {
+      if (!mounted) return;
 
-    final cityProvider = CityProvider(authProvider);
-    var filter = {"RetrieveAll": true};
-    final cityResult = await cityProvider.get(filter: filter);
-    if (!mounted) return;
-    setState(() {
-      _cities = cityResult.items ?? [];
-    });
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final role = await authProvider.getUserRole();
 
-    await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
 
-    await _fetchTroops();
+      setState(() {
+        _role = role;
+      });
+
+      final cityProvider = CityProvider(authProvider);
+      var filter = {"RetrieveAll": true};
+      final cityResult = await cityProvider.get(filter: filter);
+
+      if (!mounted) return;
+
+      setState(() {
+        _cities = cityResult.items ?? [];
+      });
+
+      await _fetchTroops();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   void _onSearchChanged() {
@@ -114,12 +126,15 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Future<void> _fetchTroops({int? page}) async {
-    if (_loading) return;
+    if (_loading) return; // Prevent multiple simultaneous fetches
+
     if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       var filter = {
         if (searchController.text.isNotEmpty) "Name": searchController.text,
@@ -129,9 +144,11 @@ class _TroopListScreenState extends State<TroopListScreen> {
         "PageSize": pageSize,
         "IncludeTotalCount": true,
       };
+
       var result = await _troopProvider.get(filter: filter);
 
       if (!mounted) return;
+
       setState(() {
         _troops = result;
         currentPage = page ?? currentPage;
@@ -139,16 +156,13 @@ class _TroopListScreenState extends State<TroopListScreen> {
         if (totalPages == 0) totalPages = 1;
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
+        _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
         _troops = null;
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
         _loading = false;
       });
     }

@@ -23,6 +23,7 @@ class BadgeListScreen extends StatefulWidget {
 class _BadgeListScreenState extends State<BadgeListScreen> {
   SearchResult<Badge>? _badges;
   bool _loading = false;
+  String? _error;
   String? _role;
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
@@ -60,14 +61,26 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final role = await authProvider.getUserRole();
-    if (!mounted) return;
-    setState(() {
-      _role = role;
-    });
+    try {
+      if (!mounted) return;
 
-    await _fetchBadges();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final role = await authProvider.getUserRole();
+
+      if (!mounted) return;
+
+      setState(() {
+        _role = role;
+      });
+
+      await _fetchBadges();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   void _onSearchChanged() {
@@ -106,10 +119,12 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
 
   Future<void> _fetchBadges({int? page}) async {
     if (_loading) return;
+
     if (!mounted) return;
 
     setState(() {
       _loading = true;
+      _error = null;
     });
 
     try {
@@ -127,13 +142,20 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
       };
 
       final result = await _badgeProvider.get(filter: filter);
+
       if (!mounted) return;
+
       setState(() {
         _badges = result as SearchResult<Badge>;
         totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
       showErrorSnackbar(context, e);
     }
   }

@@ -12,6 +12,7 @@ import 'package:scouttrack_desktop/models/document.dart';
 import 'package:scouttrack_desktop/models/member.dart';
 import 'package:scouttrack_desktop/models/troop.dart';
 import 'package:scouttrack_desktop/models/member_badge.dart';
+import 'package:scouttrack_desktop/models/category.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 
 class PdfReportUtils {
@@ -208,6 +209,7 @@ class PdfReportUtils {
     List<MemberBadge> memberBadges, {
     Map<String, dynamic>? filters,
     Map<int, String>? memberTroopNames,
+    Map<int, String>? troopIdToName,
   }) async {
     final pdf = pw.Document();
     final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
@@ -402,14 +404,31 @@ class PdfReportUtils {
       filterRows.add(_buildFilterRow('Status vjestarstva', statusText));
     }
 
+    if (filters.containsKey('CategoryName') &&
+        filters['CategoryName'] != null) {
+      filterRows.add(
+        _buildFilterRow(
+          'Kategorija',
+          _convertToAscii(filters['CategoryName'].toString()),
+        ),
+      );
+    }
+
     if (filters.containsKey('TroopId') && filters['TroopId'] != null) {
       final troopId = filters['TroopId'] as int;
       String troopName = 'Odred ID: $troopId';
 
-      if (troopIdToName?[troopId] != null) {
+      // First check if we have TroopName in filters (for Troop users)
+      if (filters.containsKey('TroopName') && filters['TroopName'] != null) {
+        troopName = filters['TroopName'].toString();
+      } else if (troopIdToName?[troopId] != null) {
         troopName = troopIdToName![troopId]!;
       } else if (memberTroopNames != null && memberTroopNames.isNotEmpty) {
-        troopName = memberTroopNames.values.first;
+        // Try to find a troop name from member troop names
+        final troopNameFromMembers = memberTroopNames.values.first;
+        if (troopNameFromMembers.isNotEmpty) {
+          troopName = troopNameFromMembers;
+        }
       }
 
       filterRows.add(_buildFilterRow('Odred', _convertToAscii(troopName)));
@@ -796,6 +815,7 @@ class PdfReportUtils {
         'Odred',
         'Datum rodjenja',
         'Spol',
+        'Kategorija',
         'Aktivan',
         'Vrijeme kreiranja',
       ],
@@ -811,6 +831,9 @@ class PdfReportUtils {
               ),
               formatDate(member.birthDate),
               member.gender == 0 ? 'Muski' : 'Zenski',
+              _convertToAscii(
+                member.categoryName.isNotEmpty ? member.categoryName : '-',
+              ),
               member.isActive ? 'Da' : 'Ne',
               formatDateTime(member.createdAt),
             ],
@@ -837,8 +860,9 @@ class PdfReportUtils {
         4: const pw.FixedColumnWidth(100),
         5: const pw.FixedColumnWidth(100),
         6: const pw.FixedColumnWidth(60),
-        7: const pw.FixedColumnWidth(60),
-        8: const pw.FixedColumnWidth(100),
+        7: const pw.FixedColumnWidth(100),
+        8: const pw.FixedColumnWidth(60),
+        9: const pw.FixedColumnWidth(100),
       },
       cellAlignments: {
         0: pw.Alignment.centerLeft,
@@ -848,8 +872,9 @@ class PdfReportUtils {
         4: pw.Alignment.centerLeft,
         5: pw.Alignment.center,
         6: pw.Alignment.center,
-        7: pw.Alignment.center,
+        7: pw.Alignment.centerLeft,
         8: pw.Alignment.center,
+        9: pw.Alignment.center,
       },
     );
   }
@@ -1111,6 +1136,57 @@ class PdfReportUtils {
       default:
         return state;
     }
+  }
+
+  static Future<String> generateCategoryReport(
+    List<Category> categories, {
+    Map<String, dynamic>? filters,
+  }) async {
+    final pdf = pw.Document();
+    final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        build: (context) => [
+          _buildHeader('IZVJESTAJ - KATEGORIJE', filters),
+          _buildCategoryTable(categories),
+        ],
+      ),
+    );
+
+    return await _savePdf(pdf, 'kategorije_izvjestaj_$timestamp.pdf');
+  }
+
+  static pw.Widget _buildCategoryTable(List<Category> categories) {
+    return pw.Table.fromTextArray(
+      headers: [
+        'Naziv kategorije',
+        'Min. starost',
+        'Max. starost',
+        'Opis',
+        'Vrijeme izmjene',
+      ],
+      data: categories
+          .map(
+            (category) => [
+              _convertToAscii(category.name),
+              '${category.minAge} godina',
+              '${category.maxAge} godina',
+              _convertToAscii(
+                category.description.isNotEmpty ? category.description : '-',
+              ),
+              category.updatedAt != null
+                  ? formatDateTime(category.updatedAt!)
+                  : formatDateTime(category.createdAt),
+            ],
+          )
+          .toList(),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+      cellStyle: const pw.TextStyle(fontSize: 8),
+      cellAlignment: pw.Alignment.centerLeft,
+      cellPadding: const pw.EdgeInsets.all(4),
+    );
   }
 
   static Future<String> _savePdf(pw.Document pdf, String fileName) async {

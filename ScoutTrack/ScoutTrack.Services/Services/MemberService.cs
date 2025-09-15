@@ -39,6 +39,7 @@ namespace ScoutTrack.Services
             var query = _context.Set<Member>()
                 .Include(m => m.City)
                 .Include(m => m.Troop)
+                .Include(m => m.Category)
                 .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -130,6 +131,11 @@ namespace ScoutTrack.Services
                 query = query.Where(m => m.Gender == search.Gender.Value);
             }
 
+            if (search.CategoryId.HasValue)
+            {
+                query = query.Where(m => m.CategoryId == search.CategoryId.Value);
+            }
+
             if (!string.IsNullOrEmpty(search.FTS))
             {
                 query = query.Where(m => m.Username.Contains(search.FTS) || 
@@ -173,6 +179,12 @@ namespace ScoutTrack.Services
 
             entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             entity.Gender = request.Gender;
+
+            var today = DateTime.Today;
+            var age = today.Year - request.BirthDate.Year;
+            if (request.BirthDate.Date > today.AddYears(-age)) age--;
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.MinAge <= age && c.MaxAge >= age);
+            entity.CategoryId = category?.Id;
         }
 
         protected override async Task BeforeUpdate(Member entity, MemberUpdateRequest request)
@@ -309,6 +321,22 @@ namespace ScoutTrack.Services
             return _mapper.Map<MemberResponse>(entity);
         }
 
+        public async Task UpdateAllMemberCategoriesAsync()
+        {
+            var today = DateTime.Today;
+            var categories = await _context.Categories.ToListAsync();
+            var members = await _context.Members.ToListAsync();
+
+            foreach (var member in members)
+            {
+                var age = today.Year - member.BirthDate.Year;
+                if (member.BirthDate.Date > today.AddYears(-age)) age--;
+                var category = categories.FirstOrDefault(c => c.MinAge <= age && c.MaxAge >= age);
+                member.CategoryId = category?.Id;
+            }
+            await _context.SaveChangesAsync();
+        }
+
         protected override MemberResponse MapToResponse(Member entity)
         {
             return new MemberResponse
@@ -321,6 +349,8 @@ namespace ScoutTrack.Services
                 BirthDate = entity.BirthDate,
                 Gender = entity.Gender,
                 GenderName = entity.Gender == 0 ? Gender.Male.ToString() : Gender.Female.ToString(),
+                CategoryId = entity.CategoryId,
+                CategoryName = entity.Category?.Name ?? string.Empty,
                 ContactPhone = entity.ContactPhone,
                 ProfilePictureUrl = entity.ProfilePictureUrl ?? string.Empty,
                 TroopId = entity.TroopId,
@@ -334,4 +364,4 @@ namespace ScoutTrack.Services
             };
         }
     }
-} 
+}

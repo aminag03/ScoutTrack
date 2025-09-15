@@ -159,6 +159,48 @@ namespace ScoutTrack.Services.Database
                 }
             };
             modelBuilder.Entity<Member>().HasData(members);
+
+            // Seed Categories
+            var categories = new List<Category>
+            {
+                new Category 
+                { 
+                    Id = 1, 
+                    Name = "Poletarac", 
+                    MinAge = 0, 
+                    MaxAge = 10, 
+                    Description = "Najmlađi izviđači do 10 godina",
+                    CreatedAt = DateTime.Now
+                },
+                new Category 
+                { 
+                    Id = 2, 
+                    Name = "Mlađi izviđač", 
+                    MinAge = 11, 
+                    MaxAge = 14, 
+                    Description = "Mlađi izviđači od 11 do 14 godina",
+                    CreatedAt = DateTime.Now
+                },
+                new Category 
+                { 
+                    Id = 3, 
+                    Name = "Stariji izviđač", 
+                    MinAge = 15, 
+                    MaxAge = 19, 
+                    Description = "Stariji izviđači od 15 do 19 godina",
+                    CreatedAt = DateTime.Now
+                },
+                new Category 
+                { 
+                    Id = 4, 
+                    Name = "Brđan", 
+                    MinAge = 20, 
+                    MaxAge = 100, 
+                    Description = "Brđani od 20 godina i stariji",
+                    CreatedAt = DateTime.Now
+                }
+            };
+            modelBuilder.Entity<Category>().HasData(categories);
         }
     }
 }

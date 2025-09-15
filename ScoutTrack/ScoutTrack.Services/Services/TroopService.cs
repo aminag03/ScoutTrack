@@ -363,6 +363,132 @@ namespace ScoutTrack.Services
             return _mapper.Map<TroopResponse>(entity);
         }
 
+        public async Task<TroopDashboardResponse?> GetDashboardAsync(int troopId, int? year = null, int? timePeriodDays = null)
+        {
+            var troop = await _context.Troops.FindAsync(troopId);
+            if (troop == null)
+                return null;
+
+            var now = DateTime.Now;
+            var currentYear = year ?? now.Year;
+            var timePeriod = timePeriodDays ?? 30;
+
+            var memberCount = await _context.Members.CountAsync(m => m.TroopId == troopId && m.IsActive);
+
+            var pendingRegistrationCount = await _context.ActivityRegistrations
+                .Where(ar => ar.Activity.TroopId == troopId && ar.Status == RegistrationStatus.Pending)
+                .CountAsync();
+
+            var activityCount = await _context.Activities.CountAsync(a => a.TroopId == troopId);
+
+            var upcomingActivities = await _context.Activities
+                .Where(a => a.TroopId == troopId && 
+                           a.StartTime > now && 
+                           a.ActivityState != "FinishedActivityState" && 
+                           a.ActivityState != "CancelledActivityState")
+                .OrderBy(a => a.StartTime)
+                .Take(3)
+                .Select(a => new UpcomingActivityResponse
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    StartTime = a.StartTime.Value,
+                    EndTime = a.EndTime.Value,
+                    LocationName = a.LocationName,
+                    ActivityTypeName = a.ActivityType.Name,
+                    Fee = a.Fee ?? 0,
+                    ImagePath = a.ImagePath
+                })
+                .ToListAsync();
+
+            var timePeriodStart = now.AddDays(-timePeriod);
+            var mostActiveMembers = await _context.Members
+                .Where(m => m.TroopId == troopId && m.IsActive)
+                .Select(m => new
+                {
+                    Member = m,
+                    ActivityCount = _context.ActivityRegistrations
+                        .Where(ar => ar.MemberId == m.Id && 
+                                   ar.Status == RegistrationStatus.Completed &&
+                                   ar.RegisteredAt >= timePeriodStart)
+                        .Count(),
+                    PostCount = _context.Posts
+                        .Where(p => p.CreatedById == m.Id && 
+                                  p.CreatedAt >= timePeriodStart)
+                        .Count()
+                })
+                .OrderByDescending(x => x.ActivityCount)
+                .ThenByDescending(x => x.PostCount)
+                .Take(3)
+                .Select(x => new MostActiveMemberResponse
+                {
+                    Id = x.Member.Id,
+                    FirstName = x.Member.FirstName,
+                    LastName = x.Member.LastName,
+                    ActivityCount = x.ActivityCount,
+                    PostCount = x.PostCount,
+                    ProfilePictureUrl = x.Member.ProfilePictureUrl
+                })
+                .ToListAsync();
+
+            var monthlyAttendance = new List<MonthlyAttendanceResponse>();
+            var monthNames = new[] { "Januar", "Februar", "Mart", "April", "Maj", "Juni",
+                                   "Juli", "August", "Septembar", "Oktobar", "Novembar", "Decembar" };
+
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthStart = new DateTime(currentYear, month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var finishedActivitiesInMonth = await _context.Activities
+                    .Where(a => a.TroopId == troopId && 
+                               a.ActivityState == "FinishedActivityState" &&
+                               a.EndTime >= monthStart && 
+                               a.EndTime <= monthEnd)
+                    .ToListAsync();
+
+                var averageAttendance = 0.0;
+                if (finishedActivitiesInMonth.Any())
+                {
+                    var totalRegistrations = finishedActivitiesInMonth.Sum(a => 
+                        _context.ActivityRegistrations.Count(ar => ar.ActivityId == a.Id && ar.Status == RegistrationStatus.Completed));
+                    averageAttendance = (double)totalRegistrations / finishedActivitiesInMonth.Count;
+                }
+
+                monthlyAttendance.Add(new MonthlyAttendanceResponse
+                {
+                    Month = month,
+                    MonthName = monthNames[month - 1],
+                    AverageAttendance = averageAttendance,
+                    Year = currentYear
+                });
+            }
+
+            var firstActivityYearQuery = await _context.Activities
+                .Where(a => a.TroopId == troopId)
+                .Select(a => a.CreatedAt.Year)
+                .ToListAsync();
+
+            var firstActivityYear = firstActivityYearQuery.Any() 
+                ? firstActivityYearQuery.Min() 
+                : currentYear;
+
+            var availableYears = Enumerable.Range(firstActivityYear, currentYear - firstActivityYear + 1)
+                .OrderByDescending(y => y)
+                .ToList();
+
+            return new TroopDashboardResponse
+            {
+                MemberCount = memberCount,
+                PendingRegistrationCount = pendingRegistrationCount,
+                ActivityCount = activityCount,
+                UpcomingActivities = upcomingActivities,
+                MostActiveMembers = mostActiveMembers,
+                MonthlyAttendance = monthlyAttendance,
+                AvailableYears = availableYears
+            };
+        }
+
         protected override TroopResponse MapToResponse(Troop entity)
         {
             return new TroopResponse

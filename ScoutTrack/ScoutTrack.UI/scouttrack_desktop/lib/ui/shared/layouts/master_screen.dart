@@ -13,6 +13,7 @@ import 'package:scouttrack_desktop/ui/admin/screens/admin_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/member_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/activity_type_list_screen.dart';
 import 'package:scouttrack_desktop/ui/admin/screens/equipment_list_screen.dart';
+import 'package:scouttrack_desktop/ui/admin/screens/category_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/badge_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/activity_list_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/document_list_screen.dart';
@@ -186,6 +187,16 @@ class _MasterScreenState extends State<MasterScreen> {
                             }),
                           ),
                           _SidebarItem(
+                            icon: Icons.category,
+                            label: 'Kategorije',
+                            selected: selectedLabel == 'Kategorije',
+                            onTap: () => _handleTap('Kategorije', () {
+                              Navigator.of(context).pushReplacement(
+                                _fadeRoute(const CategoryListScreen()),
+                              );
+                            }),
+                          ),
+                          _SidebarItem(
                             icon: Icons.description,
                             label: 'Dokumenti',
                             selected: selectedLabel == 'Dokumenti',
@@ -254,7 +265,6 @@ class _MasterScreenState extends State<MasterScreen> {
                   ),
                 ),
 
-                // Fixed bottom items
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,

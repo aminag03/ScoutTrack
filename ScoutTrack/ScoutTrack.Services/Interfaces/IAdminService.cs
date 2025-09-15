@@ -9,5 +9,6 @@ namespace ScoutTrack.Services.Interfaces
     public interface IAdminService : ICRUDService<AdminResponse, AdminSearchObject, AdminInsertRequest, AdminUpdateRequest>
     {
         Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request);
+        Task<AdminDashboardResponse?> GetDashboardAsync(int? year = null, int? timePeriodDays = null);
     }
 } 

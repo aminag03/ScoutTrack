@@ -7,11 +7,13 @@ import 'package:scouttrack_desktop/models/member.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/models/city.dart';
 import 'package:scouttrack_desktop/models/troop.dart';
+import 'package:scouttrack_desktop/models/category.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/city_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 import 'package:scouttrack_desktop/providers/notification_provider.dart';
+import 'package:scouttrack_desktop/providers/category_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
@@ -20,9 +22,6 @@ import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image/image.dart' as img;
-import 'package:syncfusion_flutter_datepicker/datepicker.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
@@ -46,10 +45,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
   int? _selectedCityId;
   int? _selectedTroopId;
   int? _selectedGender;
+  int? _selectedCategoryId;
   String? _selectedSort;
   bool _showOnlyMyMembers = false;
   List<City> _cities = [];
   List<Troop> _troops = [];
+  List<Category> _categories = [];
 
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
@@ -119,9 +120,15 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
       final cityProvider = CityProvider(authProvider);
       final troopProvider = TroopProvider(authProvider);
-      var filter = {"RetrieveAll": true};
-      final cityResult = await cityProvider.get(filter: filter);
-      final troopResult = await troopProvider.get(filter: filter);
+      final filter = {"RetrieveAll": true};
+
+      final futures = await Future.wait([
+        cityProvider.get(filter: filter),
+        troopProvider.get(filter: filter),
+      ]);
+
+      final cityResult = futures[0] as SearchResult<City>;
+      final troopResult = futures[1] as SearchResult<Troop>;
 
       if (!mounted) return;
 
@@ -139,9 +146,33 @@ class _MemberListScreenState extends State<MemberListScreen> {
           }
         }
       });
+
       await _fetchMembers();
+
+      _loadCategoriesInBackground(authProvider);
     } catch (e) {
+      if (!mounted) return;
       print('Error in _loadInitialData: $e');
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadCategoriesInBackground(AuthProvider authProvider) async {
+    try {
+      final categoryProvider = CategoryProvider(authProvider);
+      final filter = {"RetrieveAll": true};
+      final categoryResult = await categoryProvider.get(filter: filter);
+
+      if (!mounted) return;
+
+      setState(() {
+        _categories = categoryResult.items ?? [];
+      });
+    } catch (e) {
+      print('Warning: Could not load categories: $e');
     }
   }
 
@@ -157,10 +188,14 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
   Future<void> _fetchMembers({int? page}) async {
     if (_loading) return;
+
+    if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       int? troopIdForFilter = _selectedTroopId;
       if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
@@ -172,12 +207,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
         if (_selectedCityId != null) "CityId": _selectedCityId,
         if (troopIdForFilter != null) "TroopId": troopIdForFilter,
         if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
         if (_selectedSort != null) "OrderBy": _selectedSort,
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
         "IncludeTotalCount": true,
       };
+
       var result = await _memberProvider.get(filter: filter);
+
+      if (!mounted) return;
 
       setState(() {
         _members = result;
@@ -186,14 +225,13 @@ class _MemberListScreenState extends State<MemberListScreen> {
         if (totalPages == 0) totalPages = 1;
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
+        _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _members = null;
-      });
-    } finally {
-      setState(() {
         _loading = false;
       });
     }
@@ -207,350 +245,421 @@ class _MemberListScreenState extends State<MemberListScreen> {
       child: Container(
         color: Theme.of(context).colorScheme.surface,
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: Stack(
           children: [
-            Row(
+            Column(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Pretraži članove...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedCityId,
-                      decoration: const InputDecoration(
-                        labelText: 'Grad',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCityId = value;
-                          currentPage = 1;
-                        });
-                        _fetchMembers();
-                      },
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Svi gradovi"),
-                        ),
-                        ..._cities.map(
-                          (city) => DropdownMenuItem(
-                            value: city.id,
-                            child: Text(city.name),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: TextField(
+                          controller: searchController,
+                          decoration: const InputDecoration(
+                            hintText: 'Pretraži članove...',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedTroopId,
-                      decoration: const InputDecoration(
-                        labelText: 'Odred',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
                       ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTroopId = value;
-                          if (value != null) {
-                            _showOnlyMyMembers = false;
-                          }
-                          currentPage = 1;
-                        });
-                        _fetchMembers();
-                      },
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Svi odredi"),
-                        ),
-                        ..._troops.map(
-                          (troop) => DropdownMenuItem(
-                            value: troop.id,
-                            child: Text(troop.name),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: DropdownButtonFormField<int?>(
+                          value: _selectedCityId,
+                          decoration: const InputDecoration(
+                            labelText: 'Grad',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedGender,
-                      decoration: const InputDecoration(
-                        labelText: 'Spol',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedGender = value;
-                          currentPage = 1;
-                        });
-                        _fetchMembers();
-                      },
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Svi')),
-                        DropdownMenuItem(value: 0, child: Text('Muški')),
-                        DropdownMenuItem(value: 1, child: Text('Ženski')),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedSort,
-                      decoration: const InputDecoration(
-                        labelText: 'Sortiraj',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                          isExpanded: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCityId = value;
+                              currentPage = 1;
+                            });
+                            _fetchMembers();
+                          },
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text("Svi gradovi"),
+                            ),
+                            ..._cities.map(
+                              (city) => DropdownMenuItem(
+                                value: city.id,
+                                child: Text(city.name),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSort = value;
-                          currentPage = 1;
-                        });
-                        _fetchMembers();
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text('Bez sortiranja'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'firstName',
-                          child: Text('Ime (A-Ž)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-firstName',
-                          child: Text('Ime (Ž-A)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'lastName',
-                          child: Text('Prezime (A-Ž)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-lastName',
-                          child: Text('Prezime (Ž-A)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'birthDate',
-                          child: Text('Datum rođenja (najstariji)'),
-                        ),
-                        DropdownMenuItem(
-                          value: '-birthDate',
-                          child: Text('Datum rođenja (najnoviji)'),
-                        ),
-                      ],
                     ),
-                  ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: DropdownButtonFormField<int?>(
+                          value: _selectedTroopId,
+                          decoration: const InputDecoration(
+                            labelText: 'Odred',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          isExpanded: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedTroopId = value;
+                              if (value != null) {
+                                _showOnlyMyMembers = false;
+                              }
+                              currentPage = 1;
+                            });
+                            _fetchMembers();
+                          },
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text("Svi odredi"),
+                            ),
+                            ..._troops.map(
+                              (troop) => DropdownMenuItem(
+                                value: troop.id,
+                                child: Text(troop.name),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: DropdownButtonFormField<int?>(
+                          value: _selectedGender,
+                          decoration: const InputDecoration(
+                            labelText: 'Spol',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          isExpanded: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedGender = value;
+                              currentPage = 1;
+                            });
+                            _fetchMembers();
+                          },
+                          items: const [
+                            DropdownMenuItem(value: null, child: Text('Svi')),
+                            DropdownMenuItem(value: 0, child: Text('Muški')),
+                            DropdownMenuItem(value: 1, child: Text('Ženski')),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: DropdownButtonFormField<int?>(
+                          value: _selectedCategoryId,
+                          decoration: const InputDecoration(
+                            labelText: 'Kategorija',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          isExpanded: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCategoryId = value;
+                              currentPage = 1;
+                            });
+                            _fetchMembers();
+                          },
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('Sve kategorije'),
+                            ),
+                            ..._categories.map(
+                              (category) => DropdownMenuItem(
+                                value: category.id,
+                                child: Text(category.name),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: DropdownButtonFormField<String?>(
+                          value: _selectedSort,
+                          decoration: const InputDecoration(
+                            labelText: 'Sortiraj',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          isExpanded: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSort = value;
+                              currentPage = 1;
+                            });
+                            _fetchMembers();
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text('Bez sortiranja'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'firstName',
+                              child: Text('Ime (A-Ž)'),
+                            ),
+                            DropdownMenuItem(
+                              value: '-firstName',
+                              child: Text('Ime (Ž-A)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'lastName',
+                              child: Text('Prezime (A-Ž)'),
+                            ),
+                            DropdownMenuItem(
+                              value: '-lastName',
+                              child: Text('Prezime (Ž-A)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'birthDate',
+                              child: Text('Datum rođenja (najstariji)'),
+                            ),
+                            DropdownMenuItem(
+                              value: '-birthDate',
+                              child: Text('Datum rođenja (najnoviji)'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_role == 'Admin' || _role == 'Troop')
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _loading ? null : _generateReport,
+                              icon: _loading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.picture_as_pdf),
+                              label: Text(
+                                _loading
+                                    ? 'Generisanje...'
+                                    : 'Generiši izvještaj',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 16,
+                                ),
+                                minimumSize: const Size(0, 48),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: _onAddMember,
+                              icon: const Icon(Icons.add),
+                              label: Text(
+                                'Dodaj novog člana',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 16,
+                                ),
+                                minimumSize: const Size(0, 48),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                if (_role == 'Admin' || _role == 'Troop')
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12),
+                if (_role == 'Troop') ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _showOnlyMyMembers,
+                        onChanged: (value) {
+                          setState(() {
+                            _showOnlyMyMembers = value ?? false;
+                            if (_showOnlyMyMembers) {
+                              _selectedTroopId = _loggedInUserId;
+                            } else {
+                              _selectedTroopId = null;
+                            }
+                            currentPage = 1;
+                          });
+                          _fetchMembers();
+                        },
+                      ),
+                      const Text(
+                        'Prikaži samo moje članove',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 8),
+                if (_members != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
                     child: Row(
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: _loading ? null : _generateReport,
-                          icon: _loading
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.picture_as_pdf),
-                          label: Text(
-                            _loading ? 'Generisanje...' : 'Generiši izvještaj',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
-                            minimumSize: const Size(0, 48),
-                          ),
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.green.shade700,
+                          size: 18,
                         ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: _onAddMember,
-                          icon: const Icon(Icons.add),
-                          label: Text(
-                            'Dodaj novog člana',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
-                            minimumSize: const Size(0, 48),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Prikazano ${_members!.items?.length ?? 0} od ukupno ${_members!.totalCount ?? 0} članova',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(child: _buildResultView()),
+                      const SizedBox(height: 4),
+                      PaginationControls(
+                        currentPage: currentPage,
+                        totalPages: totalPages,
+                        totalCount: _members?.totalCount ?? 0,
+                        onPageChanged: (page) => _fetchMembers(page: page),
+                      ),
+                      if (_shouldShowNotificationButton()) ...[
+                        const SizedBox(height: 16),
+                        Center(
+                          child: ElevatedButton.icon(
+                            onPressed: _onSendNotification,
+                            icon: const Icon(Icons.notifications),
+                            label: const Text(
+                              'Pošalji obavještenje prikazanim članovima',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              minimumSize: const Size(0, 48),
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
-            if (_role == 'Troop') ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _showOnlyMyMembers,
-                    onChanged: (value) {
-                      setState(() {
-                        _showOnlyMyMembers = value ?? false;
-                        if (_showOnlyMyMembers) {
-                          _selectedTroopId = _loggedInUserId;
-                        } else {
-                          _selectedTroopId = null;
-                        }
-                        currentPage = 1;
-                      });
-                      _fetchMembers();
-                    },
-                  ),
-                  const Text(
-                    'Prikaži samo moje članove',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 8),
-            if (_members != null)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.green.shade700,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Prikazano ${_members!.items?.length ?? 0} od ukupno ${_members!.totalCount ?? 0} članova',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Column(
-                children: [
-                  Expanded(child: _buildResultView()),
-                  const SizedBox(height: 4),
-                  PaginationControls(
-                    currentPage: currentPage,
-                    totalPages: totalPages,
-                    totalCount: _members?.totalCount ?? 0,
-                    onPageChanged: (page) => _fetchMembers(page: page),
-                  ),
-                  if (_shouldShowNotificationButton()) ...[
-                    const SizedBox(height: 16),
-                    Center(
-                      child: ElevatedButton.icon(
-                        onPressed: _onSendNotification,
-                        icon: const Icon(Icons.notifications),
-                        label: const Text(
-                          'Pošalji obavještenje prikazanim članovima',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+            if (_role == 'Admin')
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: FloatingActionButton.extended(
+                  onPressed: _loading ? null : _updateCategories,
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  icon: _loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
-                          ),
-                          minimumSize: const Size(0, 48),
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
+                        )
+                      : const Icon(Icons.update),
+                  label: Text(
+                    _loading ? 'Ažuriranje...' : 'Ažuriraj kategorije',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
-                  ],
-                ],
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -576,8 +685,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
         await _memberProvider.delete(member.id);
 
         final currentItemsOnPage = _members?.items?.length ?? 0;
-        final newTotalCount = (_members?.totalCount ?? 0) - 1;
-        final newTotalPages = (newTotalCount / pageSize).ceil();
 
         if (currentItemsOnPage == 1 && currentPage > 1) {
           await _fetchMembers(page: currentPage - 1);
@@ -641,8 +748,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
         member?.troopId ?? (_role == 'Troop' ? _loggedInUserId : null);
     int? selectedGender = member?.gender;
     Uint8List? _selectedImageBytes;
-    File? _selectedImageFile;
-    bool _isImageLoading = false;
     String? _profilePictureUrl = member?.profilePictureUrl;
 
     Future<void> _selectBirthDate(StateSetter setState) async {
@@ -669,35 +774,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
         final compressedBytes = await ImageUtils.compressImage(bytes);
         setState(() {
           _selectedImageBytes = compressedBytes;
-          _selectedImageFile = File(pickedFile.path);
-        });
-      }
-    }
-
-    Future<void> _uploadImage(StateSetter setState, int memberId) async {
-      try {
-        setState(() {
-          _isImageLoading = true;
-        });
-        final memberProvider = Provider.of<MemberProvider>(
-          context,
-          listen: false,
-        );
-        final updatedMember = await memberProvider.updateProfilePicture(
-          memberId,
-          _selectedImageFile,
-        );
-        setState(() {
-          _profilePictureUrl = updatedMember.profilePictureUrl;
-        });
-        if (context.mounted) {
-          showSuccessSnackbar(context, 'Slika je uspješno promijenjena.');
-        }
-      } catch (e) {
-        if (context.mounted) showErrorSnackbar(context, e);
-      } finally {
-        setState(() {
-          _isImageLoading = false;
         });
       }
     }
@@ -784,7 +860,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                     onTap: () {
                                       setState(() {
                                         _selectedImageBytes = null;
-                                        _selectedImageFile = null;
                                         _profilePictureUrl = '';
                                       });
                                     },
@@ -1204,7 +1279,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                   };
                                   if (isEdit) {
                                     await _memberProvider.update(
-                                      member!.id,
+                                      member.id,
                                       requestBody,
                                     );
                                     showSuccessSnackbar(
@@ -1218,11 +1293,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       context,
                                       'Član je dodan.',
                                     );
-                                    final newTotalCount =
-                                        (_members?.totalCount ?? 0) + 1;
-                                    final newTotalPages =
-                                        (newTotalCount / pageSize).ceil();
-                                    await _fetchMembers(page: newTotalPages);
+                                    await _fetchMembers();
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {
@@ -1412,6 +1483,38 @@ class _MemberListScreenState extends State<MemberListScreen> {
     }
   }
 
+  Future<void> _updateCategories() async {
+    if (_loading) return;
+
+    try {
+      setState(() {
+        _loading = true;
+      });
+
+      await _memberProvider.updateAllMemberCategories();
+
+      if (!mounted) return;
+
+      showSuccessSnackbar(
+        context,
+        'Kategorije svih članova su uspješno ažurirane.',
+      );
+
+      setState(() {
+        currentPage = 1;
+        _loading = false;
+      });
+
+      await _fetchMembers();
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackbar(context, e);
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
   Future<void> _generateReport() async {
     try {
       setState(() {
@@ -1428,6 +1531,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         if (_selectedCityId != null) "CityId": _selectedCityId,
         if (troopIdForFilter != null) "TroopId": troopIdForFilter,
         if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
         if (_selectedSort != null) "OrderBy": _selectedSort,
         "RetrieveAll": true,
         "IncludeTotalCount": true,
@@ -1440,6 +1544,13 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
       if (_selectedGender != null) {
         filter["GenderText"] = _selectedGender == 0 ? 'Muski' : 'Zenski';
+      }
+
+      if (_selectedCategoryId != null) {
+        final selectedCategory = _categories.firstWhere(
+          (c) => c.id == _selectedCategoryId,
+        );
+        filter["CategoryName"] = selectedCategory.name;
       }
 
       var result = await _memberProvider.get(filter: filter);
@@ -1608,6 +1719,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   DataColumn(
                     label: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('KATEGORIJA'),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Text('AKTIVAN'),
                     ),
                   ),
@@ -1661,6 +1778,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Text(member.gender == 0 ? 'Muški' : 'Ženski'),
+                        ),
+                      ),
+                      DataCell(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            member.categoryName.isNotEmpty
+                                ? member.categoryName
+                                : '-',
+                          ),
                         ),
                       ),
                       DataCell(

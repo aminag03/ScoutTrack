@@ -7,7 +7,6 @@ import 'package:scouttrack_desktop/models/notification.dart'
     as notification_model;
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
-import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 
 class NotificationScreen extends StatefulWidget {

@@ -2,27 +2,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
-import 'package:scouttrack_desktop/models/city.dart';
+import 'package:scouttrack_desktop/models/category.dart';
 import 'package:scouttrack_desktop/models/search_result.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
-import 'package:scouttrack_desktop/providers/city_provider.dart';
+import 'package:scouttrack_desktop/providers/category_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-
-class CityListScreen extends StatefulWidget {
-  const CityListScreen({super.key});
+class CategoryListScreen extends StatefulWidget {
+  const CategoryListScreen({super.key});
 
   @override
-  State<CityListScreen> createState() => _CityListScreenState();
+  State<CategoryListScreen> createState() => _CategoryListScreenState();
 }
 
-class _CityListScreenState extends State<CityListScreen> {
-  SearchResult<City>? _cities;
+class _CategoryListScreenState extends State<CategoryListScreen> {
+  SearchResult<Category>? _categories;
   bool _loading = false;
   String? _error;
   String? _role;
@@ -32,7 +29,7 @@ class _CityListScreenState extends State<CityListScreen> {
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
-  late CityProvider _cityProvider;
+  late CategoryProvider _categoryProvider;
 
   int currentPage = 1;
   int pageSize = 10;
@@ -43,7 +40,7 @@ class _CityListScreenState extends State<CityListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    _cityProvider = CityProvider(authProvider);
+    _categoryProvider = CategoryProvider(authProvider);
     _loadInitialData();
   }
 
@@ -64,27 +61,17 @@ class _CityListScreenState extends State<CityListScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    try {
-      if (!mounted) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final role = await authProvider.getUserRole();
 
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final role = await authProvider.getUserRole();
-
-      if (!mounted) return;
-
+    if (mounted) {
       setState(() {
         _role = role;
       });
+    }
 
-      if (role == 'Admin') {
-        await _fetchCities();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+    if (role == 'Admin') {
+      await _fetchCategories();
     }
   }
 
@@ -95,20 +82,20 @@ class _CityListScreenState extends State<CityListScreen> {
         setState(() {
           currentPage = 1;
         });
-        _fetchCities();
+        _fetchCategories();
       }
     });
   }
 
-  Future<void> _fetchCities({int? page}) async {
+  Future<void> _fetchCategories({int? page}) async {
     if (_loading) return;
 
-    if (!mounted) return;
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       var filter = {
@@ -119,26 +106,31 @@ class _CityListScreenState extends State<CityListScreen> {
         if (_selectedSort != null) "OrderBy": _selectedSort,
       };
 
-      var result = await _cityProvider.get(filter: filter);
+      var result = await _categoryProvider.get(filter: filter);
 
-      if (!mounted) return;
-
-      setState(() {
-        _cities = result;
-        currentPage = page ?? currentPage;
-        totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
-        if (totalPages == 0) totalPages = 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _categories = result;
+          currentPage = page ?? currentPage;
+          totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
+          if (totalPages == 0) totalPages = 1;
+          if (currentPage > totalPages) currentPage = totalPages;
+          if (currentPage < 1) currentPage = 1;
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _cities = null;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _categories = null;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -152,10 +144,10 @@ class _CityListScreenState extends State<CityListScreen> {
 
       var filter = {"RetrieveAll": true, "IncludeTotalCount": true};
 
-      var result = await _cityProvider.get(filter: filter);
+      var result = await _categoryProvider.get(filter: filter);
 
       if (result.items != null && result.items!.isNotEmpty) {
-        final filePath = await PdfReportUtils.generateCityReport(
+        final filePath = await PdfReportUtils.generateCategoryReport(
           result.items!,
           filters: filter,
         );
@@ -213,7 +205,7 @@ class _CityListScreenState extends State<CityListScreen> {
 
     return MasterScreen(
       role: _role!,
-      selectedMenu: 'Gradovi',
+      selectedMenu: 'Kategorije',
       child: Container(
         color: Theme.of(context).colorScheme.surface,
         padding: const EdgeInsets.all(16.0),
@@ -226,7 +218,7 @@ class _CityListScreenState extends State<CityListScreen> {
                   child: TextField(
                     controller: searchController,
                     decoration: const InputDecoration(
-                      hintText: 'Pretraži...',
+                      hintText: 'Pretraži kategorije...',
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                       isDense: true,
@@ -255,7 +247,7 @@ class _CityListScreenState extends State<CityListScreen> {
                           _selectedSort = value;
                           currentPage = 1;
                         });
-                        _fetchCities();
+                        _fetchCategories();
                       },
                       items: const [
                         DropdownMenuItem(
@@ -271,20 +263,20 @@ class _CityListScreenState extends State<CityListScreen> {
                           child: Text('Naziv (Ž-A)'),
                         ),
                         DropdownMenuItem(
-                          value: 'troopcount',
-                          child: Text('Broj odreda (rastuće)'),
+                          value: 'minAge',
+                          child: Text('Minimalna starost (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-troopcount',
-                          child: Text('Broj odreda (opadajuće)'),
+                          value: '-minAge',
+                          child: Text('Minimalna starost (opadajuće)'),
                         ),
                         DropdownMenuItem(
-                          value: 'membercount',
-                          child: Text('Broj članova (rastuće)'),
+                          value: 'maxAge',
+                          child: Text('Maksimalna starost (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-membercount',
-                          child: Text('Broj članova (opadajuće)'),
+                          value: '-maxAge',
+                          child: Text('Maksimalna starost (opadajuće)'),
                         ),
                       ],
                     ),
@@ -318,10 +310,10 @@ class _CityListScreenState extends State<CityListScreen> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
-                  onPressed: _onAddCity,
+                  onPressed: _onAddCategory,
                   icon: const Icon(Icons.add),
                   label: const Text(
-                    'Dodaj novi grad',
+                    'Dodaj novu kategoriju',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -334,7 +326,7 @@ class _CityListScreenState extends State<CityListScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            if (_cities != null)
+            if (_categories != null)
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -354,7 +346,7 @@ class _CityListScreenState extends State<CityListScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Prikazano ${_cities!.items?.length ?? 0} od ukupno ${_cities!.totalCount ?? 0} gradova',
+                      'Prikazano ${_categories!.items?.length ?? 0} od ukupno ${_categories!.totalCount ?? 0} kategorija',
                       style: TextStyle(
                         color: Colors.green.shade700,
                         fontWeight: FontWeight.w500,
@@ -372,8 +364,8 @@ class _CityListScreenState extends State<CityListScreen> {
               child: PaginationControls(
                 currentPage: currentPage,
                 totalPages: totalPages,
-                totalCount: _cities?.totalCount ?? 0,
-                onPageChanged: (page) => _fetchCities(page: page),
+                totalCount: _categories?.totalCount ?? 0,
+                onPageChanged: (page) => _fetchCategories(page: page),
               ),
             ),
           ],
@@ -383,7 +375,7 @@ class _CityListScreenState extends State<CityListScreen> {
   }
 
   Widget _buildResultView() {
-    if (_loading || _cities == null) {
+    if (_loading || _categories == null) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32.0),
@@ -418,17 +410,17 @@ class _CityListScreenState extends State<CityListScreen> {
       );
     }
 
-    if (_cities!.items == null || _cities!.items!.isEmpty) {
+    if (_categories!.items == null || _categories!.items!.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_city_outlined, size: 48, color: Colors.grey),
+              Icon(Icons.category_outlined, size: 48, color: Colors.grey),
               SizedBox(height: 16),
               Text(
-                'Nema dostupnih gradova',
+                'Nema dostupnih kategorija',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -457,7 +449,7 @@ class _CityListScreenState extends State<CityListScreen> {
               controller: _horizontalScrollController,
               scrollDirection: Axis.horizontal,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 1200),
+                constraints: const BoxConstraints(minWidth: 1000),
                 child: DataTable(
                   headingRowColor: MaterialStateColor.resolveWith(
                     (states) => Colors.grey.shade100,
@@ -475,13 +467,19 @@ class _CityListScreenState extends State<CityListScreen> {
                     DataColumn(
                       label: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('BROJ ODREDA'),
+                        child: Text('MINIMALNA STAROST'),
                       ),
                     ),
                     DataColumn(
                       label: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('BROJ ČLANOVA'),
+                        child: Text('MAKSIMALNA STAROST'),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('OPIS'),
                       ),
                     ),
                     DataColumn(
@@ -493,20 +491,25 @@ class _CityListScreenState extends State<CityListScreen> {
                     DataColumn(label: Text('')),
                     DataColumn(label: Text('')),
                   ],
-                  rows: _cities!.items!.map((city) {
+                  rows: _categories!.items!.map((category) {
                     return DataRow(
                       cells: [
                         DataCell(
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(city.name),
+                            child: Text(
+                              category.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ),
                         DataCell(
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
-                              '${city.troopCount}',
+                              '${category.minAge} godina',
                               style: const TextStyle(fontSize: 14),
                             ),
                           ),
@@ -515,7 +518,7 @@ class _CityListScreenState extends State<CityListScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
-                              '${city.memberCount}',
+                              '${category.maxAge} godina',
                               style: const TextStyle(fontSize: 14),
                             ),
                           ),
@@ -524,9 +527,22 @@ class _CityListScreenState extends State<CityListScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
-                              city.updatedAt != null
-                                  ? formatDateTime(city.updatedAt!)
+                              category.description.isNotEmpty
+                                  ? category.description
                                   : '-',
+                              style: const TextStyle(fontSize: 14),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              category.updatedAt != null
+                                  ? formatDateTime(category.updatedAt!)
+                                  : formatDateTime(category.createdAt),
                             ),
                           ),
                         ),
@@ -534,14 +550,14 @@ class _CityListScreenState extends State<CityListScreen> {
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
                             tooltip: 'Uredi',
-                            onPressed: () => _onEditCity(city),
+                            onPressed: () => _onEditCategory(category),
                           ),
                         ),
                         DataCell(
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             tooltip: 'Obriši',
-                            onPressed: () => _onDeleteCity(city),
+                            onPressed: () => _onDeleteCategory(category),
                           ),
                         ),
                       ],
@@ -556,20 +572,22 @@ class _CityListScreenState extends State<CityListScreen> {
     );
   }
 
-  void _onAddCity() {
-    _showCityDialog();
+  void _onAddCategory() {
+    _showCategoryDialog();
   }
 
-  void _onEditCity(City city) {
-    _showCityDialog(city: city);
+  void _onEditCategory(Category category) {
+    _showCategoryDialog(category: category);
   }
 
-  Future<void> _onDeleteCity(City city) async {
+  Future<void> _onDeleteCategory(Category category) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Potvrda brisanja'),
-        content: Text('Jeste li sigurni da želite obrisati grad ${city.name}?'),
+        content: Text(
+          'Jeste li sigurni da želite obrisati kategoriju ${category.name}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -585,35 +603,42 @@ class _CityListScreenState extends State<CityListScreen> {
 
     if (confirm == true) {
       try {
-        await _cityProvider.delete(city.id);
+        await _categoryProvider.delete(category.id);
 
-        final currentItemsOnPage = _cities?.items?.length ?? 0;
+        final currentItemsOnPage = _categories?.items?.length ?? 0;
 
         if (currentItemsOnPage == 1 && currentPage > 1) {
-          await _fetchCities(page: currentPage - 1);
+          await _fetchCategories(page: currentPage - 1);
         } else {
-          await _fetchCities();
+          await _fetchCategories();
         }
 
-        showSuccessSnackbar(context, 'Grad ${city.name} je obrisan.');
+        showSuccessSnackbar(
+          context,
+          'Kategorija ${category.name} je obrisana.',
+        );
       } catch (e) {
         showErrorSnackbar(context, e);
       }
     }
   }
 
-  Future<void> _showCityDialog({City? city}) async {
+  Future<void> _showCategoryDialog({Category? category}) async {
     final _formKey = GlobalKey<FormState>();
     final TextEditingController nameController = TextEditingController(
-      text: city?.name ?? '',
+      text: category?.name ?? '',
+    );
+    final TextEditingController minAgeController = TextEditingController(
+      text: category?.minAge.toString() ?? '',
+    );
+    final TextEditingController maxAgeController = TextEditingController(
+      text: category?.maxAge.toString() ?? '',
+    );
+    final TextEditingController descriptionController = TextEditingController(
+      text: category?.description ?? '',
     );
 
-    LatLng selectedLocation =
-        (city?.latitude != null && city?.longitude != null)
-        ? LatLng(city!.latitude, city.longitude)
-        : LatLng(43.8563, 18.4131); // Default to Sarajevo coordinates
-
-    final isEdit = city != null;
+    final isEdit = category != null;
 
     await showDialog(
       context: context,
@@ -627,7 +652,7 @@ class _CityListScreenState extends State<CityListScreen> {
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: 800,
+                  maxWidth: 600,
                   maxHeight: MediaQuery.of(context).size.height * 0.9,
                 ),
                 child: SingleChildScrollView(
@@ -637,7 +662,7 @@ class _CityListScreenState extends State<CityListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        isEdit ? 'Uredi grad' : 'Dodaj grad',
+                        isEdit ? 'Uredi kategoriju' : 'Dodaj kategoriju',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -651,7 +676,7 @@ class _CityListScreenState extends State<CityListScreen> {
                             TextFormField(
                               controller: nameController,
                               decoration: const InputDecoration(
-                                labelText: 'Naziv',
+                                labelText: 'Naziv kategorije *',
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -660,62 +685,83 @@ class _CityListScreenState extends State<CityListScreen> {
                                 if (value.length > 100) {
                                   return 'Naziv ne smije imati više od 100 znakova.';
                                 }
-                                final regex = RegExp(
-                                  r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
-                                );
-                                if (!regex.hasMatch(value.trim())) {
-                                  return 'Naziv grada može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                                }
                                 return null;
                               },
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Lokacija grada:',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Odabrana lokacija: ${selectedLocation.latitude.toStringAsFixed(4)}, ${selectedLocation.longitude.toStringAsFixed(4)}',
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              height: 300,
-                              child: FlutterMap(
-                                options: MapOptions(
-                                  center: selectedLocation,
-                                  zoom: 10,
-                                  onTap: (tapPosition, point) {
-                                    setState(() {
-                                      selectedLocation = point;
-                                    });
-                                  },
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: minAgeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Minimalna starost *',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Minimalna starost je obavezna.';
+                                      }
+                                      final age = int.tryParse(value);
+                                      if (age == null || age < 0 || age > 100) {
+                                        return 'Unesite validnu starost (0-100).';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
+                                  ),
                                 ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate:
-                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName:
-                                        'com.example.scouttrack_desktop',
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: maxAgeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Maksimalna starost *',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Maksimalna starost je obavezna.';
+                                      }
+                                      final age = int.tryParse(value);
+                                      if (age == null || age < 0 || age > 100) {
+                                        return 'Unesite valjanu starost (0-100).';
+                                      }
+                                      final minAge = int.tryParse(
+                                        minAgeController.text,
+                                      );
+                                      if (minAge != null && age < minAge) {
+                                        return 'Maksimalna starost mora biti veća od minimalne.';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
                                   ),
-                                  MarkerLayer(
-                                    markers: [
-                                      Marker(
-                                        point: selectedLocation,
-                                        width: 40,
-                                        height: 40,
-                                        child: const Icon(
-                                          Icons.location_pin,
-                                          color: Colors.red,
-                                          size: 40,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: descriptionController,
+                              decoration: const InputDecoration(
+                                labelText: 'Opis',
                               ),
+                              maxLines: 3,
+                              maxLength: 500,
+                              validator: (value) {
+                                if (value != null && value.length > 500) {
+                                  return 'Opis ne smije imati više od 500 znakova.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                           ],
                         ),
@@ -741,27 +787,33 @@ class _CityListScreenState extends State<CityListScreen> {
                                 try {
                                   final requestBody = {
                                     "name": nameController.text.trim(),
-                                    "latitude": selectedLocation.latitude,
-                                    "longitude": selectedLocation.longitude,
+                                    "minAge": int.parse(
+                                      minAgeController.text.trim(),
+                                    ),
+                                    "maxAge": int.parse(
+                                      maxAgeController.text.trim(),
+                                    ),
+                                    "description": descriptionController.text
+                                        .trim(),
                                   };
 
                                   if (isEdit) {
-                                    await _cityProvider.update(
-                                      city.id,
+                                    await _categoryProvider.update(
+                                      category.id,
                                       requestBody,
                                     );
                                     showSuccessSnackbar(
                                       context,
-                                      'Grad "${city.name}" je ažuriran.',
+                                      'Kategorija "${category.name}" je ažurirana.',
                                     );
-                                    await _fetchCities(page: currentPage);
+                                    await _fetchCategories(page: currentPage);
                                   } else {
-                                    await _cityProvider.insert(requestBody);
+                                    await _categoryProvider.insert(requestBody);
                                     showSuccessSnackbar(
                                       context,
-                                      'Grad je dodan.',
+                                      'Kategorija je dodana.',
                                     );
-                                    await _fetchCities();
+                                    await _fetchCategories();
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {

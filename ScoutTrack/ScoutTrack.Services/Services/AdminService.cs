@@ -111,5 +111,139 @@ namespace ScoutTrack.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<AdminDashboardResponse?> GetDashboardAsync(int? year = null, int? timePeriodDays = null)
+        {
+            var now = DateTime.Now;
+            var currentYear = year ?? now.Year;
+            var timePeriod = timePeriodDays ?? 30;
+
+            var troopCount = await _context.Troops.CountAsync(t => t.IsActive);
+            var memberCount = await _context.Members.CountAsync(m => m.IsActive);
+            var activityCount = await _context.Activities.CountAsync(a => a.ActivityState == "FinishedActivityState");
+            var postCount = await _context.Posts.CountAsync();
+
+            var timePeriodStart = now.AddDays(-timePeriod);
+            var mostActiveTroops = await _context.Troops
+                .Where(t => t.IsActive)
+                .Select(t => new
+                {
+                    Troop = t,
+                    ActivityCount = _context.Activities
+                        .Where(a => a.TroopId == t.Id && 
+                                   a.ActivityState == "FinishedActivityState" &&
+                                   a.EndTime >= timePeriodStart)
+                        .Count()
+                })
+                .OrderByDescending(x => x.ActivityCount)
+                .Take(3)
+                .Select(x => new MostActiveTroopResponse
+                {
+                    Id = x.Troop.Id,
+                    Name = x.Troop.Name,
+                    ActivityCount = x.ActivityCount,
+                    CityName = x.Troop.City.Name
+                })
+                .ToListAsync();
+
+            var monthlyActivities = new List<MonthlyActivityResponse>();
+            var monthNames = new[] { "Januar", "Februar", "Mart", "April", "Maj", "Juni",
+                                   "Juli", "August", "Septembar", "Oktobar", "Novembar", "Decembar" };
+
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthStart = new DateTime(currentYear, month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var activityCountInMonth = await _context.Activities
+                    .Where(a => a.ActivityState == "FinishedActivityState" &&
+                               a.EndTime >= monthStart && 
+                               a.EndTime <= monthEnd)
+                    .CountAsync();
+
+                monthlyActivities.Add(new MonthlyActivityResponse
+                {
+                    Month = month,
+                    MonthName = monthNames[month - 1],
+                    ActivityCount = activityCountInMonth,
+                    Year = currentYear
+                });
+            }
+
+            var monthlyAttendance = new List<MonthlyAttendanceResponse>();
+
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthStart = new DateTime(currentYear, month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var finishedActivitiesInMonth = await _context.Activities
+                    .Where(a => a.ActivityState == "FinishedActivityState" &&
+                               a.EndTime >= monthStart && 
+                               a.EndTime <= monthEnd)
+                    .ToListAsync();
+
+                var averageAttendance = 0.0;
+                if (finishedActivitiesInMonth.Any())
+                {
+                    var totalRegistrations = finishedActivitiesInMonth.Sum(a => 
+                        _context.ActivityRegistrations.Count(ar => ar.ActivityId == a.Id && ar.Status == RegistrationStatus.Completed));
+                    averageAttendance = (double)totalRegistrations / finishedActivitiesInMonth.Count;
+                }
+
+                monthlyAttendance.Add(new MonthlyAttendanceResponse
+                {
+                    Month = month,
+                    MonthName = monthNames[month - 1],
+                    AverageAttendance = averageAttendance,
+                    Year = currentYear
+                });
+            }
+
+            var totalMembers = await _context.Members.CountAsync(m => m.IsActive);
+            var scoutCategoriesData = await _context.Categories
+                .Select(c => new
+                {
+                    Category = c,
+                    MemberCount = _context.Members.Count(m => m.CategoryId == c.Id && m.IsActive)
+                })
+                .Where(x => x.MemberCount > 0)
+                .ToListAsync();
+
+            var scoutCategories = scoutCategoriesData.Select(x => new ScoutCategoryResponse
+            {
+                Id = x.Category.Id,
+                Name = x.Category.Name,
+                MemberCount = x.MemberCount,
+                Percentage = totalMembers > 0 ? (double)x.MemberCount / totalMembers * 100 : 0,
+                Color = string.Empty // Will be assigned on frontend
+            }).ToList();
+
+            var firstActivityYearQuery = await _context.Activities
+                .Select(a => a.CreatedAt.Year)
+                .ToListAsync();
+
+            var firstActivityYear = firstActivityYearQuery.Any() 
+                ? firstActivityYearQuery.Min() 
+                : currentYear;
+
+            var availableYears = Enumerable.Range(firstActivityYear, currentYear - firstActivityYear + 1)
+                .OrderByDescending(y => y)
+                .ToList();
+
+            return new AdminDashboardResponse
+            {
+                TroopCount = troopCount,
+                MemberCount = memberCount,
+                ActivityCount = activityCount,
+                PostCount = postCount,
+                MostActiveTroops = mostActiveTroops,
+                MonthlyActivities = monthlyActivities,
+                MonthlyAttendance = monthlyAttendance,
+                ScoutCategories = scoutCategories,
+                AvailableYears = availableYears
+            };
+        }
+
     }
 } 

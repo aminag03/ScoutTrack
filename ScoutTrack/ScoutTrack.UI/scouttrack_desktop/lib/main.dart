@@ -144,8 +144,16 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
+        if (authProvider.shouldRedirectToLogin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            authProvider.clearRedirectFlag();
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+              (route) => false,
+            );
+          });
+        }
         if (authProvider.isLoggedIn) {
-          // User is logged in, determine which screen to show based on role
           return FutureBuilder<String?>(
             future: authProvider.getUserRole(),
             builder: (context, snapshot) {
@@ -163,13 +171,11 @@ class AuthWrapper extends StatelessWidget {
               } else if (role == 'Troop') {
                 return TroopHomePage(username: username);
               } else {
-                // Unknown role, show login
                 return const LoginPage();
               }
             },
           );
         } else {
-          // User is not logged in, show login screen
           return const LoginPage();
         }
       },

@@ -133,5 +133,19 @@ namespace ScoutTrack.WebAPI.Controllers
 
             return Ok(updatedResponse);
         }
+
+        [HttpGet("{id}/dashboard")]
+        [Authorize(Roles = "Admin,Troop")]
+        public async Task<IActionResult> GetDashboard(int id, [FromQuery] int? year = null, [FromQuery] int? timePeriodDays = null)
+        {
+            if (_authService.IsInRole(User, "Troop") && _authService.GetUserId(User) != id)
+                return Forbid();
+
+            var dashboard = await _troopService.GetDashboardAsync(id, year, timePeriodDays);
+            if (dashboard == null)
+                return NotFound();
+
+            return Ok(dashboard);
+        }
     }
 } 

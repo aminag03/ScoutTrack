@@ -12,6 +12,8 @@ class Member {
   final DateTime birthDate;
   final int gender;
   final String genderName;
+  final int? categoryId;
+  final String categoryName;
   final String contactPhone;
   final String profilePictureUrl;
   final int troopId;
@@ -32,6 +34,8 @@ class Member {
     required this.birthDate,
     this.gender = 0,
     this.genderName = '',
+    this.categoryId,
+    this.categoryName = '',
     this.contactPhone = '',
     this.profilePictureUrl = '',
     this.troopId = 0,

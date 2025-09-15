@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:scouttrack_desktop/providers/base_provider.dart';
 import 'package:scouttrack_desktop/models/troop.dart';
+import 'package:scouttrack_desktop/models/troop_dashboard.dart';
 import 'package:scouttrack_desktop/providers/auth_provider.dart';
 
 class TroopProvider extends BaseProvider<Troop, dynamic> {
@@ -174,6 +175,50 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
             error['title'] ?? 'Greška prilikom učitavanja slike.',
           );
         }
+      }
+    });
+  }
+
+  Future<TroopDashboard> getDashboard(
+    int troopId, {
+    int? year,
+    int? timePeriodDays,
+  }) async {
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$troopId/dashboard",
+      );
+
+      final queryParams = <String, String>{};
+      if (year != null) queryParams['year'] = year.toString();
+      if (timePeriodDays != null)
+        queryParams['timePeriodDays'] = timePeriodDays.toString();
+
+      final uriWithParams = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        port: uri.port,
+        path: uri.path,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final headers = await createHeaders();
+      final response = await http.get(uriWithParams, headers: headers);
+
+      if (isValidResponse(response)) {
+        try {
+          if (response.body.isEmpty) {
+            throw Exception("Prazan odgovor od servera.");
+          }
+          final data = jsonDecode(response.body);
+          return TroopDashboard.fromJson(data);
+        } catch (e) {
+          print('JSON decode error in getDashboard(): $e');
+          print('Response body: ${response.body}');
+          throw Exception("Greška pri parsiranju podataka od servera.");
+        }
+      } else {
+        throw Exception("Greška: Neuspješno dohvaćanje dashboard podataka.");
       }
     });
   }

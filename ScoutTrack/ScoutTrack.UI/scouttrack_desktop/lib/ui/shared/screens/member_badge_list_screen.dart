@@ -333,6 +333,8 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
         "IncludeTotalCount": true,
       };
 
+      Map<int, String> troopIdToName = {};
+
       if (_role == 'Troop') {
         final troopId = await Provider.of<AuthProvider>(
           context,
@@ -344,7 +346,20 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
           );
           final troopResult = await troopProvider.getById(troopId);
           filter["TroopName"] = troopResult.name;
+          troopIdToName[troopId] = troopResult.name;
         }
+      } else if (_selectedTroopId != null) {
+        final selectedTroop = _troops.firstWhere(
+          (troop) => troop.id == _selectedTroopId,
+          orElse: () => Troop(
+            id: _selectedTroopId!,
+            name: 'Nepoznato',
+            cityId: 0,
+            createdAt: DateTime.now(),
+            foundingDate: DateTime.now(),
+          ),
+        );
+        troopIdToName[_selectedTroopId!] = selectedTroop.name;
       }
 
       final result = await _memberBadgeProvider.get(filter: filter);
@@ -354,6 +369,7 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
           result.items!,
           filters: filter,
           memberTroopNames: _memberTroopNames,
+          troopIdToName: troopIdToName,
         );
 
         if (mounted) {
@@ -607,7 +623,7 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
                     ],
                   ),
                 ),
-                if (_role == 'Admin')
+                if (_role == 'Admin' || _role == 'Troop')
                   ElevatedButton.icon(
                     onPressed: _loading ? null : _generateReport,
                     icon: _loading

@@ -180,5 +180,13 @@ namespace ScoutTrack.WebAPI.Controllers
 
             return Ok(updatedResponse);
         }
+
+        [HttpPost("update-categories")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateAllMemberCategories()
+        {
+            await _memberService.UpdateAllMemberCategoriesAsync();
+            return Ok(new { message = "All member categories updated successfully." });
+        }
     }
-} 
+}

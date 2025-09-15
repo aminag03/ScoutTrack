@@ -13,6 +13,8 @@ namespace ScoutTrack.Model.Responses
         public DateTime BirthDate { get; set; }
         public Gender Gender { get; set; }
         public string GenderName { get; set; } = string.Empty;
+        public int? CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
         public string ContactPhone { get; set; } = string.Empty;
         public string ProfilePictureUrl { get; set; } = string.Empty;
         public int TroopId { get; set; }

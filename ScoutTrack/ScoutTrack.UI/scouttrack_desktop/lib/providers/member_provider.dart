@@ -192,4 +192,26 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
       }
     });
   }
+
+  Future<void> updateAllMemberCategories() async {
+    await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/update-categories",
+      );
+      final headers = await createHeaders();
+
+      final response = await http.post(uri, headers: headers);
+
+      if (response.statusCode != 200) {
+        try {
+          final error = jsonDecode(response.body);
+          throw Exception(
+            error['message'] ?? 'Greška prilikom ažuriranja kategorija.',
+          );
+        } catch (e) {
+          throw Exception(e.toString().replaceFirst('Exception: ', '').trim());
+        }
+      }
+    });
+  }
 }

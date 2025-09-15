@@ -7,6 +7,7 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:scouttrack_desktop/providers/activity_provider.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
+import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
@@ -80,6 +81,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   List<Post> _posts = [];
   bool _isLoadingPosts = false;
   bool _canCreatePost = false;
+
+  String? _troopName;
+  String? _activityTypeName;
+  bool _isLoadingAdditionalData = false;
 
   @override
   void initState() {
@@ -218,7 +223,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.group, size: 20, color: Colors.grey[600]),
+              Icon(Icons.group, size: 20, color: Colors.blue[600]),
               const SizedBox(width: 12),
               SizedBox(
                 width: 120,
@@ -232,13 +237,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  _activity!.troopName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
+                child: Row(
+                  children: [
+                    if (_isLoadingAdditionalData &&
+                        _activity!.troopName.isEmpty)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    if (_isLoadingAdditionalData &&
+                        _activity!.troopName.isEmpty)
+                      const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _activity!.troopName.isNotEmpty
+                            ? _activity!.troopName
+                            : (_troopName ?? 'Učitavanje...'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -306,8 +329,71 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       await _loadReviews();
       await _loadPosts();
       await _checkCanCreatePost();
+
+      await _loadAdditionalDataIfNeeded();
     } catch (e) {
       print('Error in _loadInitialData: $e');
+    }
+  }
+
+  Future<void> _loadAdditionalDataIfNeeded() async {
+    if (_activity == null) return;
+
+    bool needsTroopData = _activity!.troopName.isEmpty;
+    bool needsActivityTypeData = _activity!.activityTypeName.isEmpty;
+
+    if (!needsTroopData && !needsActivityTypeData) return;
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingAdditionalData = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      if (needsTroopData) {
+        try {
+          final troopProvider = TroopProvider(authProvider);
+          final troop = await troopProvider.getById(_activity!.troopId);
+          if (!mounted) return;
+          setState(() {
+            _troopName = troop.name;
+          });
+        } catch (e) {
+          print('Error loading troop data: $e');
+          if (!mounted) return;
+          setState(() {
+            _troopName = 'Nepoznat odred';
+          });
+        }
+      }
+
+      if (needsActivityTypeData) {
+        try {
+          final activityTypeProvider = ActivityTypeProvider(authProvider);
+          final activityType = await activityTypeProvider.getById(
+            _activity!.activityTypeId,
+          );
+          if (!mounted) return;
+          setState(() {
+            _activityTypeName = activityType.name;
+          });
+        } catch (e) {
+          print('Error loading activity type data: $e');
+          if (!mounted) return;
+          setState(() {
+            _activityTypeName = 'Nepoznat tip';
+          });
+        }
+      }
+    } catch (e) {
+      print('Error in _loadAdditionalDataIfNeeded: $e');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingAdditionalData = false;
+      });
     }
   }
 
@@ -318,6 +404,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       setState(() {
         _activity = refreshedActivity;
       });
+
+      await _loadAdditionalDataIfNeeded();
     } catch (e) {
       print('Error refreshing activity: $e');
     }
@@ -713,17 +801,66 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ],
 
               _buildClickableTroopRow(),
-              UIComponents.buildDetailRow(
-                'Lokacija',
-                _activity!.locationName,
-                Icons.location_on,
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.location_on, color: Colors.red[600], size: 20),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Lokacija',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _activity!.locationName,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              UIComponents.buildDetailRow(
-                'Datum',
-                _activity!.startTime != null && _activity!.endTime != null
-                    ? '${DateFormat('dd. MM. yyyy.').format(_activity!.startTime!)} - ${DateFormat('dd. MM. yyyy.').format(_activity!.endTime!)}'
-                    : 'Datum nije određen',
-                Icons.calendar_today,
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: Colors.green[600],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Datum',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _activity!.startTime != null &&
+                                _activity!.endTime != null
+                            ? '${DateFormat('dd. MM. yyyy.').format(_activity!.startTime!)} - ${DateFormat('dd. MM. yyyy.').format(_activity!.endTime!)}'
+                            : 'Datum nije određen',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -748,7 +885,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info, color: Colors.blue, size: 20),
+                  const Icon(Icons.info, color: Colors.orange, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -813,43 +950,233 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               ],
 
               UIComponents.buildDetailSection('Detalji aktivnosti', [
-                UIComponents.buildDetailRow(
-                  'Tip aktivnosti',
-                  _activity!.activityTypeName,
-                  Icons.category,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.category, color: Colors.purple[600], size: 20),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        child: Text(
+                          'Tip aktivnosti',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            if (_isLoadingAdditionalData &&
+                                _activity!.activityTypeName.isEmpty)
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            if (_isLoadingAdditionalData &&
+                                _activity!.activityTypeName.isEmpty)
+                              const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _activity!.activityTypeName.isNotEmpty
+                                    ? _activity!.activityTypeName
+                                    : (_activityTypeName ?? 'Učitavanje...'),
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                UIComponents.buildDetailRow(
-                  'Kotizacija',
-                  '${_activity!.fee.toStringAsFixed(2)} KM',
-                  Icons.payment,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.payment, color: Colors.green[600], size: 20),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        child: Text(
+                          'Kotizacija',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '${_activity!.fee.toStringAsFixed(2)} KM',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (_activity!.activityState == 'FinishedActivityState')
-                  UIComponents.buildDetailRow(
-                    'Broj učesnika',
-                    _activity!.registrationCount.toString(),
-                    Icons.people,
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.people, color: Colors.blue[600], size: 20),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 120,
+                          child: Text(
+                            'Broj učesnika',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _activity!.registrationCount.toString(),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                UIComponents.buildDetailRow(
-                  'Status',
-                  _formatActivityState(_activity!.activityState),
-                  Icons.info_outline,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.amber[600],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        child: Text(
+                          'Status',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _formatActivityState(_activity!.activityState),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                UIComponents.buildDetailRow(
-                  'Privatnost',
-                  _activity!.isPrivate ? 'Privatan' : 'Javan',
-                  Icons.visibility,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.visibility,
+                        color: Colors.indigo[600],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        child: Text(
+                          'Privatnost',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _activity!.isPrivate ? 'Privatan' : 'Javan',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (_activity!.startTime != null)
-                  UIComponents.buildDetailRow(
-                    'Vrijeme početka',
-                    formatDateTime(_activity!.startTime!),
-                    Icons.access_time,
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          color: Colors.teal[600],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 120,
+                          child: Text(
+                            'Vrijeme početka',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            formatDateTime(_activity!.startTime!),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 if (_activity!.endTime != null)
-                  UIComponents.buildDetailRow(
-                    'Vrijeme završetka',
-                    formatDateTime(_activity!.endTime!),
-                    Icons.access_time_filled,
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.access_time_filled,
+                          color: Colors.teal[600],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 120,
+                          child: Text(
+                            'Vrijeme završetka',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            formatDateTime(_activity!.endTime!),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ]),
 
@@ -864,19 +1191,54 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: UIComponents.buildDetailRow(
-                                _equipment[i].equipmentName,
-                                '',
-                                Icons.backpack,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.backpack,
+                                      color: Colors.brown[600],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _equipment[i].equipmentName,
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             if (i + 1 < _equipment.length) ...[
                               const SizedBox(width: 16),
                               Expanded(
-                                child: UIComponents.buildDetailRow(
-                                  _equipment[i + 1].equipmentName,
-                                  '',
-                                  Icons.backpack,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.backpack,
+                                        color: Colors.brown[600],
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _equipment[i + 1].equipmentName,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -972,7 +1334,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.photo_library, color: Colors.green, size: 24),
+              Icon(Icons.photo_library, color: Colors.green[600], size: 24),
               const SizedBox(width: 8),
               Text(
                 'Galerija (${_posts.length} objava)',
@@ -1172,7 +1534,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.people, color: Colors.blue, size: 24),
+              Icon(Icons.people, color: Colors.blue[600], size: 24),
               const SizedBox(width: 8),
               Text(
                 'Registracije',
@@ -1661,7 +2023,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
           ),
           child: Row(
             children: [
-              const Icon(Icons.star, color: Colors.amber, size: 24),
+              Icon(Icons.star, color: Colors.amber[600], size: 24),
               const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

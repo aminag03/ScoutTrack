@@ -12,5 +12,6 @@ namespace ScoutTrack.Model.SearchObjects
         public int? TroopId { get; set; }
         public int? CityId { get; set; }
         public Gender? Gender { get; set; }
+        public int? CategoryId { get; set; }
     }
 } 

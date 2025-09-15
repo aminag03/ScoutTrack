@@ -30,6 +30,7 @@ namespace ScoutTrack.Services.Database
         public virtual DbSet<Admin> Admins { get; set; }
         public virtual DbSet<UserAccount> UserAccounts { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+        public virtual DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -128,6 +129,11 @@ namespace ScoutTrack.Services.Database
                 .WithMany(t => t.Members)
                 .HasForeignKey(m => m.TroopId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Member>()
+                .HasOne(m => m.Category)
+                .WithMany(c => c.Members)
+                .HasForeignKey(m => m.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Admin
             modelBuilder.Entity<Admin>()

@@ -50,6 +50,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   late String _role;
   late int _loggedInUserId;
   List<City> _cities = [];
+  bool _isCitiesLoading = true;
   Uint8List? _selectedImageBytes;
   File? _selectedImageFile;
   bool _isImageLoading = false;
@@ -86,14 +87,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
   Future<void> _loadCities() async {
     try {
+      setState(() {
+        _isCitiesLoading = true;
+      });
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cityProvider = CityProvider(authProvider);
       var filter = {"RetrieveAll": true};
       final cityResult = await cityProvider.get(filter: filter);
       setState(() {
         _cities = cityResult.items ?? [];
+        _isCitiesLoading = false;
       });
     } catch (e) {
+      setState(() {
+        _isCitiesLoading = false;
+      });
       if (context.mounted) showErrorSnackbar(context, e);
     }
   }
@@ -153,6 +162,21 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   Future<bool> _onEdit() async {
+    // Wait for cities to be loaded if they're still loading
+    if (_isCitiesLoading) {
+      showErrorSnackbar(context, 'Molimo sačekajte da se učitaju gradovi...');
+      return false;
+    }
+
+    // Additional safety check - ensure cities are actually loaded
+    if (_cities.isEmpty) {
+      showErrorSnackbar(
+        context,
+        'Gradovi nisu učitani. Molimo pokušajte ponovo.',
+      );
+      return false;
+    }
+
     final _formKey = GlobalKey<FormState>();
     final TextEditingController nameController = TextEditingController(
       text: _troop.name,
@@ -183,8 +207,22 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     String? selectedCityName;
     bool isUpdated = false;
 
-    if (_troop.cityId != null) {
-      selectedCityName = _cities.firstWhere((c) => c.id == _troop.cityId).name;
+    // Validate that the selectedCityId exists in the cities list
+    if (_troop.cityId != null &&
+        _cities.isNotEmpty &&
+        _cities.any((c) => c.id == _troop.cityId)) {
+      try {
+        final city = _cities.firstWhere((c) => c.id == _troop.cityId);
+        selectedCityName = city.name;
+      } catch (e) {
+        // If city not found, set to null
+        selectedCityId = null;
+        selectedCityName = null;
+      }
+    } else {
+      // If cityId is invalid or null, set to null to avoid dropdown error
+      selectedCityId = null;
+      selectedCityName = null;
     }
 
     Future<void> _selectFoundingDate(
@@ -227,18 +265,24 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
             }
 
             void _updateCityLocation(int? cityId) {
-              if (cityId != null) {
-                final selectedCity = _cities.firstWhere((c) => c.id == cityId);
-                if (selectedCity.latitude != null &&
-                    selectedCity.longitude != null) {
-                  final newLocation = LatLng(
-                    selectedCity.latitude!,
-                    selectedCity.longitude!,
+              if (cityId != null && _cities.isNotEmpty) {
+                try {
+                  final selectedCity = _cities.firstWhere(
+                    (c) => c.id == cityId,
                   );
-                  setState(() {
-                    selectedLocation = newLocation;
-                  });
-                  _mapController.move(newLocation, _mapController.zoom);
+                  if (selectedCity.latitude != null &&
+                      selectedCity.longitude != null) {
+                    final newLocation = LatLng(
+                      selectedCity.latitude!,
+                      selectedCity.longitude!,
+                    );
+                    setState(() {
+                      selectedLocation = newLocation;
+                    });
+                    _mapController.move(newLocation, _mapController.zoom);
+                  }
+                } catch (e) {
+                  // City not found, do nothing
                 }
               }
             }
@@ -452,9 +496,18 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                               onChanged: (val) {
                                 setState(() {
                                   selectedCityId = val;
-                                  selectedCityName = _cities
-                                      .firstWhere((c) => c.id == val)
-                                      .name;
+                                  if (val != null && _cities.isNotEmpty) {
+                                    try {
+                                      final city = _cities.firstWhere(
+                                        (c) => c.id == val,
+                                      );
+                                      selectedCityName = city.name;
+                                    } catch (e) {
+                                      selectedCityName = null;
+                                    }
+                                  } else {
+                                    selectedCityName = null;
+                                  }
                                 });
                                 _updateCityLocation(val);
                               },
@@ -1262,8 +1315,24 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   Column(
                                     children: [
                                       ElevatedButton.icon(
-                                        icon: const Icon(Icons.edit, size: 20),
-                                        label: const Text('Uredi podatke'),
+                                        icon: _isCitiesLoading
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                ),
+                                              )
+                                            : const Icon(Icons.edit, size: 20),
+                                        label: Text(
+                                          _isCitiesLoading
+                                              ? 'Učitavam...'
+                                              : 'Uredi podatke',
+                                        ),
                                         style: ElevatedButton.styleFrom(
                                           minimumSize: const Size(180, 48),
                                           padding: const EdgeInsets.symmetric(
@@ -1271,9 +1340,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                             vertical: 12,
                                           ),
                                         ),
-                                        onPressed: () async {
-                                          _onEdit();
-                                        },
+                                        onPressed: _isCitiesLoading
+                                            ? null
+                                            : () async {
+                                                _onEdit();
+                                              },
                                       ),
                                       const SizedBox(height: 16),
                                       if (isAdmin || isViewingOwnProfile)

@@ -175,11 +175,14 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
   Future<void> _fetchActivities({int? page}) async {
     if (_loading) return;
+
     if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       int? troopIdForFilter = _selectedTroopId;
       if (_showOnlyMyActivities &&
@@ -211,6 +214,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       var result = await _activityProvider.get(filter: filter);
 
       if (!mounted) return;
+
       setState(() {
         _activities = result;
         currentPage = page ?? currentPage;
@@ -218,16 +222,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         if (totalPages == 0) totalPages = 1;
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
+        _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
         _activities = null;
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
         _loading = false;
       });
     }
