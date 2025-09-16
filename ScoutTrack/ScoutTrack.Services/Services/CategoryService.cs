@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace ScoutTrack.Services
 {
-    public class CategoryService : BaseCRUDService<CategoryResponse, CategorySearchObject, Category, CategoryInsertRequest, CategoryUpdateRequest>, ICategoryService
+    public class CategoryService : BaseCRUDService<CategoryResponse, CategorySearchObject, Category, CategoryUpsertRequest, CategoryUpsertRequest>, ICategoryService
     {
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<CategoryService> _logger;
@@ -62,13 +62,13 @@ namespace ScoutTrack.Services
             };
         }
 
-        protected override async Task BeforeInsert(Category entity, CategoryInsertRequest request)
+        protected override async Task BeforeInsert(Category entity, CategoryUpsertRequest request)
         {
             await ValidateCategoryRequestAsync(request,
                 null);
         }
 
-        protected override async Task BeforeUpdate(Category entity, CategoryUpdateRequest request)
+        protected override async Task BeforeUpdate(Category entity, CategoryUpsertRequest request)
         {
             await ValidateCategoryRequestAsync(request, entity.Id);
         }
@@ -91,8 +91,8 @@ namespace ScoutTrack.Services
             var overlappingCategory = await _context.Set<Category>()
                 .FirstOrDefaultAsync(c => 
                     (excludeId == null || c.Id != excludeId) &&
-                    minAge < c.MaxAge && 
-                    maxAge > c.MinAge);
+                    minAge <= c.MaxAge && 
+                    maxAge >= c.MinAge);
 
             if (overlappingCategory != null)
             {

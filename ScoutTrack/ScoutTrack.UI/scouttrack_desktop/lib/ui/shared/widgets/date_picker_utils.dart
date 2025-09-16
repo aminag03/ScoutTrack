@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
-import 'package:intl/intl.dart';
 
 class DatePickerUtils {
   static Future<DateTime?> showDatePickerDialog({
@@ -50,11 +49,11 @@ class DatePickerUtils {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani'),
+              child: const Text('Otkaži'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, selectedDate),
-              child: const Text('Spremi'),
+              child: const Text('Sačuvaj'),
             ),
           ],
         ),

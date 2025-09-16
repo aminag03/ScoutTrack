@@ -60,6 +60,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
+  Timer? _equipmentRemovalTimer;
 
   late ActivityProvider _activityProvider;
 
@@ -88,6 +89,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
+    _equipmentRemovalTimer?.cancel();
     super.dispose();
   }
 
@@ -538,6 +540,22 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         initialTime: activity?.startTime != null
             ? TimeOfDay.fromDateTime(activity!.startTime!)
             : const TimeOfDay(hour: 9, minute: 0),
+        helpText: 'Odaberite vrijeme početka',
+        cancelText: 'Otkaži',
+        confirmText: 'Sačuvaj',
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              timePickerTheme: TimePickerThemeData(
+                helpTextStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
       if (picked != null) {
         setState(() {
@@ -569,6 +587,22 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         initialTime: activity?.endTime != null
             ? TimeOfDay.fromDateTime(activity!.endTime!)
             : const TimeOfDay(hour: 9, minute: 0),
+        helpText: 'Odaberite vrijeme završetka',
+        cancelText: 'Otkaži',
+        confirmText: 'Sačuvaj',
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              timePickerTheme: TimePickerThemeData(
+                helpTextStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
       if (picked != null) {
         setState(() {
@@ -682,9 +716,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               newlyAddedEquipmentIds.add(result.id);
             });
 
-            Future.delayed(const Duration(seconds: 3), () {
+            _equipmentRemovalTimer?.cancel();
+
+            _equipmentRemovalTimer = Timer(const Duration(seconds: 3), () {
               if (mounted) {
-                setState(() {
+                this.setState(() {
                   newlyAddedEquipmentIds.remove(result.id);
                 });
               }
@@ -1846,7 +1882,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     if (!canEditOrDelete) return false;
 
     return activity.activityState == 'DraftActivityState' ||
-        activity.activityState == 'RegistrationsOpenActivityState';
+        activity.activityState == 'RegistrationsOpenActivityState' ||
+        activity.activityState == 'RegistrationsClosedActivityState';
   }
 
   String _getEditDisabledReason(Activity activity) {
@@ -1862,7 +1899,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       case 'RegistrationsOpenActivityState':
         return 'Aktivnost je aktivna - uređivanje je dozvoljeno (veće promjene će obavijestiti registrovane članove)';
       case 'RegistrationsClosedActivityState':
-        return 'Prijave su zatvorene - uređivanje nije dozvoljeno';
+        return 'Prijave su zatvorene - uređivanje je dozvoljeno (veće promjene će obavijestiti registrovane članove)';
       case 'FinishedActivityState':
         return 'Aktivnost je završena, ne može se uređivati';
       case 'CancelledActivityState':

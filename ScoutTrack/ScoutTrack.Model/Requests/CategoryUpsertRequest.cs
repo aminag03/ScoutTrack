@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ScoutTrack.Model.Requests
 {
-    public class CategoryUpdateRequest
+    public class CategoryUpsertRequest
     {
         [Required]
         [MaxLength(100)]

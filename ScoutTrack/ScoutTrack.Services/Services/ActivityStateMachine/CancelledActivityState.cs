@@ -41,5 +41,27 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         {
             throw new UserException("Activity is already cancelled.");
         }
+
+        public async Task<ActivityResponse> ReactivateAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found");
+
+            if (entity.Title.EndsWith(" - Cancelled"))
+            {
+                entity.Title = entity.Title.Replace(" - Cancelled", "");
+            }
+            if (entity.Title.EndsWith(" - Cancelled from draft"))
+            {
+                entity.Title = entity.Title.Replace(" - Cancelled from draft", "");
+            }
+
+            entity.ActivityState = nameof(DraftActivityState);
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<ActivityResponse>(entity);
+        }
     }
 }

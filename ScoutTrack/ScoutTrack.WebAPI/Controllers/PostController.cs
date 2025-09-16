@@ -11,7 +11,6 @@ namespace ScoutTrack.WebAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    [Authorize]
     public class PostController : BaseCRUDController<PostResponse, PostSearchObject, PostUpsertRequest, PostUpsertRequest>
     {
         private readonly IPostService _postService;
@@ -46,7 +45,6 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Troop,Member")]
         public override async Task<IActionResult> Create([FromBody] PostUpsertRequest request)
         {
             if (!await _accessControlService.CanCreatePostAsync(User, request.ActivityId))

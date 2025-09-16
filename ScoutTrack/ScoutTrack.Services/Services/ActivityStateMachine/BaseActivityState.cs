@@ -165,7 +165,9 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         protected async Task<List<int>> GetRegisteredMemberUserIdsAsync(int activityId)
         {
             return await _context.ActivityRegistrations
-                .Where(ar => ar.ActivityId == activityId && ar.Status == Common.Enums.RegistrationStatus.Approved)
+                .Where(ar => ar.ActivityId == activityId && 
+                           (ar.Status == Common.Enums.RegistrationStatus.Approved || 
+                            ar.Status == Common.Enums.RegistrationStatus.Pending))
                 .Select(ar => ar.Member.Id)
                 .ToListAsync();
         }

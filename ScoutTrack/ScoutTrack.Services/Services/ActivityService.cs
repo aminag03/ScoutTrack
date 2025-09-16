@@ -485,6 +485,27 @@ namespace ScoutTrack.Services
             return _mapper.Map<ActivityResponse>(entity);
         }
 
+        public async Task<ActivityResponse?> ReactivateAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                return null;
+
+            if (entity.ActivityState != nameof(CancelledActivityState))
+            {
+                throw new UserException("Only cancelled activities can be reactivated.");
+            }
+
+            var baseState = _baseActivityState.GetActivityState(entity.ActivityState);
+            
+            if (baseState is CancelledActivityState cancelledState)
+            {
+                return await cancelledState.ReactivateAsync(id);
+            }
+
+            throw new UserException("Invalid state for reactivation.");
+        }
+
         protected override ActivityResponse MapToResponse(Activity entity)
         {
             return new ActivityResponse

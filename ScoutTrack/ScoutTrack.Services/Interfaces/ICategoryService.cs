@@ -4,7 +4,7 @@ using ScoutTrack.Model.SearchObjects;
 
 namespace ScoutTrack.Services.Interfaces
 {
-    public interface ICategoryService : ICRUDService<CategoryResponse, CategorySearchObject, CategoryInsertRequest, CategoryUpdateRequest>
+    public interface ICategoryService : ICRUDService<CategoryResponse, CategorySearchObject, CategoryUpsertRequest, CategoryUpsertRequest>
     {
     }
 }

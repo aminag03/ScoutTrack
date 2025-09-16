@@ -15,6 +15,7 @@ namespace ScoutTrack.Services.Interfaces
         Task<ActivityResponse?> UpdateImageAsync(int id, string? imagePath);
         Task<ActivityResponse?> UpdateSummaryAsync(int id, string summary);
         Task<ActivityResponse?> TogglePrivacyAsync(int id);
+        Task<ActivityResponse?> ReactivateAsync(int id);
         Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request);
         Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request, int currentUserId);
         Task<PagedResult<ActivityResponse>> GetForUserAsync(ClaimsPrincipal user, ActivitySearchObject search);

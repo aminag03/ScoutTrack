@@ -2616,6 +2616,28 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             ),
           ]);
           break;
+
+        case 'CancelledActivityState':
+          buttons.add(
+            ElevatedButton.icon(
+              onPressed: _onReactivateActivity,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reaktiviraj aktivnost'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+          break;
       }
     }
 
@@ -2684,7 +2706,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text('• Novi učesnici se neće moći prijaviti'),
-            Text('• Aktivnost se ne može više uređivati'),
+            Text(
+              '• Aktivnost se i dalje može uređivati (veće promjene će obavijestiti registrovane članove)',
+            ),
             Text('• Možete završiti aktivnost kada se održi'),
           ],
         ),
@@ -2758,7 +2782,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text('• Učesnici se mogu prijaviti na aktivnost'),
-            Text('• Aktivnost se može uređivati'),
+            Text('• Aktivnost se može uređivati (veće promjene će obavijestiti registrovane članove)'),
             Text('• Možete zatvoriti registracije kada želite'),
           ],
         ),
@@ -2882,10 +2906,14 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('• Aktivnost se ne može više uređivati'),
+            const Text(
+              '• Aktivnost se neće moći uređivati dok se ne reaktivira',
+            ),
             const Text('• Učesnici neće moći se prijaviti'),
             const Text('• Aktivnost će biti označena kao otkazana'),
-            const Text('• Ova akcija je nepovratna'),
+            const Text(
+              '• Možete reaktivirati aktivnost da je vratite u stanje nacrta',
+            ),
           ],
         ),
         actions: [
@@ -2919,6 +2947,54 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         });
 
         showSuccessSnackbar(context, 'Aktivnost je otkazana.');
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onReactivateActivity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reaktiviraj aktivnost'),
+        content: const Text(
+          'Jeste li sigurni da želite reaktivirati ovu aktivnost? Aktivnost će biti vraćena u stanje nacrta i moći ćete je uređivati.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('Reaktiviraj'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final updatedActivity = await _activityProvider.reactivate(
+          _activity!.id,
+        );
+        if (!mounted) return;
+        setState(() {
+          _activity = updatedActivity;
+        });
+
+        showSuccessSnackbar(
+          context,
+          'Aktivnost je uspješno reaktivirana i vraćena u stanje nacrta.',
+        );
       } catch (e) {
         showErrorSnackbar(context, e);
       }

@@ -126,7 +126,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
   }
 
   Future<void> _fetchTroops({int? page}) async {
-    if (_loading) return; // Prevent multiple simultaneous fetches
+    if (_loading) return;
 
     if (!mounted) return;
 
@@ -1294,7 +1294,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                       "password": passwordController.text
                                           .trim(),
                                     if (!isEdit)
-                                      "confirmPassword":
+                                      "passwordConfirm":
                                           confirmPasswordController.text.trim(),
                                     "cityId": selectedCityId,
                                     "latitude": selectedLocation.latitude,

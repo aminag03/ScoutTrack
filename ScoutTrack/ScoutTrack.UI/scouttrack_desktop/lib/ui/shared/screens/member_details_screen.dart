@@ -258,17 +258,18 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     int? selectedCityId = _member.cityId;
     int? selectedTroopId = _member.troopId;
     int? selectedGender = _member.gender;
-    bool isUpdated = false;
 
     Future<void> _selectBirthDate(
       BuildContext context,
       StateSetter setState,
     ) async {
-      final DateTime? picked = await DatePickerUtils.showFlutterDatePicker(
+      final DateTime? picked = await DatePickerUtils.showDatePickerDialog(
         context: context,
         initialDate: _member.birthDate ?? DateTime.now(),
-        firstDate: DateTime(1900),
-        lastDate: DateTime.now(),
+        minDate: DateTime(1900),
+        maxDate: DateTime.now(),
+        title: 'Odaberite datum rođenja',
+        controller: birthDateController,
       );
 
       if (picked != null) {
@@ -278,7 +279,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       }
     }
 
-    await showDialog(
+    final updatedMember = await showDialog<Member>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
@@ -566,19 +567,19 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                               if (_formKey.currentState?.validate() ?? false) {
                                 try {
                                   final requestBody = {
-                                    "firstName": firstNameController.text
+                                    "FirstName": firstNameController.text
                                         .trim(),
-                                    "lastName": lastNameController.text.trim(),
-                                    "username": usernameController.text.trim(),
-                                    "email": emailController.text.trim(),
-                                    "contactPhone": contactPhoneController.text
+                                    "LastName": lastNameController.text.trim(),
+                                    "Username": usernameController.text.trim(),
+                                    "Email": emailController.text.trim(),
+                                    "ContactPhone": contactPhoneController.text
                                         .trim(),
-                                    "birthDate": parseDate(
+                                    "BirthDate": parseDate(
                                       birthDateController.text,
                                     ).toIso8601String(),
-                                    "gender": selectedGender,
-                                    "cityId": selectedCityId,
-                                    "troopId": isAdmin
+                                    "Gender": selectedGender,
+                                    "CityId": selectedCityId,
+                                    "TroopId": isAdmin
                                         ? selectedTroopId
                                         : _member.troopId,
                                   };
@@ -591,10 +592,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                   final updatedMember = await memberProvider
                                       .update(_member.id, requestBody);
 
-                                  final refreshedMember = await memberProvider
-                                      .getById(_member.id);
-
-                                  isUpdated = true;
+                                  final refreshedMember = updatedMember;
 
                                   if (context.mounted) {
                                     showSuccessSnackbar(
@@ -603,7 +601,7 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                     );
                                   }
 
-                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop(refreshedMember);
                                 } catch (e) {
                                   if (context.mounted)
                                     showErrorSnackbar(context, e);
@@ -624,23 +622,14 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       },
     );
 
-    if (isUpdated) {
-      try {
-        final memberProvider = Provider.of<MemberProvider>(
-          context,
-          listen: false,
-        );
-        final refreshedMember = await memberProvider.getById(_member.id);
-
-        setState(() {
-          _member = refreshedMember;
-        });
-      } catch (e) {
-        if (context.mounted) showErrorSnackbar(context, e);
-      }
+    if (updatedMember != null) {
+      setState(() {
+        _member = updatedMember;
+      });
+      return true;
     }
 
-    return isUpdated;
+    return false;
   }
 
   Future<void> _showImagePickerDialog() async {

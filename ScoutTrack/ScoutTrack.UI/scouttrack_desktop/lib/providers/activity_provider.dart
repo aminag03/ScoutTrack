@@ -18,7 +18,9 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
     return await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.put(
-        Uri.parse("${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/update"),
+        Uri.parse(
+          "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/update",
+        ),
         headers: headers,
         body: jsonEncode(request),
       );
@@ -196,10 +198,7 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
         "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/toggle-privacy",
       );
 
-      final response = await http.put(
-        uri,
-        headers: await createHeaders(),
-      );
+      final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
         return Activity.fromJson(jsonDecode(response.body));
@@ -207,6 +206,25 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
         final error = jsonDecode(response.body);
         throw Exception(
           error['title'] ?? 'Greška prilikom promjene privatnosti aktivnosti.',
+        );
+      }
+    });
+  }
+
+  Future<Activity> reactivate(int id) async {
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/reactivate",
+      );
+
+      final response = await http.put(uri, headers: await createHeaders());
+
+      if (response.statusCode == 200) {
+        return Activity.fromJson(jsonDecode(response.body));
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(
+          error['title'] ?? 'Greška prilikom reaktivacije aktivnosti.',
         );
       }
     });

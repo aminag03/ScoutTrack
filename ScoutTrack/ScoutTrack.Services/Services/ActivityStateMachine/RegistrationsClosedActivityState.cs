@@ -25,12 +25,50 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
 
         public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpdateRequest request)
         {
-            throw new UserException("Cannot edit activity once registrations are closed.");
+            return await UpdateAsync(id, request, 0); // Default to 0 if no user ID provided
         }
 
         public override async Task<ActivityResponse> UpdateAsync(int id, ActivityUpdateRequest request, int currentUserId)
         {
-            throw new UserException("Cannot edit activity once registrations are closed.");
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found");
+
+            bool hasMajorChanges = HasMajorFieldChanges(entity, request);
+            
+            if (hasMajorChanges)
+            {
+                if (string.IsNullOrWhiteSpace(request.ChangeReason))
+                {
+                    throw new UserException("ChangeReason is required when making major field changes (StartTime, EndTime, CityId, LocationName, Fee) to activities with closed registrations.");
+                }
+
+                var registeredUserIds = await GetRegisteredMemberUserIdsAsync(id);
+                
+                if (registeredUserIds.Any())
+                {
+                    var notificationMessage = CreateChangeNotificationMessage(entity, request, request.ChangeReason);
+                    
+                    var notificationService = _serviceProvider.GetService(typeof(INotificationService)) as INotificationService;
+                    if (notificationService != null)
+                    {
+                        var notificationRequest = new NotificationUpsertRequest
+                        {
+                            Message = notificationMessage,
+                            UserIds = registeredUserIds
+                        };
+                        
+                        await notificationService.SendNotificationsToUsersAsync(notificationRequest, currentUserId);
+                    }
+                }
+            }
+
+            _mapper.Map(request, entity);
+            entity.ImagePath = string.IsNullOrWhiteSpace(request.ImagePath) ? "" : request.ImagePath;
+            entity.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<ActivityResponse>(entity);
         }
 
         public override async Task<ActivityResponse> ActivateAsync(int id)

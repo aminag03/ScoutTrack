@@ -34,7 +34,7 @@ class MemberListScreen extends StatefulWidget {
   State<MemberListScreen> createState() => _MemberListScreenState();
 }
 
-class _MemberListScreenState extends State<MemberListScreen> {
+class _MemberListScreenState extends State<MemberListScreen> with WidgetsBindingObserver {
   SearchResult<Member>? _members;
   bool _loading = false;
   String? _error;
@@ -86,6 +86,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   void initState() {
     super.initState();
     searchController.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -95,7 +96,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _role != null) {
+      _fetchMembers();
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -212,6 +222,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         "Page": ((page ?? currentPage) - 1),
         "PageSize": pageSize,
         "IncludeTotalCount": true,
+        "_t": DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
       var result = await _memberProvider.get(filter: filter);
@@ -221,6 +232,76 @@ class _MemberListScreenState extends State<MemberListScreen> {
       setState(() {
         _members = result;
         currentPage = page ?? currentPage;
+        totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
+        if (totalPages == 0) totalPages = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _members = null;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchMembersForNewMember() async {
+    if (_loading) return;
+
+    if (!mounted) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      int? troopIdForFilter = _selectedTroopId;
+      if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
+        troopIdForFilter = _loggedInUserId;
+      }
+
+      var countFilter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "Page": 0,
+        "PageSize": 1,
+        "IncludeTotalCount": true,
+        "_t": DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
+      var countResult = await _memberProvider.get(filter: countFilter);
+      int totalCount = countResult.totalCount ?? 0;
+      int lastPage = ((totalCount - 1) / pageSize).floor() + 1;
+      if (lastPage < 1) lastPage = 1;
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "Page": lastPage - 1,
+        "PageSize": pageSize,
+        "IncludeTotalCount": true,
+        "_t": DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
+      var result = await _memberProvider.get(filter: filter);
+
+      if (!mounted) return;
+
+      setState(() {
+        _members = result;
+        currentPage = lastPage;
         totalPages = ((result.totalCount ?? 0) / pageSize).ceil();
         if (totalPages == 0) totalPages = 1;
         if (currentPage > totalPages) currentPage = totalPages;
@@ -666,12 +747,14 @@ class _MemberListScreenState extends State<MemberListScreen> {
     );
   }
 
-  void _onAddMember() {
-    _showMemberDialog();
+  void _onAddMember() async {
+    await _showMemberDialog();
+    _fetchMembers();
   }
 
-  void _onEditMember(Member member) {
-    _showMemberDialog(member: member);
+  void _onEditMember(Member member) async {
+    await _showMemberDialog(member: member);
+    _fetchMembers();
   }
 
   Future<void> _onDeleteMember(Member member) async {
@@ -702,8 +785,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
     }
   }
 
-  void _onViewMember(Member member) {
-    Navigator.of(context).push(
+  void _onViewMember(Member member) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MemberDetailsScreen(
           member: member,
@@ -713,6 +796,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         ),
       ),
     );
+    _fetchMembers();
   }
 
   Future<void> _showMemberDialog({Member? member}) async {
@@ -1255,25 +1339,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
                               if (_formKey.currentState?.validate() ?? false) {
                                 try {
                                   final requestBody = {
-                                    "firstName": firstNameController.text
+                                    "FirstName": firstNameController.text
                                         .trim(),
-                                    "lastName": lastNameController.text.trim(),
-                                    "username": usernameController.text.trim(),
-                                    "email": emailController.text.trim(),
+                                    "LastName": lastNameController.text.trim(),
+                                    "Username": usernameController.text.trim(),
+                                    "Email": emailController.text.trim(),
                                     if (!isEdit)
-                                      "password": passwordController.text
+                                      "Password": passwordController.text
                                           .trim(),
                                     if (!isEdit)
-                                      "passwordConfirm":
+                                      "PasswordConfirm":
                                           confirmPasswordController.text.trim(),
-                                    "contactPhone": contactPhoneController.text
+                                    "ContactPhone": contactPhoneController.text
                                         .trim(),
-                                    "birthDate": parseDate(
+                                    "BirthDate": parseDate(
                                       birthDateController.text,
                                     ).toIso8601String(),
-                                    "gender": selectedGender,
-                                    "cityId": selectedCityId,
-                                    "troopId": _role == 'Admin'
+                                    "Gender": selectedGender,
+                                    "CityId": selectedCityId,
+                                    "TroopId": _role == 'Admin'
                                         ? selectedTroopId
                                         : _loggedInUserId,
                                   };
@@ -1293,7 +1377,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                       context,
                                       'Član je dodan.',
                                     );
-                                    await _fetchMembers();
+                                    await _fetchMembersForNewMember();
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {
