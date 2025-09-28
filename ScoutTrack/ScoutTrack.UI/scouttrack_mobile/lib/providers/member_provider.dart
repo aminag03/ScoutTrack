@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:scouttrack_desktop/providers/base_provider.dart';
-import 'package:scouttrack_desktop/models/member.dart';
-import 'package:scouttrack_desktop/providers/auth_provider.dart';
+import 'package:scouttrack_mobile/providers/base_provider.dart';
+import 'package:scouttrack_mobile/models/member.dart';
+import 'package:scouttrack_mobile/providers/auth_provider.dart';
 
 class MemberProvider extends BaseProvider<Member, dynamic> {
   MemberProvider(AuthProvider? authProvider) : super(authProvider, 'Member');
@@ -11,23 +11,6 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
   @override
   Member fromJson(dynamic json) {
     return Member.fromJson(json);
-  }
-
-  Future<Member> activate(int id) async {
-    return await handleWithRefresh(() async {
-      final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/de-activate",
-      );
-      final headers = await createHeaders();
-
-      final response = await http.patch(uri, headers: headers);
-      if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return fromJson(data);
-      } else {
-        throw Exception("Greška prilikom (de)aktivacije člana.");
-      }
-    });
   }
 
   Future<void> changePassword(int id, Map<String, String> request) async {
@@ -82,67 +65,6 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
     });
   }
 
-  Future<void> adminChangePassword(int id, Map<String, String> request) async {
-    await handleWithRefresh(() async {
-      final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/admin-change-password",
-      );
-      final headers = await createHeaders();
-
-      final response = await http.patch(
-        uri,
-        headers: headers,
-        body: jsonEncode(request),
-      );
-
-      if (response.statusCode == 200) {
-        return;
-      } else {
-        try {
-          if (response.body.isNotEmpty) {
-            final error = jsonDecode(response.body);
-            final errors = error['errors'];
-            String errorMessage = 'Greška pri promjeni lozinke';
-
-            if (errors != null &&
-                errors['userError'] is List &&
-                errors['userError'].isNotEmpty) {
-              errorMessage = errors['userError'][0];
-            } else if (error['title'] != null) {
-              errorMessage = error['title'];
-            }
-
-            if (errorMessage ==
-                'New password must have at least 8 characters.') {
-              throw Exception('Nova lozinka mora imati najmanje 8 karaktera.');
-            } else if (errorMessage ==
-                'New password and confirmation do not match.') {
-              throw Exception('Nova lozinka i potvrda se ne poklapaju.');
-            } else if (errorMessage.contains('Password must contain')) {
-              throw Exception(
-                'Lozinka mora sadržavati veliko i malo slovo, broj i specijalan znak.',
-              );
-            }
-
-            throw Exception(errorMessage);
-          } else {
-            throw Exception(
-              'Greška pri promjeni lozinke. Status: ${response.statusCode}',
-            );
-          }
-        } catch (e) {
-          if (e.toString().contains('FormatException') ||
-              e.toString().contains('Unexpected end of input')) {
-            throw Exception(
-              'Greška pri promjeni lozinke. Molimo pokušajte ponovo.',
-            );
-          }
-          throw Exception(e.toString().replaceFirst('Exception: ', '').trim());
-        }
-      }
-    });
-  }
-
   Future<Member> updateProfilePicture(int id, File? imageFile) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
@@ -174,42 +96,41 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
         final response = await request.send();
 
         if (response.statusCode == 200) {
-          final body = await response.stream.bytesToString();
-
-          try {
-            final decoded = jsonDecode(body);
-            return Member.fromJson(decoded);
-          } catch (e) {
-            throw Exception(body);
-          }
+          return await getById(id);
         } else {
           final body = await response.stream.bytesToString();
-          final error = jsonDecode(body);
-          throw Exception(
-            error['title'] ?? 'Greška prilikom učitavanja slike.',
-          );
+          try {
+            final error = jsonDecode(body);
+            throw Exception(
+              error['title'] ?? 'Greška prilikom učitavanja slike.',
+            );
+          } catch (e) {
+            throw Exception(
+              'Greška prilikom učitavanja slike: ${response.statusCode}',
+            );
+          }
         }
       }
     });
   }
 
-  Future<void> updateAllMemberCategories() async {
+  Future<void> delete(int id) async {
     await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/update-categories",
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id",
       );
-      final headers = await createHeaders();
+      final response = await http.delete(uri, headers: await createHeaders());
 
-      final response = await http.post(uri, headers: headers);
-
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 204) {
         try {
           final error = jsonDecode(response.body);
           throw Exception(
-            error['message'] ?? 'Greška prilikom ažuriranja kategorija.',
+            error['title'] ?? 'Greška prilikom brisanja profila.',
           );
         } catch (e) {
-          throw Exception(e.toString().replaceFirst('Exception: ', '').trim());
+          throw Exception(
+            'Greška prilikom brisanja profila: ${response.statusCode}',
+          );
         }
       }
     });

@@ -6,7 +6,7 @@ namespace ScoutTrack.Model.Requests
     public class TroopUpdateRequest
     {
         [MaxLength(50, ErrorMessage = "Username most not exceed 50 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9_.]+$", ErrorMessage = "Username can only contain letters, numbers, dots, underscores, or hyphens.")]
+        [RegularExpression(@"^[A-Za-z0-9_.]+$", ErrorMessage = "Username can only contain letters, numbers, dots or underscores")]
         public string Username { get; set; } = string.Empty;
 
         [MaxLength(100, ErrorMessage = "Email must not exceed 100 characters.")]

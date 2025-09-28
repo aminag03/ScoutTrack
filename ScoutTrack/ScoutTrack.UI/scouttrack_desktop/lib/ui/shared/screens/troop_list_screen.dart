@@ -917,7 +917,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                                 if (!RegExp(
                                   r"^[A-Za-z0-9_.]+$",
                                 ).hasMatch(value.trim())) {
-                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke, donje crte ili crtice.';
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke ili donje crte.';
                                 }
                                 return null;
                               },

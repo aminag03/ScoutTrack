@@ -150,6 +150,7 @@ namespace ScoutTrack.Services
         {
             var entity = await _context.Members
                 .Include(t => t.City)
+                .Include(m => m.Troop)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (entity == null)
@@ -219,9 +220,82 @@ namespace ScoutTrack.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error while deleting troop profile picture from file system.");
+                    _logger.LogWarning(ex, "Error while deleting member profile picture from file system.");
                 }
             }
+
+            var activityRegistrations = await _context.ActivityRegistrations
+                .Where(ar => ar.MemberId == entity.Id)
+                .ToListAsync();
+            _context.ActivityRegistrations.RemoveRange(activityRegistrations);
+
+            var friendships = await _context.Friendships
+                .Where(f => f.RequesterId == entity.Id || f.ResponderId == entity.Id)
+                .ToListAsync();
+            _context.Friendships.RemoveRange(friendships);
+
+            var memberBadgeProgress = await _context.MemberBadgeProgresses
+                .Where(mbp => _context.MemberBadges.Any(mb => mb.Id == mbp.MemberBadgeId && mb.MemberId == entity.Id))
+                .ToListAsync();
+            _context.MemberBadgeProgresses.RemoveRange(memberBadgeProgress);
+
+            var memberBadges = await _context.MemberBadges
+                .Where(mb => mb.MemberId == entity.Id)
+                .ToListAsync();
+            _context.MemberBadges.RemoveRange(memberBadges);
+
+            var reviews = await _context.Reviews
+                .Where(r => r.MemberId == entity.Id)
+                .ToListAsync();
+            _context.Reviews.RemoveRange(reviews);
+
+            var notifications = await _context.Notifications
+                .Where(n => n.ReceiverId == entity.Id)
+                .ToListAsync();
+            _context.Notifications.RemoveRange(notifications);
+
+            var memberPosts = await _context.Posts
+                .Where(p => p.CreatedById == entity.Id)
+                .ToListAsync();
+
+            if (memberPosts.Any())
+            {
+                var postIds = memberPosts.Select(p => p.Id).ToList();
+
+                var comments = await _context.Comments
+                    .Where(c => postIds.Contains(c.PostId))
+                    .ToListAsync();
+                _context.Comments.RemoveRange(comments);
+
+                var likes = await _context.Likes
+                    .Where(l => postIds.Contains(l.PostId))
+                    .ToListAsync();
+                _context.Likes.RemoveRange(likes);
+
+                var postImages = await _context.PostImages
+                    .Where(pi => postIds.Contains(pi.PostId))
+                    .ToListAsync();
+                _context.PostImages.RemoveRange(postImages);
+
+                _context.Posts.RemoveRange(memberPosts);
+            }
+
+            var memberLikes = await _context.Likes
+                .Where(l => l.CreatedById == entity.Id)
+                .ToListAsync();
+            _context.Likes.RemoveRange(memberLikes);
+
+            var memberComments = await _context.Comments
+                .Where(c => c.CreatedById == entity.Id)
+                .ToListAsync();
+            _context.Comments.RemoveRange(memberComments);
+
+            var sentNotifications = await _context.Notifications
+                .Where(n => n.SenderId == entity.Id)
+                .ToListAsync();
+            _context.Notifications.RemoveRange(sentNotifications);
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<MemberResponse?> DeActivateAsync(int id)
