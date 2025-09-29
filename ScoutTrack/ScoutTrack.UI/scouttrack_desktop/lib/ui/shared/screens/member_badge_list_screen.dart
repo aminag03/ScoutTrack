@@ -18,6 +18,7 @@ import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/models/member_badge_progress.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
 
 class MemberBadgeListScreen extends StatefulWidget {
@@ -818,7 +819,9 @@ class _MemberBadgeListScreenState extends State<MemberBadgeListScreen> {
                             backgroundImage:
                                 memberBadge.memberProfilePictureUrl.isNotEmpty
                                 ? NetworkImage(
-                                    memberBadge.memberProfilePictureUrl,
+                                    UrlUtils.buildImageUrl(
+                                      memberBadge.memberProfilePictureUrl,
+                                    ),
                                   )
                                 : null,
                             child: memberBadge.memberProfilePictureUrl.isEmpty
@@ -1252,7 +1255,11 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                   backgroundColor: Colors.grey.shade400,
                   backgroundImage:
                       widget.memberBadge.memberProfilePictureUrl.isNotEmpty
-                      ? NetworkImage(widget.memberBadge.memberProfilePictureUrl)
+                      ? NetworkImage(
+                          UrlUtils.buildImageUrl(
+                            widget.memberBadge.memberProfilePictureUrl,
+                          ),
+                        )
                       : null,
                   child: widget.memberBadge.memberProfilePictureUrl.isEmpty
                       ? const Icon(Icons.person, color: Colors.white, size: 30)

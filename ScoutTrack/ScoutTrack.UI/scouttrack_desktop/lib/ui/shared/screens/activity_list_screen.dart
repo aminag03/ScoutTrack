@@ -17,6 +17,7 @@ import 'package:scouttrack_desktop/models/equipment.dart';
 import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
@@ -860,7 +861,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                             8,
                                                           ),
                                                       child: Image.network(
-                                                        _imagePath!,
+                                                        UrlUtils.buildImageUrl(
+                                                          _imagePath!,
+                                                        ),
                                                         fit: BoxFit.cover,
                                                         errorBuilder:
                                                             (

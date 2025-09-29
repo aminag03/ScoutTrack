@@ -127,9 +127,9 @@ namespace ScoutTrack.WebAPI.Controllers
                 await request.Image.CopyToAsync(stream);
             }
 
-            var imageUrl = $"{Request.Scheme}://{Request.Host}/images/troops/{fileName}";
+            var imagePath = $"images/troops/{fileName}";
 
-            var updatedResponse = await _troopService.UpdateLogoAsync(id, imageUrl);
+            var updatedResponse = await _troopService.UpdateLogoAsync(id, imagePath);
 
             return Ok(updatedResponse);
         }

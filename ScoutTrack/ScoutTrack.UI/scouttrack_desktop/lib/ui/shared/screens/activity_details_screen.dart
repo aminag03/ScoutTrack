@@ -12,6 +12,7 @@ import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/permission_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/providers/activity_equipment_provider.dart';
@@ -203,7 +204,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       final memberProvider = MemberProvider(authProvider);
       final member = await memberProvider.getById(memberId);
       return member.profilePictureUrl.isNotEmpty
-          ? member.profilePictureUrl
+          ? UrlUtils.buildImageUrl(member.profilePictureUrl)
           : null;
     } catch (e) {
       print(
@@ -780,7 +781,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      _activity!.imagePath,
+                      UrlUtils.buildImageUrl(_activity!.imagePath),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -1449,7 +1450,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                   width: double.infinity,
                                   height: double.infinity,
                                   child: Image.network(
-                                    post.images.first.imageUrl,
+                                    UrlUtils.buildImageUrl(
+                                      post.images.first.imageUrl,
+                                    ),
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
@@ -2177,7 +2180,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                         snapshot.data!.isNotEmpty) {
                                       return CircleAvatar(
                                         backgroundImage: NetworkImage(
-                                          snapshot.data!,
+                                          UrlUtils.buildImageUrl(
+                                            snapshot.data!,
+                                          ),
                                         ),
                                         onBackgroundImageError:
                                             (exception, stackTrace) {
@@ -2782,7 +2787,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text('• Učesnici se mogu prijaviti na aktivnost'),
-            Text('• Aktivnost se može uređivati (veće promjene će obavijestiti registrovane članove)'),
+            Text(
+              '• Aktivnost se može uređivati (veće promjene će obavijestiti registrovane članove)',
+            ),
             Text('• Možete zatvoriti registracije kada želite'),
           ],
         ),
@@ -3640,7 +3647,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                               8,
                                             ),
                                             child: Image.network(
-                                              image.imageUrl,
+                                              UrlUtils.buildImageUrl(
+                                                image.imageUrl,
+                                              ),
                                               fit: BoxFit.contain,
                                               errorBuilder:
                                                   (context, error, stackTrace) {
@@ -4009,7 +4018,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: Image.network(
-                                          imageUrl,
+                                          UrlUtils.buildImageUrl(imageUrl),
                                           width: 120,
                                           height: 120,
                                           fit: BoxFit.cover,
@@ -4320,7 +4329,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             backgroundImage:
                 comment.createdByAvatarUrl != null &&
                     comment.createdByAvatarUrl!.isNotEmpty
-                ? NetworkImage(comment.createdByAvatarUrl!)
+                ? NetworkImage(
+                    UrlUtils.buildImageUrl(comment.createdByAvatarUrl!),
+                  )
                 : null,
             child:
                 comment.createdByAvatarUrl == null ||
@@ -4456,7 +4467,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                           backgroundImage:
                               like.createdByAvatarUrl != null &&
                                   like.createdByAvatarUrl!.isNotEmpty
-                              ? NetworkImage(like.createdByAvatarUrl!)
+                              ? NetworkImage(
+                                  UrlUtils.buildImageUrl(
+                                    like.createdByAvatarUrl!,
+                                  ),
+                                )
                               : null,
                           child:
                               like.createdByAvatarUrl == null ||

@@ -11,6 +11,7 @@ import 'package:scouttrack_desktop/ui/shared/screens/badge_details_screen.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/pagination_controls.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/utils/pdf_report_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
 
 class BadgeListScreen extends StatefulWidget {
@@ -583,7 +584,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                   child: badge.imageUrl.isNotEmpty
                       ? ClipOval(
                           child: Image.network(
-                            badge.imageUrl,
+                            UrlUtils.buildImageUrl(badge.imageUrl),
                             width: 70,
                             height: 70,
                             fit: BoxFit.cover,

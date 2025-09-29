@@ -11,6 +11,7 @@ import 'package:scouttrack_desktop/providers/member_badge_provider.dart';
 import 'package:scouttrack_desktop/providers/member_badge_progress_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/models/member.dart';
 import 'package:scouttrack_desktop/providers/member_provider.dart';
 import 'package:scouttrack_desktop/providers/troop_provider.dart';
@@ -342,7 +343,9 @@ class _BadgeDetailsScreenState extends State<BadgeDetailsScreen> {
                               child: widget.badge.imageUrl.isNotEmpty
                                   ? ClipOval(
                                       child: Image.network(
-                                        widget.badge.imageUrl,
+                                        UrlUtils.buildImageUrl(
+                                          widget.badge.imageUrl,
+                                        ),
                                         width: 120,
                                         height: 120,
                                         fit: BoxFit.cover,
@@ -1407,7 +1410,11 @@ class _MemberBadgeProgressDialogState extends State<MemberBadgeProgressDialog> {
                   backgroundColor: Colors.grey.shade400,
                   backgroundImage:
                       widget.memberBadge.memberProfilePictureUrl.isNotEmpty
-                      ? NetworkImage(widget.memberBadge.memberProfilePictureUrl)
+                      ? NetworkImage(
+                          UrlUtils.buildImageUrl(
+                            widget.memberBadge.memberProfilePictureUrl,
+                          ),
+                        )
                       : null,
                   child: widget.memberBadge.memberProfilePictureUrl.isEmpty
                       ? const Icon(Icons.person, color: Colors.white, size: 30)
@@ -1870,7 +1877,11 @@ class _CreateMemberBadgeDialogState extends State<CreateMemberBadgeDialog> {
                       leading: CircleAvatar(
                         backgroundColor: Colors.grey.shade400,
                         backgroundImage: member.profilePictureUrl.isNotEmpty
-                            ? NetworkImage(member.profilePictureUrl)
+                            ? NetworkImage(
+                                UrlUtils.buildImageUrl(
+                                  member.profilePictureUrl,
+                                ),
+                              )
                             : null,
                         child: member.profilePictureUrl.isEmpty
                             ? const Icon(Icons.person, color: Colors.white)
@@ -1989,7 +2000,11 @@ class _HoverableMemberCardState extends State<HoverableMemberCard> {
                 backgroundColor: Colors.grey.shade400,
                 backgroundImage:
                     widget.member.memberProfilePictureUrl.isNotEmpty
-                    ? NetworkImage(widget.member.memberProfilePictureUrl)
+                    ? NetworkImage(
+                        UrlUtils.buildImageUrl(
+                          widget.member.memberProfilePictureUrl,
+                        ),
+                      )
                     : null,
                 child: widget.member.memberProfilePictureUrl.isEmpty
                     ? const Icon(Icons.person, color: Colors.white)

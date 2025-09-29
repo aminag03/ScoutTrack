@@ -66,9 +66,9 @@ namespace ScoutTrack.WebAPI.Controllers
                 await request.Image.CopyToAsync(stream);
             }
 
-            var imageUrl = $"{Request.Scheme}://{Request.Host}/images/badges/{fileName}";
+            var imagePath = $"images/badges/{fileName}";
 
-            return Ok(new { imageUrl });
+            return Ok(new { imageUrl = imagePath });
         }
     }
 }

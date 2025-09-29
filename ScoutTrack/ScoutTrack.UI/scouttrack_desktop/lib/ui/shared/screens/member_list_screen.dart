@@ -16,6 +16,7 @@ import 'package:scouttrack_desktop/providers/notification_provider.dart';
 import 'package:scouttrack_desktop/providers/category_provider.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 
@@ -34,7 +35,8 @@ class MemberListScreen extends StatefulWidget {
   State<MemberListScreen> createState() => _MemberListScreenState();
 }
 
-class _MemberListScreenState extends State<MemberListScreen> with WidgetsBindingObserver {
+class _MemberListScreenState extends State<MemberListScreen>
+    with WidgetsBindingObserver {
   SearchResult<Member>? _members;
   bool _loading = false;
   String? _error;
@@ -912,7 +914,9 @@ class _MemberListScreenState extends State<MemberListScreen> with WidgetsBinding
                                       : (_profilePictureUrl != null &&
                                                 _profilePictureUrl!.isNotEmpty
                                             ? Image.network(
-                                                _profilePictureUrl!,
+                                                UrlUtils.buildImageUrl(
+                                                  _profilePictureUrl!,
+                                                ),
                                                 fit: BoxFit.cover,
                                                 errorBuilder:
                                                     (

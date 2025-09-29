@@ -18,6 +18,7 @@ import 'package:scouttrack_desktop/providers/activity_type_provider.dart';
 import 'package:scouttrack_desktop/ui/shared/layouts/master_screen.dart';
 import 'package:scouttrack_desktop/utils/date_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/screens/troop_details_screen.dart';
@@ -663,7 +664,9 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                   )
                                 : (_member.profilePictureUrl?.isNotEmpty == true
                                       ? Image.network(
-                                          _member.profilePictureUrl!,
+                                          UrlUtils.buildImageUrl(
+                                            _member.profilePictureUrl!,
+                                          ),
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {
@@ -1219,8 +1222,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                                         true
                                                     ? ClipOval(
                                                         child: Image.network(
-                                                          _member
-                                                              .profilePictureUrl!,
+                                                          UrlUtils.buildImageUrl(
+                                                            _member
+                                                                .profilePictureUrl!,
+                                                          ),
                                                           width: 120,
                                                           height: 120,
                                                           fit: BoxFit.cover,

@@ -7,6 +7,7 @@ import 'package:scouttrack_desktop/providers/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/utils/error_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 
 class BadgeFormDialog extends StatefulWidget {
   final Badge? badge;
@@ -74,13 +75,11 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
       String finalImageUrl = _imageUrl;
 
-      // Upload new image if selected
       if (_selectedImage != null) {
         finalImageUrl = await badgeProvider.uploadImage(_selectedImage!);
       }
 
       if (widget.badge == null) {
-        // Create new badge
         await badgeProvider.create(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
@@ -90,7 +89,6 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
           showSuccessSnackbar(context, 'Vještarstvo je uspješno kreirano');
         }
       } else {
-        // Update existing badge
         await badgeProvider.updateBadge(
           id: widget.badge!.id,
           name: _nameController.text.trim(),
@@ -188,7 +186,6 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
               const SizedBox(height: 16),
 
-              // Image section
               Row(
                 children: [
                   const Icon(Icons.image, color: Colors.green),
@@ -262,7 +259,7 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.network(
-                                    _imageUrl,
+                                    UrlUtils.buildImageUrl(_imageUrl),
                                     width: 120,
                                     height: 120,
                                     fit: BoxFit.cover,

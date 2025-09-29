@@ -453,8 +453,18 @@ namespace ScoutTrack.Services.Services
 
             try
             {
-                var uri = new Uri(imageUrl);
-                var relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                // Handle both relative and absolute paths
+                string relativePath;
+                if (imageUrl.StartsWith("http"))
+                {
+                    var uri = new Uri(imageUrl);
+                    relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                }
+                else
+                {
+                    relativePath = imageUrl.Replace('/', Path.DirectorySeparatorChar);
+                }
+                
                 var fullPath = Path.Combine(_env.WebRootPath, relativePath);
 
                 if (File.Exists(fullPath))

@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:scouttrack_desktop/models/equipment.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 
 class ActivityFormWidgets {
   static Widget buildEquipmentItem({
@@ -14,7 +15,7 @@ class ActivityFormWidgets {
     required Function(StateSetter, int, String) onUpdate,
     required Function(StateSetter, int) onRemove,
     required StateSetter setState,
-    bool isNewlyAdded = false, // Add parameter for highlighting
+    bool isNewlyAdded = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -190,7 +191,7 @@ class ActivityFormWidgets {
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            imagePath,
+                            UrlUtils.buildImageUrl(imagePath),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(

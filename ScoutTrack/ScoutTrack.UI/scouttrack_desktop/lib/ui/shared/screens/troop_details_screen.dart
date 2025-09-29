@@ -13,6 +13,7 @@ import 'package:scouttrack_desktop/utils/error_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/map_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/image_utils.dart';
 import 'package:scouttrack_desktop/ui/shared/widgets/date_picker_utils.dart';
+import 'package:scouttrack_desktop/utils/url_utils.dart';
 
 import 'package:scouttrack_desktop/ui/shared/widgets/ui_components.dart';
 import 'dart:io';
@@ -162,13 +163,11 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   Future<bool> _onEdit() async {
-    // Wait for cities to be loaded if they're still loading
     if (_isCitiesLoading) {
       showErrorSnackbar(context, 'Molimo sačekajte da se učitaju gradovi...');
       return false;
     }
 
-    // Additional safety check - ensure cities are actually loaded
     if (_cities.isEmpty) {
       showErrorSnackbar(
         context,
@@ -207,7 +206,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     String? selectedCityName;
     bool isUpdated = false;
 
-    // Validate that the selectedCityId exists in the cities list
     if (_troop.cityId != null &&
         _cities.isNotEmpty &&
         _cities.any((c) => c.id == _troop.cityId)) {
@@ -215,12 +213,10 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
         final city = _cities.firstWhere((c) => c.id == _troop.cityId);
         selectedCityName = city.name;
       } catch (e) {
-        // If city not found, set to null
         selectedCityId = null;
         selectedCityName = null;
       }
     } else {
-      // If cityId is invalid or null, set to null to avoid dropdown error
       selectedCityId = null;
       selectedCityName = null;
     }
@@ -925,7 +921,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                   )
                                 : (_troop.logoUrl.isNotEmpty
                                       ? Image.network(
-                                          _troop.logoUrl,
+                                          UrlUtils.buildImageUrl(
+                                            _troop.logoUrl,
+                                          ),
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {
@@ -1109,7 +1107,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                           child: _troop.logoUrl.isNotEmpty
                                               ? ClipOval(
                                                   child: Image.network(
-                                                    _troop.logoUrl,
+                                                    UrlUtils.buildImageUrl(
+                                                      _troop.logoUrl,
+                                                    ),
                                                     width: 120,
                                                     height: 120,
                                                     fit: BoxFit.cover,

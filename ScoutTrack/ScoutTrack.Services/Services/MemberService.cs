@@ -211,8 +211,17 @@ namespace ScoutTrack.Services
             {
                 try
                 {
-                    var uri = new Uri(entity.ProfilePictureUrl);
-                    var relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    string relativePath;
+                    if (entity.ProfilePictureUrl.StartsWith("http"))
+                    {
+                        var uri = new Uri(entity.ProfilePictureUrl);
+                        relativePath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    }
+                    else
+                    {
+                        relativePath = entity.ProfilePictureUrl.Replace('/', Path.DirectorySeparatorChar);
+                    }
+                    
                     var fullPath = Path.Combine(_env.WebRootPath, relativePath);
 
                     if (File.Exists(fullPath))
@@ -375,8 +384,17 @@ namespace ScoutTrack.Services
             {
                 try
                 {
-                    var oldUri = new Uri(entity.ProfilePictureUrl);
-                    var relativePath = oldUri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    string relativePath;
+                    if (entity.ProfilePictureUrl.StartsWith("http"))
+                    {
+                        var oldUri = new Uri(entity.ProfilePictureUrl);
+                        relativePath = oldUri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    }
+                    else
+                    {
+                        relativePath = entity.ProfilePictureUrl.Replace('/', Path.DirectorySeparatorChar);
+                    }
+                    
                     var fullPath = Path.Combine(_env.WebRootPath, relativePath);
 
                     if (File.Exists(fullPath))

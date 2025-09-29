@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/member_provider.dart';
+import '../providers/troop_provider.dart';
 import '../screens/login_screen.dart';
 import '../screens/member_home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/troop_details_screen.dart';
 import '../utils/navigation_utils.dart';
 
 class MasterScreen extends StatefulWidget {
@@ -13,6 +16,7 @@ class MasterScreen extends StatefulWidget {
   final int selectedIndex;
   final Function(int)? onNavigationTap;
   final List<Widget>? actions;
+  final bool showBackButton;
 
   const MasterScreen({
     super.key,
@@ -21,6 +25,7 @@ class MasterScreen extends StatefulWidget {
     this.selectedIndex = 0,
     this.onNavigationTap,
     this.actions,
+    this.showBackButton = false,
   });
 
   @override
@@ -51,6 +56,93 @@ class _MasterScreenState extends State<MasterScreen> {
     }
   }
 
+  bool _shouldShowBackButton() {
+    return widget.showBackButton || !_isMainNavigationScreen();
+  }
+
+  bool _isMainNavigationScreen() {
+    return widget.selectedIndex >= 0 && widget.selectedIndex <= 2;
+  }
+
+  Future<void> _navigateToMyTroop(BuildContext context) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = Provider.of<MemberProvider>(
+        context,
+        listen: false,
+      );
+      final troopProvider = TroopProvider(authProvider);
+
+      final userInfo = await authProvider.getCurrentUserInfo();
+      if (userInfo != null && userInfo['id'] != null) {
+        final memberId = userInfo['id'] as int;
+
+        final member = await memberProvider.getById(memberId);
+
+        if (member.troopId > 0) {
+          final troop = await troopProvider.getById(member.troopId);
+
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => TroopDetailsScreen(troop: troop),
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Niste povezani sa odredom.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nije moguće dohvatiti podatke o korisniku.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Greška pri učitavanju odreda: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,16 +167,28 @@ class _MasterScreenState extends State<MasterScreen> {
                 ),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.menu,
-                        color: Colors.white,
-                        size: 24,
+                    if (_shouldShowBackButton())
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(
+                          Icons.menu,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
                       ),
-                      onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
-                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -177,9 +281,9 @@ class _MasterScreenState extends State<MasterScreen> {
                 _buildDrawerItem(
                   icon: Icons.sentiment_satisfied,
                   title: 'Moj odred',
-                  onTap: () {
+                  onTap: () async {
                     Navigator.of(context).pop();
-                    // TODO: Navigate to troop/squad screen
+                    await _navigateToMyTroop(context);
                   },
                 ),
                 _buildDrawerItem(
@@ -280,12 +384,14 @@ class MasterScreenBuilder {
     required Widget body,
     int selectedIndex = 0,
     Function(int)? onNavigationTap,
+    bool showBackButton = false,
   }) {
     return MasterScreen(
       headerTitle: headerTitle,
       body: body,
       selectedIndex: selectedIndex,
       onNavigationTap: onNavigationTap,
+      showBackButton: showBackButton,
     );
   }
 }

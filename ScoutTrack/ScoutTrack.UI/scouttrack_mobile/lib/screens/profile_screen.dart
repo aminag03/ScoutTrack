@@ -8,8 +8,11 @@ import '../layouts/master_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../providers/city_provider.dart';
+import '../providers/troop_provider.dart';
 import '../models/member.dart';
 import '../models/city.dart';
+import '../screens/troop_details_screen.dart';
+import '../utils/url_utils.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -75,6 +78,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _error = 'Greška pri učitavanju podataka: ${e.toString()}';
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _navigateToTroop() async {
+    if (_currentMember == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Podaci o članu nisu učitani.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_currentMember!.troopId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Niste povezani sa odredom.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final troopProvider = TroopProvider(authProvider);
+
+      final troop = await troopProvider.getById(_currentMember!.troopId);
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TroopDetailsScreen(troop: troop),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Greška pri učitavanju odreda: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -168,7 +231,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context,
                 ).colorScheme.primary.withOpacity(0.1),
                 backgroundImage: _currentMember!.profilePictureUrl.isNotEmpty
-                    ? NetworkImage(_currentMember!.profilePictureUrl)
+                    ? NetworkImage(
+                        UrlUtils.buildImageUrl(
+                          _currentMember!.profilePictureUrl,
+                        ),
+                      )
                     : null,
                 child: _currentMember!.profilePictureUrl.isEmpty
                     ? Icon(
@@ -261,10 +328,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Odred izviđača "${_currentMember!.troopName}"',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
+          GestureDetector(
+            onTap: _navigateToTroop,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.group,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Odred izviđača "${_currentMember!.troopName}"',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           _buildInfoCard(),
@@ -499,7 +601,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 : (_currentMember!.profilePictureUrl.isNotEmpty
                                       ? Image.network(
-                                          _currentMember!.profilePictureUrl,
+                                          UrlUtils.buildImageUrl(
+                                            _currentMember!.profilePictureUrl,
+                                          ),
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {

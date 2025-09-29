@@ -208,7 +208,12 @@ class _LoginPageState extends State<LoginPage> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Prijava'),
+                              : const Text(
+                                  'Prijava',
+                                  style: TextStyle(
+                                    fontSize: 16
+                                  ),
+                                ),
                         ),
                       ),
                     ],
