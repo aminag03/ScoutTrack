@@ -12,6 +12,7 @@ import '../providers/troop_provider.dart';
 import '../models/member.dart';
 import '../models/city.dart';
 import '../screens/troop_details_screen.dart';
+import '../screens/activity_list_screen.dart';
 import '../utils/url_utils.dart';
 import 'login_screen.dart';
 
@@ -140,6 +141,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  Future<void> _navigateToMyActivities() async {
+    if (_currentMember == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Podaci o članu nisu učitani.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityListScreen(
+          memberId: _currentMember!.id,
+          title: 'Moje aktivnosti',
+        ),
+      ),
+    );
   }
 
   @override
@@ -452,7 +474,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: 'Moje prijave',
           subtitle: 'Pregledajte svoje prijave za aktivnosti',
           onTap: () {
-            // TODO: Navigate to applications
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const ActivityListScreen(
+                  title: 'Moje prijave',
+                  showMyRegistrations: true,
+                ),
+              ),
+            );
           },
         ),
         const SizedBox(height: 12),
@@ -460,9 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: Icons.event,
           title: 'Moje aktivnosti',
           subtitle: 'Aktivnosti u kojima ste sudjelovali',
-          onTap: () {
-            // TODO: Navigate to activities
-          },
+          onTap: _navigateToMyActivities,
         ),
         const SizedBox(height: 12),
         _buildOptionCard(

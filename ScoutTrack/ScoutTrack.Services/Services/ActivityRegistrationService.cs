@@ -41,6 +41,9 @@ namespace ScoutTrack.Services.Services
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -55,6 +58,9 @@ namespace ScoutTrack.Services.Services
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -69,6 +75,9 @@ namespace ScoutTrack.Services.Services
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -83,11 +92,17 @@ namespace ScoutTrack.Services.Services
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
             if (entity == null)
                 throw new UserException("Activity registration not found.");
+
+            if (entity.Activity.ActivityState != "FinishedActivityState")
+                throw new UserException("Cannot complete registration for an activity that is not finished.");
 
             var state = _baseActivityRegistrationState.GetActivityRegistrationState(GetStateNameFromStatus(entity.Status));
             return await state.CompleteAsync(id);
@@ -232,6 +247,9 @@ namespace ScoutTrack.Services.Services
 
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -290,6 +308,9 @@ namespace ScoutTrack.Services.Services
         {
             var query = _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .AsQueryable();
 
@@ -337,6 +358,9 @@ namespace ScoutTrack.Services.Services
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.Troop)
+                .Include(ar => ar.Activity)
+                    .ThenInclude(a => a.ActivityType)
                 .Include(ar => ar.Member)
                 .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -357,7 +381,18 @@ namespace ScoutTrack.Services.Services
                 Status = entity.Status,
                 Notes = entity.Notes,
                 ActivityTitle = entity.Activity?.Title ?? string.Empty,
-                MemberName = entity.Member?.FirstName + " " + entity.Member?.LastName ?? string.Empty
+                MemberName = entity.Member?.FirstName + " " + entity.Member?.LastName ?? string.Empty,
+                ActivityDescription = entity.Activity?.Description ?? string.Empty,
+                ActivityLocationName = entity.Activity?.LocationName ?? string.Empty,
+                ActivityTypeName = entity.Activity?.ActivityType?.Name ?? string.Empty,
+                ActivityTypeId = entity.Activity?.ActivityTypeId ?? 0,
+                ActivityState = entity.Activity?.ActivityState ?? string.Empty,
+                ActivityStartTime = entity.Activity?.StartTime,
+                ActivityEndTime = entity.Activity?.EndTime,
+                ActivityFee = entity.Activity?.Fee ?? 0,
+                ActivityImagePath = entity.Activity?.ImagePath ?? string.Empty,
+                TroopId = entity.Activity?.TroopId ?? 0,
+                TroopName = entity.Activity?.Troop?.Name ?? string.Empty
             };
         }
     }

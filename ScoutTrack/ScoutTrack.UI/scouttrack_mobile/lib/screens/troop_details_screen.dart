@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/troop.dart';
 import '../layouts/master_screen.dart';
 import '../utils/url_utils.dart';
+import 'activity_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -49,11 +50,12 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   void _navigateToEvents() {
-    // TODO: Implement navigation to events screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Aktivnosti - funkcionalnost u razvoju'),
-        backgroundColor: Colors.blue,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityListScreen(
+          troopId: _troop.id,
+          title: 'Aktivnosti odreda "${_troop.name}"',
+        ),
       ),
     );
   }

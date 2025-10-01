@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ScoutTrack.Model.Requests;
@@ -20,5 +21,7 @@ namespace ScoutTrack.Services.Interfaces
         Task<ActivityResponse?> UpdateAsync(int id, ActivityUpdateRequest request, int currentUserId);
         Task<PagedResult<ActivityResponse>> GetForUserAsync(ClaimsPrincipal user, ActivitySearchObject search);
         Task<ActivityResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id);
+        Task<List<ActivityResponse>> GetActivitiesByMemberAsync(int memberId);
+        Task<List<ActivityResponse>> GetActivitiesByTroopAsync(int troopId);
     }
 } 

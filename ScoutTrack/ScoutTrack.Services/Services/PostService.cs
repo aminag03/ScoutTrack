@@ -453,7 +453,6 @@ namespace ScoutTrack.Services.Services
 
             try
             {
-                // Handle both relative and absolute paths
                 string relativePath;
                 if (imageUrl.StartsWith("http"))
                 {

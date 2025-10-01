@@ -24,6 +24,8 @@ namespace ScoutTrack.Model.Responses
         public DateTime? UpdatedAt { get; set; }
         public string ActivityState { get; set; } = string.Empty;
         public int RegistrationCount { get; set; } = 0;
+        public int PendingRegistrationCount { get; set; } = 0;
+        public int ApprovedRegistrationCount { get; set; } = 0;
         public string ImagePath { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
     }

@@ -139,6 +139,34 @@ namespace ScoutTrack.WebAPI.Controllers
             return await _activityService.DeactivateAsync(id);
         }
 
+        [HttpGet("by-member/{memberId}")]
+        public async Task<ActionResult<List<ActivityResponse>>> GetByMember(int memberId)
+        {
+            try
+            {
+                var activities = await _activityService.GetActivitiesByMemberAsync(memberId);
+                return Ok(activities);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("by-troop/{troopId}")]
+        public async Task<ActionResult<List<ActivityResponse>>> GetByTroop(int troopId)
+        {
+            try
+            {
+                var activities = await _activityService.GetActivitiesByTroopAsync(troopId);
+                return Ok(activities);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPut("{id}/close-registrations")]
         [Authorize(Roles = "Admin,Troop")]
         public virtual async Task<ActivityResponse?> CloseRegistrationsAsync(int id)

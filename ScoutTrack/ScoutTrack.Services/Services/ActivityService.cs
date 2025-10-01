@@ -149,11 +149,15 @@ namespace ScoutTrack.Services
             {
                 query = query.Where(a => a.ActivityState == search.ActivityState);
             }
+            if (search.ExcludeStates != null && search.ExcludeStates.Any())
+            {
+                query = query.Where(a => !search.ExcludeStates.Contains(a.ActivityState));
+            }
             if (search.ShowPublicAndOwn.HasValue && search.ShowPublicAndOwn.Value && search.OwnTroopId.HasValue)
             {
                 query = query.Where(a => 
                     (!a.isPrivate || a.TroopId == search.OwnTroopId.Value) && 
-                    ((a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState") || a.TroopId == search.OwnTroopId.Value));
+                    (a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState"));
             }
 
             query = query.Include(a => a.Troop);
@@ -559,6 +563,10 @@ namespace ScoutTrack.Services
                 ActivityState = entity.ActivityState,
                 RegistrationCount = _context.ActivityRegistrations.Where(ar => ar.Status == Common.Enums.RegistrationStatus.Completed).
                     Count(ar => ar.ActivityId == entity.Id),
+                PendingRegistrationCount = _context.ActivityRegistrations.Where(ar => ar.Status == Common.Enums.RegistrationStatus.Pending).
+                    Count(ar => ar.ActivityId == entity.Id),
+                ApprovedRegistrationCount = _context.ActivityRegistrations.Where(ar => ar.Status == Common.Enums.RegistrationStatus.Approved).
+                    Count(ar => ar.ActivityId == entity.Id),
                 ImagePath = entity.ImagePath,
             };
         }
@@ -577,6 +585,7 @@ namespace ScoutTrack.Services
                 {
                     search.ShowPublicAndOwn = true;
                     search.OwnTroopId = member.TroopId;
+                    search.ExcludeStates = new List<string> { "DraftActivityState", "CancelledActivityState" };
                 }
             }
             else if (userRole == "Troop")
@@ -595,7 +604,56 @@ namespace ScoutTrack.Services
                 throw new UnauthorizedAccessException("You do not have permission to view this activity.");
             }
 
-            return await GetByIdAsync(id);
+            var activity = await GetByIdAsync(id);
+            if (activity == null)
+                return null;
+
+            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (userRole == "Member")
+            {
+                if (activity.ActivityState == "DraftActivityState" || activity.ActivityState == "CancelledActivityState")
+                {
+                    throw new UnauthorizedAccessException("You do not have permission to view this activity.");
+                }
+            }
+            else if (userRole == "Troop")
+            {
+                if (activity.isPrivate && activity.TroopId != userId)
+                {
+                    throw new UnauthorizedAccessException("You do not have permission to view this private activity.");
+                }
+            }
+
+            return activity;
+        }
+
+        public async Task<List<ActivityResponse>> GetActivitiesByMemberAsync(int memberId)
+        {
+            var activities = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .Where(a => a.Registrations
+                    .Any(ar => ar.MemberId == memberId && ar.Status == Common.Enums.RegistrationStatus.Completed))
+                .Where(a => a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState")
+                .OrderByDescending(a => a.StartTime)
+                .ToListAsync();
+
+            return activities.Select(MapToResponse).ToList();
+        }
+
+        public async Task<List<ActivityResponse>> GetActivitiesByTroopAsync(int troopId)
+        {
+            var activities = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .Where(a => a.TroopId == troopId)
+                .Where(a => a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState")
+                .OrderByDescending(a => a.StartTime)
+                .ToListAsync();
+
+            return activities.Select(MapToResponse).ToList();
         }
     }
 } 

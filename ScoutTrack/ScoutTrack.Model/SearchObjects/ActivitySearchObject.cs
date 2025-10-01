@@ -1,4 +1,5 @@
 using ScoutTrack.Model.SearchObjects;
+using System.Collections.Generic;
 
 namespace ScoutTrack.Model.SearchObjects
 {
@@ -11,5 +12,6 @@ namespace ScoutTrack.Model.SearchObjects
         public bool? ShowPublicAndOwn { get; set; }
         public int? OwnTroopId { get; set; }
         public string? ActivityState { get; set; }
+        public List<string>? ExcludeStates { get; set; }
     }
 } 
