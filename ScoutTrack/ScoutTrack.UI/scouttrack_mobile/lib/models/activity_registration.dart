@@ -14,7 +14,6 @@ class ActivityRegistration {
   final String activityTitle;
   final String memberName;
 
-  // Additional Activity data for better display
   final String activityDescription;
   final String activityLocationName;
   final String activityTypeName;
@@ -26,6 +25,8 @@ class ActivityRegistration {
   final int troopId;
   final String troopName;
   final int activityTypeId;
+  final double activityLatitude;
+  final double activityLongitude;
 
   const ActivityRegistration({
     required this.id,
@@ -47,6 +48,8 @@ class ActivityRegistration {
     required this.troopId,
     required this.troopName,
     required this.activityTypeId,
+    this.activityLatitude = 0,
+    this.activityLongitude = 0,
   });
 
   factory ActivityRegistration.fromJson(Map<String, dynamic> json) =>
@@ -54,7 +57,6 @@ class ActivityRegistration {
 
   Map<String, dynamic> toJson() => _$ActivityRegistrationToJson(this);
 
-  // Helper methods for status
   String get statusText {
     switch (status) {
       case 0:

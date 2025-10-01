@@ -30,5 +30,7 @@ namespace ScoutTrack.Model.Responses
         public int TroopId { get; set; }
         public string TroopName { get; set; } = string.Empty;
         public int ActivityTypeId { get; set; }
+        public double ActivityLatitude { get; set; }
+        public double ActivityLongitude { get; set; }
     }
 } 

@@ -392,7 +392,9 @@ namespace ScoutTrack.Services.Services
                 ActivityFee = entity.Activity?.Fee ?? 0,
                 ActivityImagePath = entity.Activity?.ImagePath ?? string.Empty,
                 TroopId = entity.Activity?.TroopId ?? 0,
-                TroopName = entity.Activity?.Troop?.Name ?? string.Empty
+                TroopName = entity.Activity?.Troop?.Name ?? string.Empty,
+                ActivityLatitude = entity.Activity?.Latitude ?? 0,
+                ActivityLongitude = entity.Activity?.Longitude ?? 0
             };
         }
     }

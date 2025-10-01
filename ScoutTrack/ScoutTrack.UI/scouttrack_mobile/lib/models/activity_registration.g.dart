@@ -32,6 +32,8 @@ ActivityRegistration _$ActivityRegistrationFromJson(
   troopId: (json['troopId'] as num).toInt(),
   troopName: json['troopName'] as String,
   activityTypeId: (json['activityTypeId'] as num).toInt(),
+  activityLatitude: (json['activityLatitude'] as num?)?.toDouble() ?? 0,
+  activityLongitude: (json['activityLongitude'] as num?)?.toDouble() ?? 0,
 );
 
 Map<String, dynamic> _$ActivityRegistrationToJson(
@@ -56,4 +58,6 @@ Map<String, dynamic> _$ActivityRegistrationToJson(
   'troopId': instance.troopId,
   'troopName': instance.troopName,
   'activityTypeId': instance.activityTypeId,
+  'activityLatitude': instance.activityLatitude,
+  'activityLongitude': instance.activityLongitude,
 };

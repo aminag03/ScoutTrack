@@ -576,6 +576,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildSectionHeader(String title) {
+    return Row(
+      children: [
+        Container(
+          height: 4,
+          width: 32,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<Uint8List> _compressImage(Uint8List bytes) async {
     final image = img.decodeImage(bytes);
     if (image == null) return bytes;
@@ -896,297 +920,534 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Uredi profil'),
-            content: SingleChildScrollView(
-              child: SizedBox(
-                width: double.maxFinite,
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: firstNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Ime *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Ime je obavezno.';
-                          }
-                          if (value.length > 50) {
-                            return 'Ime ne smije imati više od 50 znakova.';
-                          }
-                          final regex = RegExp(r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$");
-                          if (!regex.hasMatch(value.trim())) {
-                            return 'Ime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+                maxWidth: MediaQuery.of(context).size.width * 0.95,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
                       ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: lastNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Prezime *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Colors.white, size: 24),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Uredi profil',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Prezime je obavezno.';
-                          }
-                          if (value.length > 50) {
-                            return 'Prezime ne smije imati više od 50 znakova.';
-                          }
-                          final regex = RegExp(r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$");
-                          if (!regex.hasMatch(value.trim())) {
-                            return 'Prezime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: usernameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Korisničko ime *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          icon: const Icon(Icons.close, color: Colors.white),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Korisničko ime je obavezno.';
-                          }
-                          if (value.length > 50) {
-                            return 'Korisničko ime ne smije imati više od 50 znakova.';
-                          }
-                          if (!RegExp(
-                            r"^[A-Za-z0-9_.]+$",
-                          ).hasMatch(value.trim())) {
-                            return 'Korisničko ime može sadržavati samo slova, brojeve, tačke ili donje crte.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'E-mail *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'E-mail je obavezan.';
-                          }
-                          if (value.length > 100) {
-                            return 'E-mail ne smije imati više od 100 znakova.';
-                          }
-                          if (!RegExp(
-                            r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
-                          ).hasMatch(value.trim())) {
-                            return 'Unesite ispravan e-mail.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: contactPhoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Telefon *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Telefon je obavezan.';
-                          }
-                          if (value.length > 20) {
-                            return 'Telefon ne smije imati više od 20 znakova.';
-                          }
-                          if (!RegExp(
-                            r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
-                          ).hasMatch(value)) {
-                            return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        value: selectedGender,
-                        decoration: const InputDecoration(
-                          labelText: 'Spol *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 0, child: Text('Muški')),
-                          DropdownMenuItem(value: 1, child: Text('Ženski')),
-                        ],
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Spol je obavezan.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onChanged: (val) {
-                          setState(() {
-                            selectedGender = val;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        value: selectedCityId,
-                        decoration: const InputDecoration(
-                          labelText: 'Grad *',
-                          border: OutlineInputBorder(),
-                          errorMaxLines: 3,
-                        ),
-                        items: _cities
-                            .map(
-                              (c) => DropdownMenuItem<int>(
-                                value: c.id,
-                                child: Text(c.name),
-                              ),
-                            )
-                            .toList(),
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Grad je obavezan.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onChanged: (val) {
-                          setState(() {
-                            selectedCityId = val;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: birthDateController,
-                        decoration: const InputDecoration(
-                          labelText: 'Datum rođenja *',
-                          border: OutlineInputBorder(),
-                          hintText: 'Odaberite datum',
-                          errorMaxLines: 3,
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        readOnly: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Datum rođenja je obavezan.';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onTap: () async {
-                          final DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: _currentMember!.birthDate,
-                            firstDate: DateTime(1900),
-                            lastDate: DateTime.now(),
-                            helpText: 'Odaberite datum rođenja',
-                            cancelText: 'Otkaži',
-                            confirmText: 'Potvrdi',
-                            fieldHintText: 'DD/MM/YYYY',
-                            fieldLabelText: 'Datum rođenja',
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              birthDateController.text =
-                                  '${picked.day}.${picked.month}.${picked.year}';
-                            });
-                          }
-                        },
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader('Lični podaci'),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: firstNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Ime *',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      errorMaxLines: 3,
+                                      prefixIcon: const Icon(
+                                        Icons.person_outline,
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Ime je obavezno.';
+                                      }
+                                      if (value.length > 50) {
+                                        return 'Ime ne smije imati više od 50 znakova.';
+                                      }
+                                      final regex = RegExp(
+                                        r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                      );
+                                      if (!regex.hasMatch(value.trim())) {
+                                        return 'Ime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: lastNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Prezime *',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      errorMaxLines: 3,
+                                    ),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Prezime je obavezno.';
+                                      }
+                                      if (value.length > 50) {
+                                        return 'Prezime ne smije imati više od 50 znakova.';
+                                      }
+                                      final regex = RegExp(
+                                        r"^[A-Za-zČčĆćŽžĐđŠš\s\-]+$",
+                                      );
+                                      if (!regex.hasMatch(value.trim())) {
+                                        return 'Prezime može sadržavati samo slova (A-Ž, a-ž), razmake i crtice (-).';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: usernameController,
+                              decoration: InputDecoration(
+                                labelText: 'Korisničko ime *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                errorMaxLines: 3,
+                                prefixIcon: const Icon(Icons.alternate_email),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Korisničko ime je obavezno.';
+                                }
+                                if (value.length > 50) {
+                                  return 'Korisničko ime ne smije imati više od 50 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[A-Za-z0-9_.]+$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Korisničko ime može sadržavati samo slova, brojeve, tačke ili donje crte.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 24),
+
+                            _buildSectionHeader('Kontakt podaci'),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: InputDecoration(
+                                labelText: 'E-mail *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                errorMaxLines: 3,
+                                prefixIcon: const Icon(Icons.email_outlined),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'E-mail je obavezan.';
+                                }
+                                if (value.length > 100) {
+                                  return 'E-mail ne smije imati više od 100 znakova.';
+                                }
+                                if (!RegExp(
+                                  r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$",
+                                ).hasMatch(value.trim())) {
+                                  return 'Unesite ispravan e-mail.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: contactPhoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: 'Telefon *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                errorMaxLines: 3,
+                                prefixIcon: const Icon(Icons.phone_outlined),
+                                hintText: '+387 6X XXX XXX',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Telefon je obavezan.';
+                                }
+                                if (value.length > 20) {
+                                  return 'Telefon ne smije imati više od 20 znakova.';
+                                }
+                                if (!RegExp(
+                                  r'^(\+387|0)[6][0-7][0-9][0-9][0-9][0-9][0-9][0-9]$',
+                                ).hasMatch(value)) {
+                                  return 'Broj telefona mora biti validan za Bosnu i Hercegovinu.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                            const SizedBox(height: 24),
+
+                            _buildSectionHeader('Dodatni podaci'),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<int>(
+                                    value: selectedGender,
+                                    decoration: InputDecoration(
+                                      labelText: 'Spol *',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      errorMaxLines: 3,
+                                      prefixIcon: const Icon(Icons.wc),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 16,
+                                          ),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 0,
+                                        child: Text(
+                                          'Muški',
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 1,
+                                        child: Text(
+                                          'Ženski',
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    ],
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Spol je obavezan.';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        selectedGender = val;
+                                      });
+                                    },
+                                    isExpanded: true,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: DropdownButtonFormField<int>(
+                                    value: selectedCityId,
+                                    decoration: InputDecoration(
+                                      labelText: 'Grad *',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      errorMaxLines: 3,
+                                      prefixIcon: const Icon(
+                                        Icons.location_city,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 16,
+                                          ),
+                                    ),
+                                    items: _cities
+                                        .map(
+                                          (c) => DropdownMenuItem<int>(
+                                            value: c.id,
+                                            child: Text(
+                                              c.name,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Grad je obavezan.';
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        selectedCityId = val;
+                                      });
+                                    },
+                                    isExpanded: true,
+                                    menuMaxHeight:
+                                        MediaQuery.of(context).size.height *
+                                        0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: birthDateController,
+                              decoration: InputDecoration(
+                                labelText: 'Datum rođenja *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                hintText: 'Odaberite datum',
+                                errorMaxLines: 3,
+                                prefixIcon: const Icon(Icons.calendar_today),
+                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                              ),
+                              readOnly: true,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Datum rođenja je obavezan.';
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onTap: () async {
+                                DateTime initialDate =
+                                    _currentMember!.birthDate;
+                                if (birthDateController.text.isNotEmpty) {
+                                  try {
+                                    final parts = birthDateController.text
+                                        .split('.');
+                                    if (parts.length == 3) {
+                                      initialDate = DateTime(
+                                        int.parse(parts[2]),
+                                        int.parse(parts[1]),
+                                        int.parse(parts[0]),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    initialDate = _currentMember!.birthDate;
+                                  }
+                                }
+
+                                final DateTime? picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: initialDate,
+                                  firstDate: DateTime(1900),
+                                  lastDate: DateTime.now(),
+                                  helpText: 'Odaberite datum rođenja',
+                                  cancelText: 'Otkaži',
+                                  confirmText: 'Potvrdi',
+                                  fieldHintText: 'DD/MM/YYYY',
+                                  fieldLabelText: 'Datum rođenja',
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    birthDateController.text =
+                                        '${picked.day}.${picked.month}.${picked.year}';
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            child: const Text(
+                              'Otkaži',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (formKey.currentState!.validate()) {
+                                try {
+                                  DateTime birthDate =
+                                      _currentMember!.birthDate;
+                                  if (birthDateController.text.isNotEmpty) {
+                                    final parts = birthDateController.text
+                                        .split('.');
+                                    if (parts.length == 3) {
+                                      birthDate = DateTime(
+                                        int.parse(parts[2]),
+                                        int.parse(parts[1]),
+                                        int.parse(parts[0]),
+                                      );
+                                    }
+                                  }
+
+                                  final requestBody = {
+                                    "FirstName": firstNameController.text
+                                        .trim(),
+                                    "LastName": lastNameController.text.trim(),
+                                    "Username": usernameController.text.trim(),
+                                    "Email": emailController.text.trim(),
+                                    "ContactPhone": contactPhoneController.text
+                                        .trim(),
+                                    "BirthDate": birthDate.toIso8601String(),
+                                    "Gender": selectedGender,
+                                    "CityId": selectedCityId,
+                                    "TroopId": _currentMember!.troopId,
+                                  };
+
+                                  final memberProvider =
+                                      Provider.of<MemberProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  await memberProvider.update(
+                                    _currentMember!.id,
+                                    requestBody,
+                                  );
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Profil je uspješno ažuriran.',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+
+                                  Navigator.of(context).pop(true);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Greška: ${e.toString()}',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Sačuvaj promjene',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Otkaži'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    try {
-                      DateTime birthDate = _currentMember!.birthDate;
-                      if (birthDateController.text.isNotEmpty) {
-                        final parts = birthDateController.text.split('.');
-                        if (parts.length == 3) {
-                          birthDate = DateTime(
-                            int.parse(parts[2]),
-                            int.parse(parts[1]),
-                            int.parse(parts[0]),
-                          );
-                        }
-                      }
-
-                      final requestBody = {
-                        "FirstName": firstNameController.text.trim(),
-                        "LastName": lastNameController.text.trim(),
-                        "Username": usernameController.text.trim(),
-                        "Email": emailController.text.trim(),
-                        "ContactPhone": contactPhoneController.text.trim(),
-                        "BirthDate": birthDate.toIso8601String(),
-                        "Gender": selectedGender,
-                        "CityId": selectedCityId,
-                        "TroopId": _currentMember!.troopId,
-                      };
-
-                      final memberProvider = Provider.of<MemberProvider>(
-                        context,
-                        listen: false,
-                      );
-                      await memberProvider.update(
-                        _currentMember!.id,
-                        requestBody,
-                      );
-
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Profil je uspješno ažuriran.'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-
-                      Navigator.of(context).pop(true);
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Greška: ${e.toString()}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-                child: const Text('Sačuvaj'),
-              ),
-            ],
           );
         },
       ),
@@ -1366,178 +1627,327 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Promijeni lozinku'),
-              content: SingleChildScrollView(
-                child: SizedBox(
-                  width: double.maxFinite,
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (generalError != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(
-                              generalError!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        TextFormField(
-                          controller: oldPassController,
-                          obscureText: !oldPasswordVisible,
-                          decoration: InputDecoration(
-                            labelText: 'Stara lozinka',
-                            border: const OutlineInputBorder(),
-                            errorMaxLines: 3,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                oldPasswordVisible
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  oldPasswordVisible = !oldPasswordVisible;
-                                });
-                              },
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Unesite staru lozinku'
-                              : null,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                  maxWidth: MediaQuery.of(context).size.width * 0.9,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: newPassController,
-                          obscureText: !newPasswordVisible,
-                          decoration: InputDecoration(
-                            labelText: 'Nova lozinka',
-                            border: const OutlineInputBorder(),
-                            errorMaxLines: 3,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                newPasswordVisible
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  newPasswordVisible = !newPasswordVisible;
-                                });
-                              },
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_reset, color: Colors.white, size: 24),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Promijeni lozinku',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'Lozinka je obavezna.';
-                            }
-                            if (v.length < 8) {
-                              return 'Lozinka mora imati najmanje 8 znakova.';
-                            }
-                            if (!RegExp(
-                              r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
-                            ).hasMatch(v)) {
-                              return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: confirmPassController,
-                          obscureText: !confirmPasswordVisible,
-                          decoration: InputDecoration(
-                            labelText: 'Potvrdi lozinku',
-                            border: const OutlineInputBorder(),
-                            errorMaxLines: 3,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                confirmPasswordVisible
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  confirmPasswordVisible =
-                                      !confirmPasswordVisible;
-                                });
-                              },
-                            ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            icon: const Icon(Icons.close, color: Colors.white),
                           ),
-                          validator: (v) => v != newPassController.text
-                              ? 'Lozinke se ne poklapaju'
-                              : null,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Form(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (generalError != null)
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.red.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: Colors.red[600],
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          generalError!,
+                                          style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              TextFormField(
+                                controller: oldPassController,
+                                obscureText: !oldPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Trenutna lozinka',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  errorMaxLines: 3,
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      oldPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.grey[600],
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        oldPasswordVisible =
+                                            !oldPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'Unesite trenutnu lozinku'
+                                    : null,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                              const SizedBox(height: 20),
+
+                              TextFormField(
+                                controller: newPassController,
+                                obscureText: !newPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Nova lozinka',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  errorMaxLines: 3,
+                                  prefixIcon: const Icon(Icons.lock_outlined),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      newPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.grey[600],
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        newPasswordVisible =
+                                            !newPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Lozinka je obavezna.';
+                                  }
+                                  if (v.length < 8) {
+                                    return 'Lozinka mora imati najmanje 8 znakova.';
+                                  }
+                                  if (!RegExp(
+                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$',
+                                  ).hasMatch(v)) {
+                                    return 'Lozinka mora sadržavati velika i mala slova, broj i spec. znak.';
+                                  }
+                                  return null;
+                                },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                              const SizedBox(height: 20),
+
+                              TextFormField(
+                                controller: confirmPassController,
+                                obscureText: !confirmPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Potvrdi novu lozinku',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  errorMaxLines: 3,
+                                  prefixIcon: const Icon(Icons.lock_outlined),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      confirmPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.grey[600],
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        confirmPasswordVisible =
+                                            !confirmPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (v) => v != newPassController.text
+                                    ? 'Lozinke se ne poklapaju'
+                                    : null,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              child: const Text(
+                                'Otkaži',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (formKey.currentState!.validate()) {
+                                  try {
+                                    final provider =
+                                        Provider.of<MemberProvider>(
+                                          context,
+                                          listen: false,
+                                        );
+
+                                    await provider
+                                        .changePassword(_currentMember!.id, {
+                                          'OldPassword': oldPassController.text,
+                                          'NewPassword': newPassController.text,
+                                          'ConfirmNewPassword':
+                                              confirmPassController.text,
+                                        });
+
+                                    Navigator.of(context).pop(true);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      setState(() {
+                                        final message = e.toString();
+                                        if (message.contains(
+                                          'Stara lozinka nije ispravna',
+                                        )) {
+                                          generalError =
+                                              'Stara lozinka nije ispravna.';
+                                        } else if (message.contains(
+                                          'Nova lozinka ne smije biti ista kao stara',
+                                        )) {
+                                          generalError =
+                                              'Nova lozinka ne smije biti ista kao stara.';
+                                        } else if (message.contains(
+                                          'Lozinke se ne poklapaju',
+                                        )) {
+                                          generalError =
+                                              'Lozinke se ne poklapaju.';
+                                        } else {
+                                          generalError = message.replaceFirst(
+                                            'Greška: ',
+                                            '',
+                                          );
+                                        }
+                                      });
+
+                                      Future.delayed(
+                                        const Duration(seconds: 4),
+                                        () {
+                                          if (context.mounted) {
+                                            setState(() {
+                                              generalError = null;
+                                            });
+                                          }
+                                        },
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Promijeni lozinku',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Odustani'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState!.validate()) {
-                      try {
-                        final provider = Provider.of<MemberProvider>(
-                          context,
-                          listen: false,
-                        );
-
-                        await provider.changePassword(_currentMember!.id, {
-                          'oldPassword': oldPassController.text,
-                          'newPassword': newPassController.text,
-                          'confirmNewPassword': confirmPassController.text,
-                        });
-
-                        Navigator.of(context).pop(true);
-                      } catch (e) {
-                        if (context.mounted) {
-                          setState(() {
-                            final message = e.toString();
-                            if (message.contains(
-                              'Stara lozinka nije ispravna',
-                            )) {
-                              generalError = 'Stara lozinka nije ispravna.';
-                            } else if (message.contains(
-                              'Nova lozinka ne smije biti ista kao stara',
-                            )) {
-                              generalError =
-                                  'Nova lozinka ne smije biti ista kao stara.';
-                            } else if (message.contains(
-                              'Lozinke se ne poklapaju',
-                            )) {
-                              generalError = 'Lozinke se ne poklapaju.';
-                            } else {
-                              generalError = message.replaceFirst(
-                                'Greška: ',
-                                '',
-                              );
-                            }
-                          });
-
-                          Future.delayed(const Duration(seconds: 4), () {
-                            if (context.mounted) {
-                              setState(() {
-                                generalError = null;
-                              });
-                            }
-                          });
-                        }
-                      }
-                    }
-                  },
-                  child: const Text('Spremi'),
-                ),
-              ],
             );
           },
         );

@@ -8,6 +8,7 @@ import '../screens/member_home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/troop_details_screen.dart';
+import '../screens/activity_calendar_screen.dart';
 import '../utils/navigation_utils.dart';
 
 class MasterScreen extends StatefulWidget {
@@ -299,7 +300,11 @@ class _MasterScreenState extends State<MasterScreen> {
                   title: 'Kalendar aktivnosti',
                   onTap: () {
                     Navigator.of(context).pop();
-                    // TODO: Navigate to activity calendar screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ActivityCalendarScreen(),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(

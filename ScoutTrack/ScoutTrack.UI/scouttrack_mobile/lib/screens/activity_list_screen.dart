@@ -551,6 +551,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       troopName: registration.troopName,
       troopId: registration.troopId,
       activityTypeId: registration.activityTypeId,
+      latitude: registration.activityLatitude,
+      longitude: registration.activityLongitude,
       createdAt: registration.registeredAt,
       registrationCount: 0,
       pendingRegistrationCount: 0,
