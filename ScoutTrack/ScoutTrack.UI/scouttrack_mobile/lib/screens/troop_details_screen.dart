@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/troop.dart';
 import '../layouts/master_screen.dart';
 import '../utils/url_utils.dart';
+import '../utils/snackbar_utils.dart';
 import 'activity_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
@@ -41,11 +42,9 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
 
   void _navigateToMembers() {
     // TODO: Implement navigation to members screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Članovi - funkcionalnost u razvoju'),
-        backgroundColor: Colors.blue,
-      ),
+    SnackBarUtils.showInfoSnackBar(
+      'Članovi - funkcionalnost u razvoju',
+      context: context,
     );
   }
 

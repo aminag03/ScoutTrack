@@ -7,6 +7,7 @@ import '../providers/activity_registration_provider.dart';
 import '../models/activity.dart';
 import '../models/activity_registration.dart';
 import '../layouts/master_screen.dart';
+import '../utils/snackbar_utils.dart';
 import 'activity_details_screen.dart';
 import 'activity_registration_screen.dart';
 
@@ -816,21 +817,14 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Prijava je uspješno otkazana'),
-              backgroundColor: Colors.green,
-            ),
+          SnackBarUtils.showSuccessSnackBar(
+            'Prijava je uspješno otkazana',
+            context: context,
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Greška pri otkazivanju prijave: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackBarUtils.showErrorSnackBar(e, context: context);
         }
       }
     }

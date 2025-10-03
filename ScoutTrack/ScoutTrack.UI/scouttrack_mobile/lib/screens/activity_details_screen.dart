@@ -1,16 +1,28 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../layouts/master_screen.dart';
 import '../models/activity.dart';
 import '../models/activity_equipment.dart';
 import '../models/troop.dart';
+import '../models/post.dart';
+import '../models/comment.dart';
+import '../models/like.dart';
+import '../models/member.dart';
 import '../utils/url_utils.dart';
+import '../utils/snackbar_utils.dart';
 import '../providers/troop_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/activity_equipment_provider.dart';
+import '../providers/post_provider.dart';
+import '../providers/comment_provider.dart';
+import '../providers/like_provider.dart';
+import '../providers/activity_registration_provider.dart';
+import '../providers/member_provider.dart';
 import 'troop_details_screen.dart';
 
 class ActivityDetailsScreen extends StatefulWidget {
@@ -30,6 +42,13 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   List<ActivityEquipment> _equipment = [];
   bool _isLoadingEquipment = false;
 
+  List<Post> _posts = [];
+  bool _isLoadingPosts = false;
+  bool _canCreatePost = false;
+  final ValueNotifier<List<Post>> _postsNotifier = ValueNotifier<List<Post>>(
+    [],
+  );
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +67,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       });
     }
     _loadEquipment();
+    _loadPosts();
+    _checkCanCreatePost();
   }
 
   Future<void> _loadEquipment() async {
@@ -77,10 +98,118 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     }
   }
 
+  Future<void> _loadPosts() async {
+    setState(() {
+      _isLoadingPosts = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = PostProvider(authProvider);
+      final posts = await postProvider.getByActivity(widget.activity.id);
+
+      if (mounted) {
+        setState(() {
+          _posts = posts;
+          _isLoadingPosts = false;
+        });
+        _postsNotifier.value = posts;
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingPosts = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkCanCreatePost() async {
+    if (widget.activity.activityState != 'FinishedActivityState') {
+      setState(() {
+        _canCreatePost = false;
+      });
+      return;
+    }
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userInfo = await authProvider.getCurrentUserInfo();
+
+      if (userInfo != null) {
+        final registrationProvider = ActivityRegistrationProvider(authProvider);
+        final registrations = await registrationProvider.getMemberRegistrations(
+          memberId: userInfo['id'],
+          statuses: [4], // Completed status
+        );
+
+        final hasCompletedRegistration =
+            registrations.items?.any(
+              (reg) => reg.activityId == widget.activity.id,
+            ) ??
+            false;
+
+        if (mounted) {
+          setState(() {
+            _canCreatePost = hasCompletedRegistration;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _canCreatePost = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
+    _postsNotifier.dispose();
     super.dispose();
+  }
+
+  String _getPostPlural(int count) {
+    if (count == 0) return 'objava';
+    if (count == 1) return 'objava';
+    if (count >= 2 && count <= 4) return 'objave';
+    if (count >= 5 && count <= 20) return 'objava';
+    if (count >= 21) {
+      int lastDigit = count % 10;
+      if (lastDigit >= 2 && lastDigit <= 4) return 'objave';
+      return 'objava';
+    }
+    return 'objava';
+  }
+
+  String _getLikePlural(int count) {
+    if (count == 0) return 'sviđanja';
+    if (count == 1) return 'sviđanje';
+    if (count == 11) return 'sviđanja';
+    if (count >= 2 && count <= 4) return 'sviđanja';
+    if (count >= 5 && count <= 20) return 'sviđanja';
+    if (count >= 21) {
+      int lastDigit = count % 10;
+      if (lastDigit == 1) return 'sviđanje';
+      return 'sviđanja';
+    }
+    return 'sviđanja';
+  }
+
+  String _getCommentPlural(int count) {
+    if (count == 0) return 'komentara';
+    if (count == 1) return 'komentar';
+    if (count == 11) return 'komentara';
+    if (count >= 2 && count <= 4) return 'komentara';
+    if (count >= 5 && count <= 20) return 'komentara';
+    if (count >= 21) {
+      int lastDigit = count % 10;
+      if (lastDigit == 1) return 'komentar';
+      return 'komentara';
+    }
+    return 'komentara';
   }
 
   @override
@@ -200,182 +329,645 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String title,
-    required String content,
-    Color? iconColor,
-    bool showArrow = false,
-    VoidCallback? onTap,
-  }) {
-    Widget contentWidget = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: (iconColor ?? Colors.grey[600])!.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: iconColor ?? Colors.grey[600], size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
+  Widget _buildGalleryTab() {
+    if (widget.activity.activityState != 'FinishedActivityState') {
+      return Container(
+        color: const Color(0xFFF5F5DC),
+        child: Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.lock, size: 48, color: Colors.orange[400]),
+              ),
+              const SizedBox(height: 24),
               Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
+                'Galerija nije dostupna',
+                style: TextStyle(
+                  fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+                  color: Colors.grey[700],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                content,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  'Galerija će biti dostupna nakon završetka aktivnosti',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[500],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
           ),
         ),
-        if (showArrow)
-          Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
-      ],
-    );
-
-    if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: contentWidget);
+      );
     }
 
-    return contentWidget;
-  }
-
-  Widget _buildDateTimeInfo() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.purple[600]!.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.calendar_today,
-            color: Colors.purple[600],
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Datum i vrijeme',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+    return Container(
+      color: const Color(0xFFF5F5DC),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(Icons.photo_library, color: Colors.green[600], size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Galerija (${_posts.length} ${_getPostPlural(_posts.length)})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              if (widget.activity.startTime != null) ...[
-                Row(
-                  children: [
-                    Icon(Icons.play_arrow, size: 16, color: Colors.green[600]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Početak: ${_formatDateTime(widget.activity.startTime!)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
+                const Spacer(),
+                if (_canCreatePost)
+                  Container(
+                    height: 36,
+                    child: ElevatedButton.icon(
+                      onPressed: _showCreatePostDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[600],
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text(
+                        'Objavi fotografije',
+                        style: TextStyle(fontSize: 14),
                       ),
                     ),
-                  ],
-                ),
-                if (widget.activity.endTime != null) const SizedBox(height: 8),
+                  ),
               ],
-              if (widget.activity.endTime != null)
-                Row(
-                  children: [
-                    Icon(Icons.stop, size: 16, color: Colors.red[600]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Kraj: ${_formatDateTime(widget.activity.endTime!)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+            ),
           ),
-        ),
-      ],
+
+          Expanded(
+            child: _isLoadingPosts
+                ? const Center(child: CircularProgressIndicator())
+                : _posts.isEmpty
+                ? _buildEmptyGallery()
+                : _buildPostsList(),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildGalleryTab() {
-    return Container(
-      color: const Color(0xFFF5F5DC),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.photo_library,
-                size: 48,
-                color: Colors.grey[400],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Galerija',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Fotografije aktivnosti će biti dostupne ovdje',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[500],
-                  height: 1.4,
+  Widget _buildEmptyGallery() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
+            ),
+            child: Icon(Icons.photo_library, size: 48, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Nema ${_getPostPlural(0)}',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostsList() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: _posts.length,
+      itemBuilder: (context, index) {
+        final post = _posts[index];
+        return _buildPostThumbnail(post);
+      },
+    );
+  }
+
+  Widget _buildPostThumbnail(Post post) {
+    return GestureDetector(
+      onTap: () => _showPostDetails(post),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                child: post.images.isNotEmpty
+                    ? Image.network(
+                        UrlUtils.buildImageUrl(post.images.first.imageUrl),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 30,
+                              color: Colors.grey[400],
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey[200],
+                        child: Icon(
+                          Icons.image,
+                          size: 30,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+              ),
+
+              if (post.images.length > 1)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.photo_library,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${post.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.favorite, size: 10, color: Colors.red[300]),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${post.likeCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostCardWithState(Post post, StateSetter setModalState) {
+    final currentPost = _posts.firstWhere(
+      (p) => p.id == post.id,
+      orElse: () => post,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.purple[100],
+                  backgroundImage:
+                      currentPost.createdByAvatarUrl != null &&
+                          currentPost.createdByAvatarUrl!.isNotEmpty
+                      ? NetworkImage(
+                          UrlUtils.buildImageUrl(
+                            currentPost.createdByAvatarUrl!,
+                          ),
+                        )
+                      : null,
+                  child:
+                      currentPost.createdByAvatarUrl == null ||
+                          currentPost.createdByAvatarUrl!.isEmpty
+                      ? Text(
+                          currentPost.createdByName.isNotEmpty
+                              ? currentPost.createdByName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: Colors.purple[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                  onBackgroundImageError:
+                      currentPost.createdByAvatarUrl != null &&
+                          currentPost.createdByAvatarUrl!.isNotEmpty
+                      ? (exception, stackTrace) {
+                          // Fallback to text avatar if image fails to load
+                        }
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentPost.createdByName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      if (currentPost.createdByTroopName != null)
+                        Text(
+                          'Odred izviđača "${currentPost.createdByTroopName}"',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (currentPost.images.isNotEmpty)
+            _buildImageCarousel(currentPost.images),
+
+          if (currentPost.content.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                currentPost.content,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () =>
+                          _toggleLikeInModal(currentPost, setModalState),
+                      child: Icon(
+                        currentPost.isLikedByCurrentUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: currentPost.isLikedByCurrentUser
+                            ? Colors.red
+                            : Colors.grey[600],
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _showPostLikes(currentPost),
+                      child: Text(
+                        '${currentPost.likeCount} ${_getLikePlural(currentPost.likeCount)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 24),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showPostComments(currentPost),
+                      child: Icon(
+                        Icons.comment_outlined,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _showPostComments(currentPost),
+                      child: Text(
+                        '${currentPost.commentCount} ${_getCommentPlural(currentPost.commentCount)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          if (currentPost.comments.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(),
+                  ...currentPost.comments
+                      .take(2)
+                      .map((comment) => _buildCommentPreview(comment)),
+                  if (currentPost.comments.length > 2)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 16),
+                      child: GestureDetector(
+                        onTap: () => _showPostComments(currentPost),
+                        child: Text(
+                          'Prikaži sve komentare',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return FutureBuilder<Member?>(
+                      future: _getCurrentUserMember(authProvider),
+                      builder: (context, snapshot) {
+                        final member = snapshot.data;
+                        final firstName = member?.firstName;
+                        final avatarUrl = member?.profilePictureUrl;
+
+                        return CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.purple[100],
+                          backgroundImage:
+                              avatarUrl != null && avatarUrl.isNotEmpty
+                              ? NetworkImage(UrlUtils.buildImageUrl(avatarUrl))
+                              : null,
+                          child: avatarUrl == null || avatarUrl.isEmpty
+                              ? Text(
+                                  firstName?.isNotEmpty == true
+                                      ? firstName![0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: Colors.purple[700],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              : null,
+                          onBackgroundImageError:
+                              avatarUrl != null && avatarUrl.isNotEmpty
+                              ? (exception, stackTrace) {
+                                  // Fallback to text avatar if image fails to load
+                                }
+                              : null,
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showCommentInput(currentPost, setModalState),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Ostavi komentar...',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Member?> _getCurrentUserMember(AuthProvider authProvider) async {
+    try {
+      final userId = await authProvider.getUserIdFromToken();
+      if (userId == null) return null;
+
+      final memberProvider = MemberProvider(authProvider);
+      return await memberProvider.getById(userId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<bool> _canEditPost(Post post) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = await authProvider.getUserIdFromToken();
+      return currentUserId != null && currentUserId == post.createdById;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> _canEditComment(Comment comment) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = await authProvider.getUserIdFromToken();
+      final canEdit =
+          currentUserId != null && currentUserId == comment.createdById;
+
+      return canEdit;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Widget _buildImageCarousel(List<PostImage> images) {
+    return _ImageCarouselWidget(images: images);
+  }
+
+  Widget _buildCommentPreview(Comment comment) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: Colors.purple[100],
+            backgroundImage:
+                comment.createdByAvatarUrl != null &&
+                    comment.createdByAvatarUrl!.isNotEmpty
+                ? NetworkImage(
+                    UrlUtils.buildImageUrl(comment.createdByAvatarUrl!),
+                  )
+                : null,
+            child:
+                comment.createdByAvatarUrl == null ||
+                    comment.createdByAvatarUrl!.isEmpty
+                ? Text(
+                    comment.createdByName.isNotEmpty
+                        ? comment.createdByName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      color: Colors.purple[700],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  )
+                : null,
+            onBackgroundImageError:
+                comment.createdByAvatarUrl != null &&
+                    comment.createdByAvatarUrl!.isNotEmpty
+                ? (exception, stackTrace) {
+                    // Fallback to text avatar if image fails to load
+                  }
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  comment.createdByName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  comment.content,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -960,12 +1552,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       if (context.mounted) {
         Navigator.of(context).pop();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška pri učitavanju odreda: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     }
   }
@@ -1201,6 +1788,2584 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       title: 'Broj prijava',
       content: '${widget.activity.registrationCount} prijava',
       color: Colors.purple,
+    );
+  }
+
+  Future<void> _toggleLikeInModal(Post post, StateSetter setModalState) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final likeProvider = LikeProvider(authProvider);
+
+      setState(() {
+        final postIndex = _posts.indexWhere((p) => p.id == post.id);
+        if (postIndex != -1) {
+          _posts[postIndex] = Post(
+            id: post.id,
+            content: post.content,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            activityId: post.activityId,
+            activityTitle: post.activityTitle,
+            createdById: post.createdById,
+            createdByName: post.createdByName,
+            createdByTroopName: post.createdByTroopName,
+            createdByAvatarUrl: post.createdByAvatarUrl,
+            images: post.images,
+            likeCount: post.isLikedByCurrentUser
+                ? post.likeCount - 1
+                : post.likeCount + 1,
+            commentCount: post.commentCount,
+            isLikedByCurrentUser: !post.isLikedByCurrentUser,
+            likes: post.likes,
+            comments: post.comments,
+          );
+        }
+      });
+
+      setModalState(() {});
+
+      if (post.isLikedByCurrentUser) {
+        await likeProvider.unlikePost(post.id);
+      } else {
+        await likeProvider.likePost(post.id);
+      }
+
+      if (mounted) {
+        _loadPosts();
+      }
+    } catch (e) {
+      if (mounted) {
+        _loadPosts();
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
+  void _showPostDetails(Post post) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildPostDetailsBottomSheet(post),
+    );
+  }
+
+  Widget _buildPostDetailsBottomSheet(Post post) {
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        return ValueListenableBuilder<List<Post>>(
+          valueListenable: _postsNotifier,
+          builder: (context, posts, child) {
+            final currentPost = posts.firstWhere(
+              (p) => p.id == post.id,
+              orElse: () => post,
+            );
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        FutureBuilder<bool>(
+                          future: _canEditPost(post),
+                          builder: (context, snapshot) {
+                            if (snapshot.data == true) {
+                              return Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () =>
+                                        _editPost(currentPost, setModalState),
+                                    icon: const Icon(Icons.edit),
+                                    color: Colors.blue[600],
+                                  ),
+                                  IconButton(
+                                    onPressed: () => _deletePost(currentPost),
+                                    icon: const Icon(Icons.delete),
+                                    color: Colors.red[600],
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: _buildPostCardWithState(
+                        currentPost,
+                        setModalState,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPostLikes(Post post) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final likeProvider = LikeProvider(authProvider);
+      final freshLikes = await likeProvider.getByPost(post.id);
+
+      final updatedPost = Post(
+        id: post.id,
+        content: post.content,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        activityId: post.activityId,
+        activityTitle: post.activityTitle,
+        createdById: post.createdById,
+        createdByName: post.createdByName,
+        createdByTroopName: post.createdByTroopName,
+        createdByAvatarUrl: post.createdByAvatarUrl,
+        images: post.images,
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        isLikedByCurrentUser: post.isLikedByCurrentUser,
+        likes: freshLikes,
+        comments: post.comments,
+      );
+
+      setState(() {
+        final index = _posts.indexWhere((p) => p.id == post.id);
+        if (index != -1) {
+          _posts[index] = updatedPost;
+        }
+      });
+
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => _buildLikesBottomSheet(updatedPost),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => _buildLikesBottomSheet(post),
+        );
+      }
+    }
+  }
+
+  Widget _buildLikesBottomSheet(Post post) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  'Sviđanja (${post.likeCount})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(),
+
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: post.likes.length,
+              itemBuilder: (context, index) {
+                final like = post.likes[index];
+                return _buildLikeItem(like);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLikeItem(Like like) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.purple[100],
+            backgroundImage:
+                like.createdByAvatarUrl != null &&
+                    like.createdByAvatarUrl!.isNotEmpty
+                ? NetworkImage(UrlUtils.buildImageUrl(like.createdByAvatarUrl!))
+                : null,
+            child:
+                like.createdByAvatarUrl == null ||
+                    like.createdByAvatarUrl!.isEmpty
+                ? Text(
+                    like.createdByName.isNotEmpty
+                        ? like.createdByName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      color: Colors.purple[700],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
+            onBackgroundImageError:
+                like.createdByAvatarUrl != null &&
+                    like.createdByAvatarUrl!.isNotEmpty
+                ? (exception, stackTrace) {
+                    // Fallback to text avatar if image fails to load
+                  }
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  like.createdByName.isNotEmpty
+                      ? like.createdByName
+                      : (like.createdByTroopName?.isNotEmpty == true
+                            ? like.createdByTroopName!
+                            : 'Nepoznat korisnik'),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (like.createdByTroopName != null &&
+                    like.createdByTroopName != like.createdByName)
+                  Text(
+                    'Odred izviđača "${like.createdByTroopName}"',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            _formatDateTime(like.likedAt),
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPostComments(Post post) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildCommentsBottomSheet(post),
+    );
+  }
+
+  Widget _buildCommentsBottomSheet(Post post) {
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        final currentPost = _posts.firstWhere(
+          (p) => p.id == post.id,
+          orElse: () => post,
+        );
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Text(
+                      'Komentari (${currentPost.commentCount})',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(),
+
+              Expanded(
+                child: currentPost.comments.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.comment_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Nema komentara',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Budite prvi koji će komentarisati',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: currentPost.comments.length,
+                        itemBuilder: (context, index) {
+                          final comment = currentPost.comments[index];
+                          return _buildCommentItem(
+                            comment,
+                            currentPost,
+                            setModalState,
+                          );
+                        },
+                      ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showCommentInput(currentPost, setModalState);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: const Icon(Icons.add_comment),
+                    label: const Text('Dodaj komentar'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCommentItem(
+    Comment comment,
+    Post post,
+    StateSetter setModalState,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.purple[100],
+            backgroundImage:
+                comment.createdByAvatarUrl != null &&
+                    comment.createdByAvatarUrl!.isNotEmpty
+                ? NetworkImage(
+                    UrlUtils.buildImageUrl(comment.createdByAvatarUrl!),
+                  )
+                : null,
+            child:
+                comment.createdByAvatarUrl == null ||
+                    comment.createdByAvatarUrl!.isEmpty
+                ? Text(
+                    comment.createdByName.isNotEmpty
+                        ? comment.createdByName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      color: Colors.purple[700],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
+            onBackgroundImageError:
+                comment.createdByAvatarUrl != null &&
+                    comment.createdByAvatarUrl!.isNotEmpty
+                ? (exception, stackTrace) {
+                    // Fallback to text avatar if image fails to load
+                  }
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        comment.createdByName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    FutureBuilder<bool>(
+                      future: _canEditComment(comment),
+                      builder: (context, snapshot) {
+                        if (snapshot.data == true) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () =>
+                                    _editComment(comment, post, setModalState),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 16,
+                                    color: Colors.blue[600],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _deleteComment(comment, post),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.delete,
+                                    size: 16,
+                                    color: Colors.red[600],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  comment.content,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatDateTime(comment.createdAt),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteComment(Comment comment, Post post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Brisanje komentara'),
+        content: const Text(
+          'Da li ste sigurni da želite obrisati ovaj komentar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final commentProvider = CommentProvider(authProvider);
+
+      await commentProvider.deleteComment(comment.id);
+
+      if (mounted) {
+        setState(() {
+          final index = _posts.indexWhere((p) => p.id == post.id);
+          if (index != -1) {
+            final updatedComments = List<Comment>.from(post.comments)
+              ..removeWhere((c) => c.id == comment.id);
+
+            final updatedPost = Post(
+              id: post.id,
+              content: post.content,
+              createdAt: post.createdAt,
+              updatedAt: post.updatedAt,
+              activityId: post.activityId,
+              activityTitle: post.activityTitle,
+              createdById: post.createdById,
+              createdByName: post.createdByName,
+              createdByTroopName: post.createdByTroopName,
+              createdByAvatarUrl: post.createdByAvatarUrl,
+              images: post.images,
+              likeCount: post.likeCount,
+              commentCount: post.commentCount - 1,
+              isLikedByCurrentUser: post.isLikedByCurrentUser,
+              likes: post.likes,
+              comments: updatedComments,
+            );
+            _posts[index] = updatedPost;
+          }
+        });
+        _postsNotifier.value = List.from(_posts);
+
+        Navigator.pop(context);
+
+        SnackBarUtils.showSuccessSnackBar(
+          'Komentar je uspješno obrisan',
+          context: context,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
+  Future<void> _editComment(
+    Comment comment,
+    Post post,
+    StateSetter setModalState,
+  ) async {
+    try {
+      final currentPost = _posts.firstWhere(
+        (p) => p.id == post.id,
+        orElse: () => post,
+      );
+
+      final currentComment = currentPost.comments.firstWhere(
+        (c) => c.id == comment.id,
+        orElse: () => comment,
+      );
+
+      await _showEditCommentDialog(currentComment, currentPost, setModalState);
+    } catch (e) {
+      await _showEditCommentDialog(comment, post, setModalState);
+    }
+  }
+
+  Future<void> _showEditCommentDialog(
+    Comment comment,
+    Post post,
+    StateSetter setModalState,
+  ) async {
+    final contentController = TextEditingController(text: comment.content);
+    bool isLoading = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Uredi komentar',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        constraints: BoxConstraints(
+                          minHeight: 200,
+                          maxHeight: MediaQuery.of(context).size.height * 0.3,
+                        ),
+                        child: TextField(
+                          controller: contentController,
+                          maxLines: null,
+                          expands: true,
+                          textAlignVertical: TextAlignVertical.top,
+                          onChanged: (value) {
+                            setState(() {});
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Uredi komentar...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.purple[400]!,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${contentController.text.length}/1000',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: contentController.text.length > 1000
+                                  ? Colors.red
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                          if (contentController.text.length > 1000)
+                            Text(
+                              'Prekoračeno ograničenje',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        child: const Text(
+                          'Otkaži',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed:
+                            isLoading ||
+                                contentController.text.trim().isEmpty ||
+                                contentController.text.length > 1000
+                            ? null
+                            : () async {
+                                setState(() {
+                                  isLoading = true;
+                                });
+                                await _updateComment(
+                                  comment,
+                                  post,
+                                  contentController.text.trim(),
+                                  setModalState,
+                                );
+                                setState(() {
+                                  isLoading = false;
+                                });
+                                Navigator.pop(context);
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Ažuriraj',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateComment(
+    Comment comment,
+    Post post,
+    String content,
+    StateSetter setModalState,
+  ) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = await authProvider.getUserIdFromToken();
+
+      if (currentUserId != comment.createdById) {
+        if (mounted) {
+          SnackBarUtils.showErrorSnackBar(
+            'Nemate dozvolu da uređujete ovaj komentar',
+            context: context,
+          );
+        }
+        return;
+      }
+
+      final commentProvider = CommentProvider(authProvider);
+
+      await commentProvider.updateComment(comment.id, content);
+
+      if (mounted) {
+        setState(() {
+          final postIndex = _posts.indexWhere((p) => p.id == post.id);
+          if (postIndex != -1) {
+            final updatedComments = List<Comment>.from(
+              _posts[postIndex].comments,
+            );
+            final commentIndex = updatedComments.indexWhere(
+              (c) => c.id == comment.id,
+            );
+            if (commentIndex != -1) {
+              updatedComments[commentIndex] = Comment(
+                id: comment.id,
+                content: content,
+                createdAt: comment.createdAt,
+                updatedAt: DateTime.now(),
+                postId: comment.postId,
+                createdById: comment.createdById,
+                createdByName: comment.createdByName,
+                createdByTroopName: comment.createdByTroopName,
+                createdByAvatarUrl: comment.createdByAvatarUrl,
+              );
+            }
+
+            _posts[postIndex] = Post(
+              id: _posts[postIndex].id,
+              content: _posts[postIndex].content,
+              createdAt: _posts[postIndex].createdAt,
+              updatedAt: _posts[postIndex].updatedAt,
+              activityId: _posts[postIndex].activityId,
+              activityTitle: _posts[postIndex].activityTitle,
+              createdById: _posts[postIndex].createdById,
+              createdByName: _posts[postIndex].createdByName,
+              createdByTroopName: _posts[postIndex].createdByTroopName,
+              createdByAvatarUrl: _posts[postIndex].createdByAvatarUrl,
+              images: _posts[postIndex].images,
+              likeCount: _posts[postIndex].likeCount,
+              commentCount: _posts[postIndex].commentCount,
+              isLikedByCurrentUser: _posts[postIndex].isLikedByCurrentUser,
+              likes: _posts[postIndex].likes,
+              comments: updatedComments,
+            );
+          }
+        });
+        _postsNotifier.value = List.from(_posts);
+
+        setModalState(() {});
+
+        Navigator.pop(context);
+
+        SnackBarUtils.showSuccessSnackBar(
+          'Komentar je uspješno ažuriran',
+          context: context,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
+  Future<void> _submitComment(
+    Post post,
+    String content,
+    StateSetter setModalState,
+  ) async {
+    if (content.trim().isEmpty) return;
+
+    if (content.length > 1000) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(
+          'Komentar može imati maksimalno 1000 karaktera',
+          context: context,
+        );
+      }
+      return;
+    }
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final commentProvider = CommentProvider(authProvider);
+
+      await commentProvider.createComment(content.trim(), post.id);
+
+      await _loadPosts();
+
+      if (mounted) {
+        setModalState(() {
+          // Force rebuild to get fresh data from _posts list
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        _loadPosts();
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
+  void _showCommentInput(Post post, StateSetter setModalState) {
+    final controller = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          controller.addListener(() {
+            setState(() {});
+          });
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Dodaj komentar',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(),
+
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            decoration: const InputDecoration(
+                              hintText: 'Napišite komentar...',
+                              border: InputBorder.none,
+                            ),
+                            maxLines: null,
+                            expands: true,
+                            textAlignVertical: TextAlignVertical.top,
+                            autofocus: true,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${controller.text.length}/1000',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: controller.text.length > 1000
+                                ? Colors.red
+                                : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Otkaži'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed:
+                              controller.text.trim().isEmpty ||
+                                  controller.text.length > 1000
+                              ? null
+                              : () async {
+                                  Navigator.pop(context);
+                                  await _submitComment(
+                                    post,
+                                    controller.text,
+                                    setModalState,
+                                  );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[600],
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Pošalji'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreatePostDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildCreatePostBottomSheet(),
+    );
+  }
+
+  Widget _buildCreatePostBottomSheet() {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: CreatePostForm(
+        activity: widget.activity,
+        onPostCreated: () {
+          Navigator.pop(context);
+          _loadPosts();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deletePost(Post post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Brisanje objave'),
+        content: const Text('Da li ste sigurni da želite obrisati ovu objavu?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = PostProvider(authProvider);
+
+      await postProvider.deletePost(post.id);
+
+      if (mounted) {
+        await _loadPosts();
+        Navigator.pop(context);
+
+        SnackBarUtils.showSuccessSnackBar(
+          'Objava je uspješno obrisana',
+          context: context,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
+  Future<void> _editPost(Post post, StateSetter setModalState) async {
+    final currentPost = _posts.firstWhere(
+      (p) => p.id == post.id,
+      orElse: () => post,
+    );
+    await _showEditPostDialog(currentPost, setModalState);
+  }
+
+  Future<void> _showEditPostDialog(Post post, StateSetter setModalState) async {
+    final contentController = TextEditingController(text: post.content);
+    List<String> currentImageUrls = post.images
+        .map((img) => img.imageUrl)
+        .toList();
+    List<String> selectedImages = [];
+    bool isLoading = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Uredi objavu',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Opis',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: contentController,
+                              maxLines: 5,
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Dodajte opis objave...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.purple[400]!,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.all(16),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${contentController.text.length}/1000',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: contentController.text.length > 1000
+                                        ? Colors.red
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                if (contentController.text.length > 1000)
+                                  Text(
+                                    'Prekoračen limit',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.photo_library,
+                                  color: Colors.blue[600],
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Fotografije',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            if (currentImageUrls.isNotEmpty) ...[
+                              Text(
+                                'Trenutne fotografije:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: currentImageUrls.length,
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(right: 12),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            width: 100,
+                                            height: 100,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Image.network(
+                                                UrlUtils.buildImageUrl(
+                                                  currentImageUrls[index],
+                                                ),
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      return Container(
+                                                        color: Colors.grey[200],
+                                                        child: Icon(
+                                                          Icons.broken_image,
+                                                          color:
+                                                              Colors.grey[400],
+                                                          size: 30,
+                                                        ),
+                                                      );
+                                                    },
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  currentImageUrls.removeAt(
+                                                    index,
+                                                  );
+                                                });
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red[600],
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            Text(
+                              'Nove fotografije:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            if (selectedImages.isNotEmpty)
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: selectedImages.length,
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(right: 12),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            width: 100,
+                                            height: 100,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Image.file(
+                                                File(selectedImages[index]),
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      return Container(
+                                                        color: Colors.grey[200],
+                                                        child: Icon(
+                                                          Icons.broken_image,
+                                                          color:
+                                                              Colors.grey[400],
+                                                          size: 30,
+                                                        ),
+                                                      );
+                                                    },
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedImages.removeAt(
+                                                    index,
+                                                  );
+                                                });
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red[600],
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+
+                            if (currentImageUrls.isNotEmpty ||
+                                selectedImages.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                '${currentImageUrls.length + selectedImages.length}/10 fotografija',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (currentImageUrls.isNotEmpty &&
+                                  selectedImages.isNotEmpty)
+                                Text(
+                                  '(${currentImageUrls.length} postojećih + ${selectedImages.length} novih)',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                            ],
+
+                            const SizedBox(height: 16),
+
+                            if (currentImageUrls.length +
+                                    selectedImages.length <
+                                10)
+                              GestureDetector(
+                                onTap: () async {
+                                  final picker = ImagePicker();
+                                  final pickedFiles = await picker
+                                      .pickMultiImage();
+                                  if (pickedFiles.isNotEmpty) {
+                                    setState(() {
+                                      final remainingSlots =
+                                          10 -
+                                          currentImageUrls.length -
+                                          selectedImages.length;
+                                      final filesToAdd = pickedFiles
+                                          .take(remainingSlots)
+                                          .map((file) => file.path)
+                                          .toList();
+                                      selectedImages.addAll(filesToAdd);
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.blue[300]!,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.blue[50],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate,
+                                        color: Colors.blue[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Dodaj nove fotografije',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 20,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.orange[200]!,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.warning,
+                                      color: Colors.orange[700],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Maksimalno 10 fotografija',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            if (currentImageUrls.isEmpty &&
+                                selectedImages.isEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(top: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.orange[200]!,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.warning,
+                                      color: Colors.orange[600],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Objava mora imati najmanje jednu fotografiju',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.orange[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            child: const Text(
+                              'Otkaži',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed:
+                                isLoading ||
+                                    contentController.text.length > 1000 ||
+                                    (currentImageUrls.isEmpty &&
+                                        selectedImages.isEmpty)
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+                                    await _updatePostWithPhotos(
+                                      post,
+                                      contentController.text.trim(),
+                                      currentImageUrls,
+                                      selectedImages,
+                                      setModalState,
+                                    );
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Ažuriraj',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updatePostWithPhotos(
+    Post post,
+    String content,
+    List<String> currentImageUrls,
+    List<String> selectedImages,
+    StateSetter setModalState,
+  ) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = PostProvider(authProvider);
+
+      List<String> newImageUrls = [];
+      for (String imagePath in selectedImages) {
+        final imageFile = File(imagePath);
+        final imageUrl = await postProvider.uploadImage(imageFile);
+        newImageUrls.add(imageUrl);
+      }
+
+      List<String> allImageUrls = [...currentImageUrls, ...newImageUrls];
+
+      await postProvider.updatePost(post.id, content, allImageUrls);
+
+      if (mounted) {
+        await _loadPosts();
+        setModalState(() {
+          // Force rebuild to get fresh data from _posts list
+        });
+
+        SnackBarUtils.showSuccessSnackBar(
+          'Objava je uspješno ažurirana',
+          context: context,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+}
+
+class CreatePostForm extends StatefulWidget {
+  final Activity activity;
+  final VoidCallback onPostCreated;
+
+  const CreatePostForm({
+    super.key,
+    required this.activity,
+    required this.onPostCreated,
+  });
+
+  @override
+  State<CreatePostForm> createState() => _CreatePostFormState();
+}
+
+class _CreatePostFormState extends State<CreatePostForm> {
+  final TextEditingController _contentController = TextEditingController();
+  List<String> _selectedImages = [];
+  bool _isUploading = false;
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 8),
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.add_photo_alternate,
+                  color: Colors.blue[600],
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Objavi fotografije',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'Podijelite fotografije sa aktivnosti',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.grey[100],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(),
+
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Opis objave',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _contentController,
+                        decoration: InputDecoration(
+                          hintText: 'Dodaj opis objave...',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.blue[400]!,
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        maxLines: 5,
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Opis je opcionalan',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          Text(
+                            '${_contentController.text.length}/1000',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: _contentController.text.length > 1000
+                                  ? Colors.red[600]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.photo_library,
+                            color: Colors.blue[600],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Fotografije',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_selectedImages.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_selectedImages.length}/10',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (_selectedImages.isNotEmpty)
+                        Container(
+                          height: 120,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _selectedImages.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                margin: const EdgeInsets.only(right: 12),
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.file(
+                                        File(_selectedImages[index]),
+                                        width: 120,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedImages.removeAt(index);
+                                          });
+                                        },
+                                        child: Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red[600],
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.2,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      if (_selectedImages.length < 10)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _pickImages,
+                            icon: const Icon(
+                              Icons.add_photo_alternate_outlined,
+                            ),
+                            label: Text(
+                              _selectedImages.isEmpty
+                                  ? 'Dodaj fotografije'
+                                  : 'Dodaj još fotografija',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+
+                      if (_selectedImages.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.photo_library_outlined,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Nema odabranih fotografija',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Dodajte do 10 fotografija',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey[200]!)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_selectedImages.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.orange[600],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Odaberite najmanje jednu fotografiju',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        child: const Text(
+                          'Otkaži',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed:
+                            _isUploading ||
+                                _selectedImages.isEmpty ||
+                                _contentController.text.length > 1000
+                            ? null
+                            : _createPost,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: _isUploading
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Objavljivanje...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.send, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Objavi',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickImages() async {
+    final picker = ImagePicker();
+    final pickedFiles = await picker.pickMultiImage();
+
+    if (pickedFiles.isNotEmpty) {
+      setState(() {
+        final remainingSlots = 10 - _selectedImages.length;
+        final filesToAdd = pickedFiles
+            .take(remainingSlots)
+            .map((file) => file.path)
+            .toList();
+        _selectedImages.addAll(filesToAdd);
+      });
+    }
+  }
+
+  Future<void> _createPost() async {
+    if (_selectedImages.isEmpty) {
+      SnackBarUtils.showWarningSnackBar(
+        'Molimo odaberite najmanje jednu fotografiju',
+        context: context,
+      );
+      return;
+    }
+
+    if (_contentController.text.length > 1000) {
+      SnackBarUtils.showErrorSnackBar(
+        'Opis može imati maksimalno 1000 karaktera',
+        context: context,
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = PostProvider(authProvider);
+
+      List<String> uploadedImageUrls = [];
+
+      for (final imagePath in _selectedImages) {
+        final imageFile = File(imagePath);
+        final imageUrl = await postProvider.uploadImage(imageFile);
+        uploadedImageUrls.add(imageUrl);
+      }
+
+      await postProvider.createPost(
+        _contentController.text.trim(),
+        widget.activity.id,
+        uploadedImageUrls,
+      );
+
+      widget.onPostCreated();
+
+      SnackBarUtils.showSuccessSnackBar(
+        'Objava je uspješno kreirana!',
+        context: context,
+      );
+    } catch (e) {
+      SnackBarUtils.showErrorSnackBar(e, context: context);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+}
+
+class _ImageCarouselWidget extends StatefulWidget {
+  final List<PostImage> images;
+
+  const _ImageCarouselWidget({required this.images});
+
+  @override
+  State<_ImageCarouselWidget> createState() => _ImageCarouselWidgetState();
+}
+
+class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
+  late PageController _pageController;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 300,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
+            ),
+            child: Container(
+              width: double.infinity,
+              height: 300,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: widget.images.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Image.network(
+                    UrlUtils.buildImageUrl(widget.images[index].imageUrl),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 60,
+                          color: Colors.grey[400],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+
+          if (widget.images.length > 1)
+            Positioned(
+              left: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {
+                    if (_currentIndex > 0) {
+                      _pageController.previousPage(
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.chevron_left,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          if (widget.images.length > 1)
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {
+                    if (_currentIndex < widget.images.length - 1) {
+                      _pageController.nextPage(
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          if (widget.images.length > 1)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_currentIndex + 1}/${widget.images.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

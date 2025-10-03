@@ -14,6 +14,7 @@ import '../models/city.dart';
 import '../screens/troop_details_screen.dart';
 import '../screens/activity_list_screen.dart';
 import '../utils/url_utils.dart';
+import '../utils/snackbar_utils.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -85,21 +86,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _navigateToTroop() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Podaci o članu nisu učitani.'),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani.',
+        context: context,
       );
       return;
     }
 
     if (_currentMember!.troopId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Niste povezani sa odredom.'),
-          backgroundColor: Colors.orange,
-        ),
+      SnackBarUtils.showWarningSnackBar(
+        'Niste povezani sa odredom.',
+        context: context,
       );
       return;
     }
@@ -133,23 +130,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška pri učitavanju odreda: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     }
   }
 
   Future<void> _navigateToMyActivities() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Podaci o članu nisu učitani.'),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani.',
+        context: context,
       );
       return;
     }
@@ -611,13 +601,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showImagePickerDialog() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
+        context: context,
       );
       return;
     }
@@ -716,14 +702,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Greška pri odabiru slike: ${e.toString()}',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          SnackBarUtils.showErrorSnackBar(e, context: context);
                         }
                       }
                     },
@@ -787,34 +766,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profilna fotografija je uspješno promijenjena.'),
-            backgroundColor: Colors.green,
-          ),
+        SnackBarUtils.showSuccessSnackBar(
+          'Profilna fotografija je uspješno promijenjena.',
+          context: context,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     }
   }
 
   Future<void> _showDeleteImageDialog() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
+        context: context,
       );
       return;
     }
@@ -862,34 +830,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profilna fotografija je uspješno obrisana.'),
-            backgroundColor: Colors.green,
-          ),
+        SnackBarUtils.showSuccessSnackBar(
+          'Profilna fotografija je uspješno obrisana.',
+          context: context,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     }
   }
 
   Future<void> _showEditProfileDialog() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
+        context: context,
       );
       return;
     }
@@ -916,9 +873,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int? selectedGender = _currentMember!.gender;
     int? selectedCityId = _currentMember!.cityId;
 
+    final originalContext = context;
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) {
           return Dialog(
             shape: RoundedRectangleBorder(
@@ -1398,26 +1356,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   );
 
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Profil je uspješno ažuriran.',
-                                        ),
-                                        backgroundColor: Colors.green,
-                                      ),
+                                    SnackBarUtils.showSuccessSnackBar(
+                                      'Profil je uspješno ažuriran.',
+                                      context: context,
                                     );
                                   }
 
                                   Navigator.of(context).pop(true);
                                 } catch (e) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Greška: ${e.toString()}',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
+                                    SnackBarUtils.showErrorSnackBar(
+                                      e,
+                                      context: originalContext,
                                     );
                                   }
                                 }
@@ -1460,13 +1410,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showDeleteProfileDialog() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
+        context: context,
       );
       return;
     }
@@ -1575,11 +1521,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (route) => false,
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil je uspješno obrisan.'),
-            backgroundColor: Colors.green,
-          ),
+        SnackBarUtils.showSuccessSnackBar(
+          'Profil je uspješno obrisan.',
+          context: context,
         );
       }
     } catch (e) {
@@ -1588,25 +1532,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška pri brisanju profila: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     }
   }
 
   Future<void> _showChangePasswordDialog() async {
     if (_currentMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showErrorSnackBar(
+        'Podaci o članu nisu učitani. Molimo pokušajte ponovo.',
+        context: context,
       );
       return;
     }
@@ -1965,23 +1900,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (route) => false,
           );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Lozinka je uspješno promijenjena. Molimo prijavite se ponovo.',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          SnackBarUtils.showSuccessSnackBar(
+            'Lozinka je uspješno promijenjena. Molimo prijavite se ponovo.',
+            context: context,
           );
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Greška pri odjavi: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackBarUtils.showErrorSnackBar(e, context: context);
         }
       }
     }

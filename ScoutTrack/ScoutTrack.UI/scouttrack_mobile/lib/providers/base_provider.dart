@@ -57,6 +57,30 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           throw Exception("Greška pri parsiranju podataka od servera.");
         }
       } else {
+        String errorMsg = '';
+        try {
+          final responseBody = response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : null;
+          if (responseBody != null &&
+              responseBody is Map &&
+              responseBody['message'] != null) {
+            errorMsg = responseBody['message'].toString().toLowerCase();
+          } else {
+            errorMsg = response.body.toLowerCase();
+          }
+        } catch (_) {
+          errorMsg = response.body.toLowerCase();
+        }
+
+        if (errorMsg.contains('unauthorized') ||
+            errorMsg.contains('token') ||
+            errorMsg.contains('expired') ||
+            errorMsg.contains('invalid') ||
+            errorMsg.contains('authentication')) {
+          throw _HttpError('Greška: Niste autorizovani.', response);
+        }
+
         throw Exception("Nepoznata greška.");
       }
     });
@@ -83,6 +107,30 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           throw Exception("Greška pri parsiranju podataka od servera.");
         }
       } else {
+        String errorMsg = '';
+        try {
+          final responseBody = response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : null;
+          if (responseBody != null &&
+              responseBody is Map &&
+              responseBody['message'] != null) {
+            errorMsg = responseBody['message'].toString().toLowerCase();
+          } else {
+            errorMsg = response.body.toLowerCase();
+          }
+        } catch (_) {
+          errorMsg = response.body.toLowerCase();
+        }
+
+        if (errorMsg.contains('unauthorized') ||
+            errorMsg.contains('token') ||
+            errorMsg.contains('expired') ||
+            errorMsg.contains('invalid') ||
+            errorMsg.contains('authentication')) {
+          throw _HttpError('Greška: Niste autorizovani.', response);
+        }
+
         throw Exception("Greška: Neuspješno dohvaćanje podataka.");
       }
     });
@@ -110,6 +158,30 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           throw Exception("Greška pri parsiranju podataka od servera.");
         }
       } else {
+        String errorMsg = '';
+        try {
+          final responseBody = response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : null;
+          if (responseBody != null &&
+              responseBody is Map &&
+              responseBody['message'] != null) {
+            errorMsg = responseBody['message'].toString().toLowerCase();
+          } else {
+            errorMsg = response.body.toLowerCase();
+          }
+        } catch (_) {
+          errorMsg = response.body.toLowerCase();
+        }
+
+        if (errorMsg.contains('unauthorized') ||
+            errorMsg.contains('token') ||
+            errorMsg.contains('expired') ||
+            errorMsg.contains('invalid') ||
+            errorMsg.contains('authentication')) {
+          throw _HttpError('Greška: Niste autorizovani.', response);
+        }
+
         throw Exception("Nepoznata greška.");
       }
     });
@@ -137,6 +209,30 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           throw Exception("Greška pri parsiranju podataka od servera.");
         }
       } else {
+        String errorMsg = '';
+        try {
+          final responseBody = response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : null;
+          if (responseBody != null &&
+              responseBody is Map &&
+              responseBody['message'] != null) {
+            errorMsg = responseBody['message'].toString().toLowerCase();
+          } else {
+            errorMsg = response.body.toLowerCase();
+          }
+        } catch (_) {
+          errorMsg = response.body.toLowerCase();
+        }
+
+        if (errorMsg.contains('unauthorized') ||
+            errorMsg.contains('token') ||
+            errorMsg.contains('expired') ||
+            errorMsg.contains('invalid') ||
+            errorMsg.contains('authentication')) {
+          throw _HttpError('Greška: Niste autorizovani.', response);
+        }
+
         throw Exception("Unknown error");
       }
     });
@@ -241,6 +337,14 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
         errorMsg = response.body.toLowerCase();
       }
 
+      if (errorMsg.contains('unauthorized') ||
+          errorMsg.contains('token') ||
+          errorMsg.contains('expired') ||
+          errorMsg.contains('invalid') ||
+          errorMsg.contains('authentication')) {
+        return false;
+      }
+
       if (errorMsg.contains('username') &&
           errorMsg.contains('already exists')) {
         throw _HttpError('Korisničko ime već postoji.', response);
@@ -333,7 +437,34 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   }
 
   bool _isBusinessError(http.Response response) {
-    return response.statusCode == 400;
+    if (response.statusCode != 400) return false;
+
+    try {
+      final responseBody = response.body.isNotEmpty
+          ? jsonDecode(response.body)
+          : null;
+
+      String errorMsg = '';
+      if (responseBody != null &&
+          responseBody is Map &&
+          responseBody['message'] != null) {
+        errorMsg = responseBody['message'].toString().toLowerCase();
+      } else {
+        errorMsg = response.body.toLowerCase();
+      }
+
+      if (errorMsg.contains('unauthorized') ||
+          errorMsg.contains('token') ||
+          errorMsg.contains('expired') ||
+          errorMsg.contains('invalid') ||
+          errorMsg.contains('authentication')) {
+        return false;
+      }
+    } catch (e) {
+      // If we can't parse the response, treat 400 as business error
+    }
+
+    return true;
   }
 
   bool _isAuthError(String errorMessage) {
@@ -342,10 +473,18 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       "Unauthorized",
       "401",
       "Prazan odgovor od servera",
+      "token",
+      "expired",
+      "invalid",
+      "authentication",
+      "authorization",
+      "session",
+      "login",
     ];
 
+    final lowerMessage = errorMessage.toLowerCase();
     for (final pattern in authErrorPatterns) {
-      if (errorMessage.contains(pattern)) {
+      if (lowerMessage.contains(pattern.toLowerCase())) {
         return true;
       }
     }
@@ -366,6 +505,32 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
 
         if (httpError.response.statusCode == 401) {
           return await _handleAuthError(message, requestFn);
+        }
+
+        if (httpError.response.statusCode == 400) {
+          String errorMsg = '';
+          try {
+            final responseBody = httpError.response.body.isNotEmpty
+                ? jsonDecode(httpError.response.body)
+                : null;
+            if (responseBody != null &&
+                responseBody is Map &&
+                responseBody['message'] != null) {
+              errorMsg = responseBody['message'].toString().toLowerCase();
+            } else {
+              errorMsg = httpError.response.body.toLowerCase();
+            }
+          } catch (_) {
+            errorMsg = httpError.response.body.toLowerCase();
+          }
+
+          if (errorMsg.contains('unauthorized') ||
+              errorMsg.contains('token') ||
+              errorMsg.contains('expired') ||
+              errorMsg.contains('invalid') ||
+              errorMsg.contains('authentication')) {
+            return await _handleAuthError(message, requestFn);
+          }
         }
 
         rethrow;

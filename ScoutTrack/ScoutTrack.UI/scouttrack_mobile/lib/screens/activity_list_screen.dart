@@ -11,6 +11,7 @@ import '../models/activity.dart';
 import '../models/activity_type.dart';
 import '../models/activity_registration.dart';
 import '../utils/url_utils.dart';
+import '../utils/snackbar_utils.dart';
 import 'activity_details_screen.dart';
 import 'activity_registration_screen.dart';
 
@@ -790,10 +791,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   String _getRegistrationPlural(int count) {
-    // Bosnian pluralization rules for "prijava"
-    // If last digit is 2, 3, or 4, and it's not 12, 13, or 14, use "prijave"
-    // Otherwise use "prijava"
-
     if (count == 1) {
       return 'prijava';
     }
@@ -1083,21 +1080,14 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         _applyFilters();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Prijava je uspješno otkazana'),
-              backgroundColor: Colors.green,
-            ),
+          SnackBarUtils.showSuccessSnackBar(
+            'Prijava je uspješno otkazana',
+            context: context,
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Greška pri otkazivanju prijave: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackBarUtils.showErrorSnackBar(e, context: context);
         }
       }
     }

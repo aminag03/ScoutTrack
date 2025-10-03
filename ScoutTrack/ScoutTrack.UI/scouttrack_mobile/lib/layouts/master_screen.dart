@@ -10,6 +10,7 @@ import '../screens/notifications_screen.dart';
 import '../screens/troop_details_screen.dart';
 import '../screens/activity_calendar_screen.dart';
 import '../utils/navigation_utils.dart';
+import '../utils/snackbar_utils.dart';
 
 class MasterScreen extends StatefulWidget {
   final String headerTitle;
@@ -35,6 +36,13 @@ class MasterScreen extends StatefulWidget {
 
 class _MasterScreenState extends State<MasterScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  void initState() {
+    super.initState();
+    SnackBarUtils.initialize(_scaffoldMessengerKey);
+  }
 
   void _navigateToScreen(int index) {
     if (widget.onNavigationTap != null) {
@@ -106,12 +114,7 @@ class _MasterScreenState extends State<MasterScreen> {
           }
 
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Niste povezani sa odredom.'),
-                backgroundColor: Colors.orange,
-              ),
-            );
+            SnackBarUtils.showWarningSnackBar('Niste povezani sa odredom.');
           }
         }
       } else {
@@ -120,12 +123,7 @@ class _MasterScreenState extends State<MasterScreen> {
         }
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nije moguće dohvatiti podatke o korisniku.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackBarUtils.showErrorSnackBar('Nije moguće dohvatiti podatke o korisniku.');
         }
       }
     } catch (e) {
@@ -134,115 +132,113 @@ class _MasterScreenState extends State<MasterScreen> {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška pri učitavanju odreda: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar('Greška pri učitavanju odreda: ${e.toString()}');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildDrawer(context),
-      body: Column(
-        children: [
-          Container(
-            height: MediaQuery.of(context).padding.top + 60,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(0),
-                bottomRight: Radius.circular(0),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
-                child: Row(
-                  children: [
-                    if (_shouldShowBackButton())
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      )
-                    else
-                      IconButton(
-                        icon: const Icon(
-                          Icons.menu,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          _scaffoldKey.currentState?.openDrawer();
-                        },
-                      ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.headerTitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (widget.actions != null) ...widget.actions!,
-                  ],
+    return ScaffoldMessenger(
+      key: _scaffoldMessengerKey,
+      child: Scaffold(
+        key: _scaffoldKey,
+        drawer: _buildDrawer(context),
+        body: Column(
+          children: [
+            Container(
+              height: MediaQuery.of(context).padding.top + 60,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(0),
+                  bottomRight: Radius.circular(0),
                 ),
               ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Row(
+                    children: [
+                      if (_shouldShowBackButton())
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(
+                            Icons.menu,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          onPressed: () {
+                            _scaffoldKey.currentState?.openDrawer();
+                          },
+                        ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.headerTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (widget.actions != null) ...widget.actions!,
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-          Expanded(child: widget.body),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(0),
-            topRight: Radius.circular(0),
-          ),
+            Expanded(child: widget.body),
+          ],
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20.0,
-              vertical: 8.0,
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(0),
+              topRight: Radius.circular(0),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  icon: Icons.home,
-                  isSelected: widget.selectedIndex == 0,
-                  onTap: () => _navigateToScreen(0),
-                ),
-                _buildNavItem(
-                  icon: Icons.person,
-                  isSelected: widget.selectedIndex == 1,
-                  onTap: () => _navigateToScreen(1),
-                ),
-                _buildNavItem(
-                  icon: Icons.notifications,
-                  isSelected: widget.selectedIndex == 2,
-                  onTap: () => _navigateToScreen(2),
-                ),
-              ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 8.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    icon: Icons.home,
+                    isSelected: widget.selectedIndex == 0,
+                    onTap: () => _navigateToScreen(0),
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person,
+                    isSelected: widget.selectedIndex == 1,
+                    onTap: () => _navigateToScreen(1),
+                  ),
+                  _buildNavItem(
+                    icon: Icons.notifications,
+                    isSelected: widget.selectedIndex == 2,
+                    onTap: () => _navigateToScreen(2),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

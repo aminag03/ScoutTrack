@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/activity_registration_provider.dart';
 import '../models/activity.dart';
 import '../utils/url_utils.dart';
+import '../utils/snackbar_utils.dart';
 
 class ActivityRegistrationScreen extends StatefulWidget {
   final Activity activity;
@@ -46,22 +47,15 @@ class _ActivityRegistrationScreenState
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prijava je uspješno poslana'),
-            backgroundColor: Colors.green,
-          ),
+        SnackBarUtils.showSuccessSnackBar(
+          'Prijava je uspješno poslana',
+          context: context,
         );
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška pri slanju prijave: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarUtils.showErrorSnackBar(e, context: context);
       }
     } finally {
       if (mounted) {
@@ -186,7 +180,9 @@ class _ActivityRegistrationScreenState
                   _buildInfoRow(
                     Icons.play_arrow,
                     'Početak',
-                    DateFormat('dd.MM.yyyy HH:mm').format(widget.activity.startTime!),
+                    DateFormat(
+                      'dd.MM.yyyy HH:mm',
+                    ).format(widget.activity.startTime!),
                   ),
                 ],
 
@@ -195,7 +191,9 @@ class _ActivityRegistrationScreenState
                   _buildInfoRow(
                     Icons.stop,
                     'Kraj',
-                    DateFormat('dd.MM.yyyy HH:mm').format(widget.activity.endTime!),
+                    DateFormat(
+                      'dd.MM.yyyy HH:mm',
+                    ).format(widget.activity.endTime!),
                   ),
                 ],
 
