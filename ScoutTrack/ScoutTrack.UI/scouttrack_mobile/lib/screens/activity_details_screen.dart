@@ -13,6 +13,7 @@ import '../models/post.dart';
 import '../models/comment.dart';
 import '../models/like.dart';
 import '../models/member.dart';
+import '../models/review.dart';
 import '../utils/url_utils.dart';
 import '../utils/snackbar_utils.dart';
 import '../providers/troop_provider.dart';
@@ -23,6 +24,8 @@ import '../providers/comment_provider.dart';
 import '../providers/like_provider.dart';
 import '../providers/activity_registration_provider.dart';
 import '../providers/member_provider.dart';
+import '../providers/review_provider.dart';
+import '../widgets/review_forms.dart';
 import 'troop_details_screen.dart';
 
 class ActivityDetailsScreen extends StatefulWidget {
@@ -49,6 +52,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     [],
   );
 
+  List<Review> _reviews = [];
+  bool _isLoadingReviews = false;
+  double _averageRating = 0.0;
+  Review? _myReview;
+  bool _canCreateReview = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +78,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     _loadEquipment();
     _loadPosts();
     _checkCanCreatePost();
+    _loadReviews();
+    _checkCanCreateReview();
   }
 
   Future<void> _loadEquipment() async {
@@ -164,6 +175,176 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     }
   }
 
+  Future<void> _loadReviews() async {
+    setState(() {
+      _isLoadingReviews = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final reviewProvider = ReviewProvider(authProvider);
+
+      final reviewsResult = await reviewProvider.getByActivity(
+        widget.activity.id,
+        filter: {'retrieveAll': true},
+      );
+
+      double averageRating = 0.0;
+      if (reviewsResult.items != null && reviewsResult.items!.isNotEmpty) {
+        double totalRating = reviewsResult.items!.fold(
+          0.0,
+          (sum, review) => sum + review.rating,
+        );
+        averageRating = totalRating / reviewsResult.items!.length;
+      }
+
+      Review? myReview;
+      final currentUserId = await authProvider.getUserIdFromToken();
+      if (currentUserId != null && reviewsResult.items != null) {
+        try {
+          myReview = reviewsResult.items!.firstWhere(
+            (review) => review.memberId == currentUserId,
+          );
+        } catch (e) {
+          myReview = null;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _reviews = reviewsResult.items ?? [];
+          _averageRating = averageRating;
+          _myReview = myReview;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingReviews = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkCanCreateReview() async {
+    if (widget.activity.activityState != 'FinishedActivityState') {
+      setState(() {
+        _canCreateReview = false;
+      });
+      return;
+    }
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userInfo = await authProvider.getCurrentUserInfo();
+
+      if (userInfo != null) {
+        final registrationProvider = ActivityRegistrationProvider(authProvider);
+        final registrations = await registrationProvider.getMemberRegistrations(
+          memberId: userInfo['id'],
+          statuses: [4], // Completed status
+        );
+
+        final hasCompletedRegistration =
+            registrations.items?.any(
+              (reg) => reg.activityId == widget.activity.id,
+            ) ??
+            false;
+
+        if (mounted) {
+          setState(() {
+            _canCreateReview = hasCompletedRegistration && _myReview == null;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _canCreateReview = false;
+        });
+      }
+    }
+  }
+
+  void _showCreateReviewDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CreateReviewForm(
+        activityId: widget.activity.id,
+        onReviewCreated: () {
+          Navigator.pop(context);
+          _loadReviews();
+          _checkCanCreateReview();
+        },
+      ),
+    );
+  }
+
+  void _showEditReviewDialog(Review review) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EditReviewForm(
+        review: review,
+        onReviewUpdated: () {
+          Navigator.pop(context);
+          _loadReviews();
+          _checkCanCreateReview();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteReview(Review review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Brisanje recenzije'),
+        content: const Text(
+          'Da li ste sigurni da želite obrisati ovu recenziju?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final reviewProvider = ReviewProvider(authProvider);
+
+      await reviewProvider.deleteReview(review.id);
+
+      if (mounted) {
+        await _loadReviews();
+        await _checkCanCreateReview();
+
+        SnackBarUtils.showSuccessSnackBar(
+          'Recenzija je uspješno obrisana',
+          context: context,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showErrorSnackBar(e, context: context);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -210,6 +391,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       return 'komentara';
     }
     return 'komentara';
+  }
+
+  String _getReviewPlural(int count) {
+    if (count == 0) return 'recenzija';
+    if (count == 1) return 'recenzija';
+    if (count >= 2 && count <= 4) return 'recenzije';
+    if (count >= 5 && count <= 20) return 'recenzija';
+    if (count >= 21) {
+      int lastDigit = count % 10;
+      if (lastDigit >= 2 && lastDigit <= 4) return 'recenzije';
+      return 'recenzija';
+    }
+    return 'recenzija';
   }
 
   @override
@@ -882,6 +1076,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     }
   }
 
+  Future<String?> _getMemberProfilePicture(int memberId) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = MemberProvider(authProvider);
+      final member = await memberProvider.getById(memberId);
+      return member.profilePictureUrl;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<bool> _canEditPost(Post post) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -975,46 +1180,298 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   Widget _buildReviewsTab() {
     return Container(
       color: const Color(0xFFF5F5DC),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Spacer(),
+                    if (_canCreateReview || _myReview != null)
+                      Container(
+                        height: 36,
+                        child: Tooltip(
+                          message: _myReview != null
+                              ? 'Već ste ostavili recenziju za ovu aktivnost.'
+                              : '',
+                          child: ElevatedButton.icon(
+                            onPressed: _canCreateReview
+                                ? _showCreateReviewDialog
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _canCreateReview
+                                  ? Colors.green[600]
+                                  : Colors.grey[400],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            icon: Icon(
+                              _canCreateReview ? Icons.add : Icons.check,
+                              size: 16,
+                            ),
+                            label: Text(
+                              _canCreateReview
+                                  ? 'Ostavi recenziju'
+                                  : 'Recenzija ostavljena',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (_reviews.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: List.generate(5, (index) {
+                          if (index < _averageRating.floor()) {
+                            return Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 28,
+                            );
+                          } else if (index < _averageRating) {
+                            return Icon(
+                              Icons.star_half,
+                              color: Colors.amber,
+                              size: 28,
+                            );
+                          } else {
+                            return Icon(
+                              Icons.star_border,
+                              color: Colors.amber,
+                              size: 28,
+                            );
+                          }
+                        }),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${_averageRating.toStringAsFixed(1)} (${_reviews.length} ${_getReviewPlural(_reviews.length)})',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-              child: Icon(Icons.star_rate, size: 48, color: Colors.grey[400]),
+              ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Recenzije',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Recenzije i ocjene aktivnosti će biti dostupne ovdje',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[500],
-                  height: 1.4,
+          ),
+
+          Expanded(
+            child: _isLoadingReviews
+                ? const Center(child: CircularProgressIndicator())
+                : _reviews.isEmpty
+                ? _buildEmptyReviews()
+                : _buildReviewsList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyReviews() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                textAlign: TextAlign.center,
+              ],
+            ),
+            child: Icon(Icons.star_rate, size: 48, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Nema recenzija',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewsList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _reviews.length,
+      itemBuilder: (context, index) {
+        final review = _reviews[index];
+        return _buildReviewCard(review);
+      },
+    );
+  }
+
+  Widget _buildReviewCard(Review review) {
+    final isMyReview = _myReview?.id == review.id;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                FutureBuilder<String?>(
+                  future: _getMemberProfilePicture(review.memberId),
+                  builder: (context, snapshot) {
+                    final profilePictureUrl = snapshot.data;
+
+                    return CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.purple[100],
+                      backgroundImage:
+                          profilePictureUrl != null &&
+                              profilePictureUrl.isNotEmpty
+                          ? NetworkImage(
+                              UrlUtils.buildImageUrl(profilePictureUrl),
+                            )
+                          : null,
+                      child:
+                          profilePictureUrl == null || profilePictureUrl.isEmpty
+                          ? Text(
+                              review.memberName.isNotEmpty
+                                  ? review.memberName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: Colors.purple[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                      onBackgroundImageError:
+                          profilePictureUrl != null &&
+                              profilePictureUrl.isNotEmpty
+                          ? (exception, stackTrace) {
+                              // Fallback to text avatar if image fails to load
+                            }
+                          : null,
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        review.memberName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        _formatDateTime(review.createdAt),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isMyReview)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _showEditReviewDialog(review),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.edit,
+                            size: 18,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _deleteReview(review),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.delete,
+                            size: 18,
+                            color: Colors.red[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < review.rating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 20,
+                );
+              }),
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              review.content,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                height: 1.4,
               ),
             ),
           ],
@@ -2555,15 +3012,15 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${contentController.text.length}/1000',
+                            '${contentController.text.length}/500',
                             style: TextStyle(
                               fontSize: 12,
-                              color: contentController.text.length > 1000
+                              color: contentController.text.length > 500
                                   ? Colors.red
                                   : Colors.grey[600],
                             ),
                           ),
-                          if (contentController.text.length > 1000)
+                          if (contentController.text.length > 500)
                             Text(
                               'Prekoračeno ograničenje',
                               style: TextStyle(
@@ -2767,10 +3224,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   ) async {
     if (content.trim().isEmpty) return;
 
-    if (content.length > 1000) {
+    if (content.length > 500) {
       if (mounted) {
         SnackBarUtils.showErrorSnackBar(
-          'Komentar može imati maksimalno 1000 karaktera',
+          'Komentar može imati maksimalno 500 karaktera',
           context: context,
         );
       }
@@ -2872,10 +3329,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${controller.text.length}/1000',
+                          '${controller.text.length}/500',
                           style: TextStyle(
                             fontSize: 12,
-                            color: controller.text.length > 1000
+                            color: controller.text.length > 500
                                 ? Colors.red
                                 : Colors.grey[600],
                           ),
@@ -2904,7 +3361,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         child: ElevatedButton(
                           onPressed:
                               controller.text.trim().isEmpty ||
-                                  controller.text.length > 1000
+                                  controller.text.length > 500
                               ? null
                               : () async {
                                   Navigator.pop(context);
@@ -3128,7 +3585,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                 ),
                                 if (contentController.text.length > 1000)
                                   Text(
-                                    'Prekoračen limit',
+                                    'Prekoračeno ograničenje',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.red[600],
