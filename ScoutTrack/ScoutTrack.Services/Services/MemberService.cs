@@ -138,8 +138,7 @@ namespace ScoutTrack.Services
 
             if (!string.IsNullOrEmpty(search.FTS))
             {
-                query = query.Where(m => m.Username.Contains(search.FTS) || 
-                                        m.Email.Contains(search.FTS) || 
+                query = query.Where(m => m.Username.Contains(search.FTS) ||
                                         m.FirstName.Contains(search.FTS) ||
                                         m.LastName.Contains(search.FTS));
             }
@@ -151,6 +150,7 @@ namespace ScoutTrack.Services
             var entity = await _context.Members
                 .Include(t => t.City)
                 .Include(m => m.Troop)
+                .Include(m => m.Category)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (entity == null)

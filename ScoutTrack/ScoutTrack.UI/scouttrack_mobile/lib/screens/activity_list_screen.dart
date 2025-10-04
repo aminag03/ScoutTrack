@@ -20,6 +20,8 @@ class ActivityListScreen extends StatefulWidget {
   final int? troopId;
   final String title;
   final bool showMyRegistrations;
+  final bool showMemberActivities;
+  final String? memberName;
 
   const ActivityListScreen({
     super.key,
@@ -27,6 +29,8 @@ class ActivityListScreen extends StatefulWidget {
     this.troopId,
     required this.title,
     this.showMyRegistrations = false,
+    this.showMemberActivities = false,
+    this.memberName,
   });
 
   @override
@@ -44,6 +48,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String? _error;
   int? _currentUserId;
   Map<int, ActivityRegistration> _userRegistrations = {};
+  Map<int, ActivityRegistration> _memberRegistrations =
+      {};
 
   final TextEditingController _searchController = TextEditingController();
   String _selectedActivityType = 'Svi tipovi';
@@ -118,6 +124,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         _allActivities = await activityProvider.getMemberActivities(
           widget.memberId!,
         );
+
+        if (widget.showMemberActivities) {
+          final memberRegistrationsResult = await registrationProvider
+              .getMemberRegistrations(
+                memberId: widget.memberId!,
+                statuses: [0, 1, 2, 3, 4],
+                pageSize: 1000,
+              );
+
+          _memberRegistrations = {
+            for (var registration in memberRegistrationsResult.items ?? [])
+              registration.activityId: registration,
+          };
+        }
       } else if (widget.troopId != null) {
         _allActivities = await activityProvider.getTroopActivities(
           widget.troopId!,
@@ -246,14 +266,34 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             }
           }
 
-          if (widget.troopId != null && _selectedStatus != 'Sve aktivnosti') {
-            if (_selectedStatus == 'Završene aktivnosti') {
-              if (activity.activityState != 'FinishedActivityState') {
-                return false;
+          if (_selectedStatus != 'Sve aktivnosti') {
+            if (widget.showMemberActivities) {
+              final registration = _memberRegistrations[activity.id];
+
+              switch (_selectedStatus) {
+                case 'Registriran':
+                  return registration != null &&
+                      (registration.status == 0 || registration.status == 1);
+                case 'Odobren':
+                  return registration != null && registration.status == 1;
+                case 'Odbijen':
+                  return registration != null && registration.status == 2;
+                case 'Otkazan':
+                  return registration != null && registration.status == 3;
+                case 'Aktivnost završena':
+                  return registration != null && registration.status == 4;
+                default:
+                  return true;
               }
-            } else if (_selectedStatus == 'Aktivne aktivnosti') {
-              if (activity.activityState == 'FinishedActivityState') {
-                return false;
+            } else if (widget.troopId != null) {
+              if (_selectedStatus == 'Završene aktivnosti') {
+                if (activity.activityState != 'FinishedActivityState') {
+                  return false;
+                }
+              } else if (_selectedStatus == 'Aktivne aktivnosti') {
+                if (activity.activityState == 'FinishedActivityState') {
+                  return false;
+                }
               }
             }
           }
@@ -495,7 +535,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               const SizedBox(height: 16),
               Text(
                 _allActivities.isEmpty
-                    ? (widget.memberId != null
+                    ? (widget.showMemberActivities
+                          ? '${widget.memberName ?? "Član"} nema aktivnosti u kojima je sudjelovao/la'
+                          : widget.memberId != null
                           ? 'Nema aktivnosti u kojima ste sudjelovali'
                           : 'Nema aktivnosti za ovaj odred')
                     : 'Nema aktivnosti koje odgovaraju filterima',
@@ -775,7 +817,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
                   const SizedBox(height: 12),
 
-                  _buildRegistrationStatusRow(activity),
+                  widget.showMemberActivities
+                      ? _buildMemberRegistrationStatus(activity)
+                      : _buildRegistrationStatusRow(activity),
                 ],
               ),
             ),
@@ -827,6 +871,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   Widget _buildRegistrationStatusRow(Activity activity) {
+    if (activity.activityState == 'FinishedActivityState') {
+      return const SizedBox.shrink();
+    }
+
     final userRegistration = _getUserRegistration(activity);
     final isUserRegistered = _isUserRegistered(activity);
     final canRegister = _canUserRegister(activity);
@@ -928,7 +976,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         statusIcon = Icons.block;
         break;
       case 4: // Completed
-        statusText = 'Prisustvovao/la';
+        statusText = 'Prisustvovao/la si';
         statusColor = Colors.blue;
         statusIcon = Icons.done_all;
         break;
@@ -1123,6 +1171,79 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     return registration != null && registration.canCancel;
   }
 
+  Widget _buildMemberRegistrationStatus(Activity activity) {
+    final registration = _memberRegistrations[activity.id];
+
+    if (activity.activityState == 'FinishedActivityState') {
+      return const SizedBox.shrink();
+    }
+
+    String statusText;
+    Color statusColor;
+    IconData statusIcon;
+
+    if (registration == null) {
+      statusText = 'Sudjelovao/la';
+      statusColor = Colors.blue;
+      statusIcon = Icons.done_all;
+    } else {
+      switch (registration.status) {
+        case 0: // Pending
+          statusText = 'Prijava na čekanju';
+          statusColor = Colors.orange;
+          statusIcon = Icons.pending_actions;
+          break;
+        case 1: // Approved
+          statusText = 'Prijava odobrena';
+          statusColor = Colors.green;
+          statusIcon = Icons.check_circle;
+          break;
+        case 2: // Rejected
+          statusText = 'Prijava odbijena';
+          statusColor = Colors.red;
+          statusIcon = Icons.cancel;
+          break;
+        case 3: // Cancelled
+          statusText = 'Prijava otkazana';
+          statusColor = Colors.grey;
+          statusIcon = Icons.block;
+          break;
+        case 4: // Completed
+          statusText = 'Prisustvovao/la je';
+          statusColor = Colors.blue;
+          statusIcon = Icons.done_all;
+          break;
+        default:
+          statusText = 'Sudjelovao/la';
+          statusColor = Colors.blue;
+          statusIcon = Icons.done_all;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(statusIcon, size: 14, color: statusColor),
+          const SizedBox(width: 6),
+          Text(
+            statusText,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: statusColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildListImagePlaceholder() {
     return Container(
       color: Colors.grey[100],
@@ -1269,7 +1390,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           ),
           const SizedBox(height: 16),
 
-          if (widget.troopId != null) ...[
+          if (widget.troopId != null || widget.showMemberActivities) ...[
             DropdownButtonFormField<String>(
               value: _selectedStatus,
               decoration: InputDecoration(
@@ -1291,20 +1412,47 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   vertical: 12,
                 ),
               ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Sve aktivnosti',
-                  child: Text('Sve aktivnosti'),
-                ),
-                DropdownMenuItem(
-                  value: 'Aktivne aktivnosti',
-                  child: Text('Aktivne aktivnosti'),
-                ),
-                DropdownMenuItem(
-                  value: 'Završene aktivnosti',
-                  child: Text('Završene aktivnosti'),
-                ),
-              ],
+              items: widget.showMemberActivities
+                  ? const [
+                      DropdownMenuItem(
+                        value: 'Sve aktivnosti',
+                        child: Text('Sve aktivnosti'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Registriran',
+                        child: Text('Registriran'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Odobren',
+                        child: Text('Odobren'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Odbijen',
+                        child: Text('Odbijen'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Otkazan',
+                        child: Text('Otkazan'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Aktivnost završena',
+                        child: Text('Aktivnost završena'),
+                      ),
+                    ]
+                  : const [
+                      DropdownMenuItem(
+                        value: 'Sve aktivnosti',
+                        child: Text('Sve aktivnosti'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Aktivne aktivnosti',
+                        child: Text('Aktivne aktivnosti'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Završene aktivnosti',
+                        child: Text('Završene aktivnosti'),
+                      ),
+                    ],
               onChanged: (value) {
                 setState(() {
                   _selectedStatus = value!;
@@ -1359,221 +1507,227 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             const SizedBox(height: 16),
           ],
 
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Cijena',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${_minFee.toStringAsFixed(0)} - ${_maxFee.toStringAsFixed(0)} KM',
+          if (!widget.showMemberActivities) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Cijena',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Colors.grey[800],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                RangeSlider(
-                  values: RangeValues(
-                    _minFee.clamp(0.0, _getMaxFeeForSlider()),
-                    _maxFee.clamp(0.0, _getMaxFeeForSlider()),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_minFee.toStringAsFixed(0)} - ${_maxFee.toStringAsFixed(0)} KM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  min: 0,
-                  max: _getMaxFeeForSlider(),
-                  divisions: _getMaxFeeForSlider() ~/ 5,
-                  activeColor: Theme.of(context).colorScheme.primary,
-                  inactiveColor: Colors.grey[300],
-                  onChanged: (values) {
-                    setState(() {
-                      _minFee = values.start.round().toDouble();
-                      _maxFee = values.end.round().toDouble();
-                    });
-                    _applyFilters();
-                  },
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '0 KM',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  const SizedBox(height: 12),
+                  RangeSlider(
+                    values: RangeValues(
+                      _minFee.clamp(0.0, _getMaxFeeForSlider()),
+                      _maxFee.clamp(0.0, _getMaxFeeForSlider()),
                     ),
-                    Text(
-                      '${_getMaxFeeForSlider().toStringAsFixed(0)} KM',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    min: 0,
+                    max: _getMaxFeeForSlider(),
+                    divisions: _getMaxFeeForSlider() ~/ 5,
+                    activeColor: Theme.of(context).colorScheme.primary,
+                    inactiveColor: Colors.grey[300],
+                    onChanged: (values) {
+                      setState(() {
+                        _minFee = values.start.round().toDouble();
+                        _maxFee = values.end.round().toDouble();
+                      });
+                      _applyFilters();
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '0 KM',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      Text(
+                        '${_getMaxFeeForSlider().toStringAsFixed(0)} KM',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Početak',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            initialValue: _startDateFrom != null
+                                ? '${_startDateFrom!.day}.${_startDateFrom!.month}.${_startDateFrom!.year}'
+                                : '',
+                            decoration: InputDecoration(
+                              hintText: 'Odaberite datum',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              suffixIcon: Icon(
+                                Icons.calendar_today,
+                                color: Colors.grey[600],
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            readOnly: true,
+                            onTap: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: _startDateFrom ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                helpText: 'Odaberite datum početka',
+                                cancelText: 'Otkaži',
+                                confirmText: 'Potvrdi',
+                                fieldHintText: 'DD/MM/YYYY',
+                                fieldLabelText: 'Datum početka',
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  _startDateFrom = picked;
+                                });
+                                _applyFilters();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Kraj',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            initialValue: _startDateTo != null
+                                ? '${_startDateTo!.day}.${_startDateTo!.month}.${_startDateTo!.year}'
+                                : '',
+                            decoration: InputDecoration(
+                              hintText: 'Odaberite datum',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              suffixIcon: Icon(
+                                Icons.calendar_today,
+                                color: Colors.grey[600],
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            readOnly: true,
+                            onTap: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: _startDateTo ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                helpText: 'Odaberite datum kraja',
+                                cancelText: 'Otkaži',
+                                confirmText: 'Potvrdi',
+                                fieldHintText: 'DD/MM/YYYY',
+                                fieldLabelText: 'Datum kraja',
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  _startDateTo = picked;
+                                });
+                                _applyFilters();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-
-          Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Početak',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          initialValue: _startDateFrom != null
-                              ? '${_startDateFrom!.day}.${_startDateFrom!.month}.${_startDateFrom!.year}'
-                              : '',
-                          decoration: InputDecoration(
-                            hintText: 'Odaberite datum',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            suffixIcon: Icon(
-                              Icons.calendar_today,
-                              color: Colors.grey[600],
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                          readOnly: true,
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: _startDateFrom ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                              helpText: 'Odaberite datum početka',
-                              cancelText: 'Otkaži',
-                              confirmText: 'Potvrdi',
-                              fieldHintText: 'DD/MM/YYYY',
-                              fieldLabelText: 'Datum početka',
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _startDateFrom = picked;
-                              });
-                              _applyFilters();
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Kraj',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          initialValue: _startDateTo != null
-                              ? '${_startDateTo!.day}.${_startDateTo!.month}.${_startDateTo!.year}'
-                              : '',
-                          decoration: InputDecoration(
-                            hintText: 'Odaberite datum',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            suffixIcon: Icon(
-                              Icons.calendar_today,
-                              color: Colors.grey[600],
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                          readOnly: true,
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: _startDateTo ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                              helpText: 'Odaberite datum kraja',
-                              cancelText: 'Otkaži',
-                              confirmText: 'Potvrdi',
-                              fieldHintText: 'DD/MM/YYYY',
-                              fieldLabelText: 'Datum kraja',
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _startDateTo = picked;
-                              });
-                              _applyFilters();
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          ],
         ],
       ),
     );

@@ -18,7 +18,10 @@ import '../utils/snackbar_utils.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int?
+  memberId;
+
+  const ProfileScreen({super.key, this.memberId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -31,6 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Uint8List? _selectedImageBytes;
   File? _selectedImageFile;
   List<City> _cities = [];
+
+  bool get _isViewingOtherProfile => widget.memberId != null;
 
   @override
   void initState() {
@@ -45,34 +50,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         listen: false,
       );
-      final cityProvider = CityProvider(authProvider);
 
-      final userInfo = await authProvider.getCurrentUserInfo();
-      if (userInfo != null && userInfo['id'] != null) {
-        final memberId = userInfo['id'] as int;
+      int memberId;
 
-        final futures = await Future.wait([
-          memberProvider.getById(memberId),
-          cityProvider.get(filter: {"RetrieveAll": true}),
-        ]);
-
-        final member = futures[0] as Member;
-        final cityResult = futures[1] as dynamic;
-
-        if (mounted) {
-          setState(() {
-            _currentMember = member;
-            _cities = cityResult.items ?? [];
-            _isLoading = false;
-          });
-        }
+      if (_isViewingOtherProfile) {
+        memberId = widget.memberId!;
       } else {
+        final userInfo = await authProvider.getCurrentUserInfo();
+        if (userInfo != null && userInfo['id'] != null) {
+          memberId = userInfo['id'] as int;
+        } else {
+          if (mounted) {
+            setState(() {
+              _error = 'Nije moguće dohvatiti podatke o članu';
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      }
+
+      final futures = await Future.wait([
+        memberProvider.getById(memberId),
+        if (!_isViewingOtherProfile)
+          CityProvider(authProvider).get(filter: {"RetrieveAll": true})
+        else
+          Future.value(<City>[]),
+      ]);
+
+      final member = futures[0] as Member;
+      final cityResult = _isViewingOtherProfile
+          ? <City>[]
+          : futures[1] as dynamic;
+
+      if (member.id != memberId) {
         if (mounted) {
           setState(() {
-            _error = 'Nije moguće dohvatiti podatke o članu';
+            _error =
+                'Greška: Podaci o članu se ne poklapaju. Molimo se prijavite ponovo.';
             _isLoading = false;
           });
         }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _currentMember = member;
+          _cities = _isViewingOtherProfile ? [] : (cityResult.items ?? []);
+          _isLoading = false;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -144,32 +171,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ActivityListScreen(
-          memberId: _currentMember!.id,
-          title: 'Moje aktivnosti',
+    if (_isViewingOtherProfile) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ActivityListScreen(
+            memberId: _currentMember!.id,
+            memberName:
+                '${_currentMember!.firstName} ${_currentMember!.lastName}',
+            title: 'Aktivnosti',
+            showMemberActivities: true,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ActivityListScreen(
+            memberId: _currentMember!.id,
+            title: 'Moje aktivnosti',
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
-      headerTitle: 'Moj profil',
-      selectedIndex: 1,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.edit, color: Colors.white, size: 24),
-          onPressed: _showEditProfileDialog,
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings, color: Colors.white, size: 24),
-          onPressed: _showChangePasswordDialog,
-        ),
-      ],
-      body: _buildBody(),
+      headerTitle: _currentMember != null
+          ? _isViewingOtherProfile
+                ? '${_currentMember!.firstName} ${_currentMember!.lastName}'
+                : 'Moj profil'
+          : 'Profil člana',
+      selectedIndex: _isViewingOtherProfile ? -1 : 1,
+      actions: _isViewingOtherProfile
+          ? []
+          : [
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.white, size: 24),
+                onPressed: _showEditProfileDialog,
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white, size: 24),
+                onPressed: _showChangePasswordDialog,
+              ),
+            ],
+      body: Container(color: const Color(0xFFF5F5DC), child: _buildBody()),
     );
   }
 
@@ -211,8 +258,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildProfileHeader(),
           const SizedBox(height: 24),
           _buildProfileOptions(),
-          const SizedBox(height: 32),
-          _buildDeleteProfileButton(),
+          if (!_isViewingOtherProfile) ...[
+            const SizedBox(height: 32),
+            _buildDeleteProfileButton(),
+          ],
         ],
       ),
     );
@@ -257,49 +306,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       )
                     : null,
               ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: GestureDetector(
-                  onTap: _showImagePickerDialog,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
-                          spreadRadius: 1,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-              if (_currentMember!.profilePictureUrl.isNotEmpty)
+              if (!_isViewingOtherProfile) ...[
                 Positioned(
-                  left: 0,
+                  right: 0,
                   bottom: 0,
                   child: GestureDetector(
-                    onTap: _showDeleteImageDialog,
+                    onTap: _showImagePickerDialog,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withOpacity(0.3),
@@ -309,14 +330,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.delete,
+                      child: Icon(
+                        Icons.camera_alt,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 18,
-                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
+                if (_currentMember!.profilePictureUrl.isNotEmpty)
+                  Positioned(
+                    left: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: _showDeleteImageDialog,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.3),
+                              spreadRadius: 1,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.delete,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -414,14 +465,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Spol',
             _currentMember!.gender == 0 ? 'Muški' : 'Ženski',
           ),
-          if (_currentMember!.categoryName.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.category,
-              'Kategorija',
-              _currentMember!.categoryName,
-            ),
-          ],
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            Icons.category,
+            'Kategorija',
+            _currentMember!.categoryName.trim().isNotEmpty
+                ? _currentMember!.categoryName.trim()
+                : 'Nije specificirano',
+          ),
         ],
       ),
     );
@@ -459,33 +510,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileOptions() {
     return Column(
       children: [
-        _buildOptionCard(
-          icon: Icons.list_alt,
-          title: 'Moje prijave',
-          subtitle: 'Pregledajte svoje prijave za aktivnosti',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ActivityListScreen(
-                  title: 'Moje prijave',
-                  showMyRegistrations: true,
+        if (!_isViewingOtherProfile) ...[
+          _buildOptionCard(
+            icon: Icons.list_alt,
+            title: 'Moje prijave',
+            subtitle: 'Pregledajte svoje prijave za aktivnosti',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ActivityListScreen(
+                    title: 'Moje prijave',
+                    showMyRegistrations: true,
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+        ],
         _buildOptionCard(
           icon: Icons.event,
-          title: 'Moje aktivnosti',
-          subtitle: 'Aktivnosti u kojima ste sudjelovali',
+          title: _isViewingOtherProfile ? 'Aktivnosti' : 'Moje aktivnosti',
+          subtitle: _isViewingOtherProfile
+              ? 'Aktivnosti u kojima je sudjelovao'
+              : 'Aktivnosti u kojima ste sudjelovali',
           onTap: _navigateToMyActivities,
         ),
         const SizedBox(height: 12),
         _buildOptionCard(
           icon: Icons.star,
-          title: 'Moja vještarstva',
-          subtitle: 'Vaš napredak u vještarstvima',
+          title: _isViewingOtherProfile ? 'Vještarstva' : 'Moja vještarstva',
+          subtitle: _isViewingOtherProfile
+              ? 'Napredak u vještarstvima'
+              : 'Vaš napredak u vještarstvima',
           onTap: () {
             // TODO: Navigate to skills/badges
           },

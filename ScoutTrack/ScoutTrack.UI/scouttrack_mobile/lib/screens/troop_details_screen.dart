@@ -7,6 +7,7 @@ import '../layouts/master_screen.dart';
 import '../utils/url_utils.dart';
 import '../utils/snackbar_utils.dart';
 import 'activity_list_screen.dart';
+import 'member_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
@@ -41,10 +42,13 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
   }
 
   void _navigateToMembers() {
-    // TODO: Implement navigation to members screen
-    SnackBarUtils.showInfoSnackBar(
-      'Članovi - funkcionalnost u razvoju',
-      context: context,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MemberListScreen(
+          troopId: _troop.id,
+          title: 'Članovi odreda "${_troop.name}"',
+        ),
+      ),
     );
   }
 

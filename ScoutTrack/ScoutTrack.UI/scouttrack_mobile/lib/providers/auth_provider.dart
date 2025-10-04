@@ -71,32 +71,54 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<int?> getUserIdFromToken() async {
-    if (_accessToken == null) return null;
+    if (_accessToken == null) {
+      return null;
+    }
+
     final decoded = _accessToken != null ? _decodeJwt(_accessToken!) : null;
+    if (decoded == null) {
+      return null;
+    }
+
     final id =
-        decoded?['nameid'] ??
-        decoded?['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+        decoded['nameid'] ??
+        decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+
     if (id is int) return id;
-    if (id is String) return int.tryParse(id);
+    if (id is String) {
+      final parsedId = int.tryParse(id);
+      return parsedId;
+    }
+
     return null;
   }
 
   Map<String, dynamic>? _decodeJwt(String token) {
     final parts = token.split('.');
-    if (parts.length != 3) return null;
-    final payload = utf8.decode(
-      base64Url.decode(base64Url.normalize(parts[1])),
-    );
-    return jsonDecode(payload);
+    if (parts.length != 3) {
+      return null;
+    }
+    try {
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      final decoded = jsonDecode(payload);
+      return decoded;
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>?> getCurrentUserInfo() async {
     final role = await getUserRoleFromToken();
     final id = await getUserIdFromToken();
 
-    if (role == null || id == null) return null;
+    if (role == null || id == null) {
+      return null;
+    }
 
-    return {'id': id, 'role': role, 'username': _username};
+    final userInfo = {'id': id, 'role': role, 'username': _username};
+    return userInfo;
   }
 
   String? _accessToken;
