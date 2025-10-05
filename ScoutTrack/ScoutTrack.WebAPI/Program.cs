@@ -39,6 +39,7 @@ builder.Services.AddTransient<IMemberBadgeProgressService, MemberBadgeProgressSe
 builder.Services.AddTransient<IDocumentService, DocumentService>();
 builder.Services.AddTransient<INotificationService, NotificationService>();
 builder.Services.AddTransient<ICategoryService, CategoryService>();
+builder.Services.AddTransient<IFriendshipService, FriendshipService>();
 
 // Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();

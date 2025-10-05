@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:scouttrack_mobile/providers/base_provider.dart';
 import 'package:scouttrack_mobile/models/member.dart';
+import 'package:scouttrack_mobile/models/search_result.dart';
 import 'package:scouttrack_mobile/providers/auth_provider.dart';
 
 class MemberProvider extends BaseProvider<Member, dynamic> {
@@ -134,5 +135,39 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
         }
       }
     });
+  }
+
+  Future<SearchResult<Member>> getAvailableMembers({
+    Map<String, dynamic>? filter,
+  }) async {
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/available-members",
+      );
+
+      if (filter != null) {
+        final queryString = getQueryString(filter);
+        final uriWithQuery = Uri.parse('$uri?$queryString');
+        return await _getMembers(uriWithQuery);
+      }
+
+      return await _getMembers(uri);
+    });
+  }
+
+  Future<SearchResult<Member>> _getMembers(Uri uri) async {
+    final headers = await createHeaders();
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return SearchResult<Member>.fromJson(
+        data,
+        (json) => Member.fromJson(json),
+      );
+    } else {
+      handleHttpError(response);
+      throw Exception('Failed to load available members');
+    }
   }
 }

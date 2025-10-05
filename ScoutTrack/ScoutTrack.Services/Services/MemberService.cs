@@ -429,6 +429,74 @@ namespace ScoutTrack.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task<PagedResult<MemberResponse>> GetAvailableMembersAsync(int memberId, MemberSearchObject? search = null)
+        {
+            search ??= new MemberSearchObject();
+
+            var relatedMemberIds = await _context.Friendships
+                .Where(f => f.RequesterId == memberId || f.ResponderId == memberId)
+                .Select(f => f.RequesterId == memberId ? f.ResponderId : f.RequesterId)
+                .ToListAsync();
+
+            var query = _context.Members
+                .Include(m => m.City)
+                .Include(m => m.Troop)
+                .Include(m => m.Category)
+                .Where(m => m.Id != memberId && !relatedMemberIds.Contains(m.Id))
+                .AsQueryable();
+
+            query = ApplyFilter(query, search);
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.OrderBy))
+            {
+                var orderBy = search.OrderBy;
+                bool descending = orderBy.StartsWith("-");
+                if (descending) orderBy = orderBy[1..];
+
+                query = orderBy.ToLower() switch
+                {
+                    "firstname" => descending
+                        ? query.OrderByDescending(m => m.FirstName)
+                        : query.OrderBy(m => m.FirstName),
+                    "lastname" => descending
+                        ? query.OrderByDescending(m => m.LastName)
+                        : query.OrderBy(m => m.LastName),
+                    "username" => descending
+                        ? query.OrderByDescending(m => m.Username)
+                        : query.OrderBy(m => m.Username),
+                    "city" => descending
+                        ? query.OrderByDescending(m => m.City.Name)
+                        : query.OrderBy(m => m.City.Name),
+                    "troop" => descending
+                        ? query.OrderByDescending(m => m.Troop.Name)
+                        : query.OrderBy(m => m.Troop.Name),
+                    _ => query
+                };
+            }
+
+            if (!search.RetrieveAll && search.Page.HasValue && search.PageSize.HasValue)
+            {
+                query = query
+                    .Skip(search.Page.Value * search.PageSize.Value)
+                    .Take(search.PageSize.Value);
+            }
+
+            var entities = await query.ToListAsync();
+            var responseList = _mapper.Map<List<MemberResponse>>(entities);
+
+            return new PagedResult<MemberResponse>
+            {
+                Items = responseList,
+                TotalCount = totalCount
+            };
+        }
+
         protected override MemberResponse MapToResponse(Member entity)
         {
             return new MemberResponse

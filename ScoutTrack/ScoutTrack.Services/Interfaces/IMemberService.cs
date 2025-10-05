@@ -13,5 +13,6 @@ namespace ScoutTrack.Services.Interfaces
         Task<bool?> AdminChangePasswordAsync(int id, AdminChangePasswordRequest request);
         Task<MemberResponse?> UpdateProfilePictureAsync(int id, string profilePictureUrl);
         Task UpdateAllMemberCategoriesAsync();
+        Task<PagedResult<MemberResponse>> GetAvailableMembersAsync(int memberId, MemberSearchObject? search = null);
     }
 } 

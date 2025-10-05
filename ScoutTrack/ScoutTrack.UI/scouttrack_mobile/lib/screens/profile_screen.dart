@@ -18,8 +18,7 @@ import '../utils/snackbar_utils.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final int?
-  memberId;
+  final int? memberId;
 
   const ProfileScreen({super.key, this.memberId});
 
@@ -532,7 +531,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: Icons.event,
           title: _isViewingOtherProfile ? 'Aktivnosti' : 'Moje aktivnosti',
           subtitle: _isViewingOtherProfile
-              ? 'Aktivnosti u kojima je sudjelovao'
+              ? (_currentMember?.gender == 0
+                    ? 'Aktivnosti u kojima je sudjelovao'
+                    : 'Aktivnosti u kojima je sudjelovala')
               : 'Aktivnosti u kojima ste sudjelovali',
           onTap: _navigateToMyActivities,
         ),

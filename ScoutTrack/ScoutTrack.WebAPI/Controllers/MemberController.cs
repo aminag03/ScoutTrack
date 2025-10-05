@@ -188,5 +188,17 @@ namespace ScoutTrack.WebAPI.Controllers
             await _memberService.UpdateAllMemberCategoriesAsync();
             return Ok(new { message = "All member categories updated successfully." });
         }
+
+        [HttpGet("available-members")]
+        [Authorize(Roles = "Member")]
+        public async Task<IActionResult> GetAvailableMembers([FromQuery] MemberSearchObject? search = null)
+        {
+            var memberId = _authService.GetUserId(User);
+            if (memberId == null)
+                return Unauthorized();
+            
+            var result = await _memberService.GetAvailableMembersAsync(memberId.Value, search);
+            return Ok(result);
+        }
     }
 }

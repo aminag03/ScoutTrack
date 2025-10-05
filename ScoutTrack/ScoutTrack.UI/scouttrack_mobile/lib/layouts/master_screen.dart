@@ -11,6 +11,7 @@ import '../screens/troop_details_screen.dart';
 import '../screens/activity_calendar_screen.dart';
 import '../screens/troop_map_screen.dart';
 import '../screens/document_list_screen.dart';
+import '../screens/friendship_screen.dart';
 import '../utils/navigation_utils.dart';
 import '../utils/snackbar_utils.dart';
 
@@ -295,7 +296,11 @@ class _MasterScreenState extends State<MasterScreen> {
                   title: 'Prijatelji',
                   onTap: () {
                     Navigator.of(context).pop();
-                    // TODO: Navigate to friends screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const FriendshipScreen(),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(
