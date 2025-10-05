@@ -9,6 +9,7 @@ import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/troop_details_screen.dart';
 import '../screens/activity_calendar_screen.dart';
+import '../screens/troop_map_screen.dart';
 import '../utils/navigation_utils.dart';
 import '../utils/snackbar_utils.dart';
 
@@ -308,7 +309,11 @@ class _MasterScreenState extends State<MasterScreen> {
                   title: 'Mapa odreda',
                   onTap: () {
                     Navigator.of(context).pop();
-                    // TODO: Navigate to troop map screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const TroopMapScreen(),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(

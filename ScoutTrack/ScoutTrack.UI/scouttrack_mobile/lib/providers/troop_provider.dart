@@ -12,4 +12,9 @@ class TroopProvider extends BaseProvider<Troop, dynamic> {
   Troop fromJson(dynamic json) {
     return Troop.fromJson(json);
   }
+
+  Future<List<Troop>> getAll() async {
+    final result = await get();
+    return result.items ?? [];
+  }
 }
