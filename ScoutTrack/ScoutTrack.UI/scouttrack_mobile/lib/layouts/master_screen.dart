@@ -10,6 +10,7 @@ import '../screens/notifications_screen.dart';
 import '../screens/troop_details_screen.dart';
 import '../screens/activity_calendar_screen.dart';
 import '../screens/troop_map_screen.dart';
+import '../screens/document_list_screen.dart';
 import '../utils/navigation_utils.dart';
 import '../utils/snackbar_utils.dart';
 
@@ -37,7 +38,8 @@ class MasterScreen extends StatefulWidget {
 
 class _MasterScreenState extends State<MasterScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -124,7 +126,9 @@ class _MasterScreenState extends State<MasterScreen> {
         }
 
         if (context.mounted) {
-          SnackBarUtils.showErrorSnackBar('Nije moguće dohvatiti podatke o korisniku.');
+          SnackBarUtils.showErrorSnackBar(
+            'Nije moguće dohvatiti podatke o korisniku.',
+          );
         }
       }
     } catch (e) {
@@ -133,7 +137,9 @@ class _MasterScreenState extends State<MasterScreen> {
       }
 
       if (context.mounted) {
-        SnackBarUtils.showErrorSnackBar('Greška pri učitavanju odreda: ${e.toString()}');
+        SnackBarUtils.showErrorSnackBar(
+          'Greška pri učitavanju odreda: ${e.toString()}',
+        );
       }
     }
   }
@@ -321,7 +327,11 @@ class _MasterScreenState extends State<MasterScreen> {
                   title: 'Izviđački dokumenti',
                   onTap: () {
                     Navigator.of(context).pop();
-                    // TODO: Navigate to scout documents screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const DocumentListScreen(),
+                      ),
+                    );
                   },
                 ),
               ],
