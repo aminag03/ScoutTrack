@@ -13,6 +13,7 @@ import '../models/member.dart';
 import '../models/city.dart';
 import '../screens/troop_details_screen.dart';
 import '../screens/activity_list_screen.dart';
+import '../screens/badge_list_screen.dart';
 import '../utils/url_utils.dart';
 import '../utils/snackbar_utils.dart';
 import 'login_screen.dart';
@@ -545,7 +546,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? 'Napredak u vještarstvima'
               : 'Vaš napredak u vještarstvima',
           onTap: () {
-            // TODO: Navigate to skills/badges
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => BadgeListScreen(
+                  memberId: _isViewingOtherProfile ? _currentMember!.id : null,
+                ),
+              ),
+            );
           },
         ),
         const SizedBox(height: 32),

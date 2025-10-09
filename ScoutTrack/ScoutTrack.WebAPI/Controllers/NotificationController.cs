@@ -28,7 +28,6 @@ namespace ScoutTrack.WebAPI.Controllers
 
 
         [HttpPost("send-to-users")]
-        [Authorize(Roles = "Admin,Troop")]
         public async Task<ActionResult<List<NotificationResponse>>> SendNotificationsToUsers([FromBody] NotificationUpsertRequest request)
         {
             try

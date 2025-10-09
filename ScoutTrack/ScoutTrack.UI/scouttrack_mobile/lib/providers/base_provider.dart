@@ -271,8 +271,9 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
     }
 
     if (response.statusCode == 401) {
-      throw Exception(
+      throw _HttpError(
         'Greška: Niste autorizovani. Molimo prijavite se ponovo.',
+        response,
       );
     } else if (response.statusCode == 403) {
       throw Exception('Greška: Nemate dozvolu za ovu akciju.');
@@ -286,6 +287,17 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
           'Greška: Ovaj zapis ne može biti obrisan jer je povezan s drugim podacima.',
         );
       }
+      if (errorMsg.contains('unauthorized') ||
+          errorMsg.contains('token') ||
+          errorMsg.contains('expired') ||
+          errorMsg.contains('invalid') ||
+          errorMsg.contains('authentication')) {
+        throw _HttpError(
+          'Greška: Niste autorizovani. Molimo prijavite se ponovo.',
+          response,
+        );
+      }
+
       throw Exception(
         'Greška: Neispravan zahtjev. (${responseBody?['message'] ?? response.statusCode})',
       );

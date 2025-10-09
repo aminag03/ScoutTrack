@@ -84,7 +84,6 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Troop")]
         public override Task<IActionResult> Delete(int id)
         {
             return base.Delete(id);

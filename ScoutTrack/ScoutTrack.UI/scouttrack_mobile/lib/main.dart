@@ -5,6 +5,8 @@ import 'package:scouttrack_mobile/screens/member_home_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/member_provider.dart';
 import 'providers/city_provider.dart';
+import 'providers/badge_provider.dart';
+import 'providers/member_badge_provider.dart';
 import 'utils/navigation_utils.dart';
 
 void main() async {
@@ -18,6 +20,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => authProvider),
         ChangeNotifierProvider(create: (_) => MemberProvider(authProvider)),
+        ChangeNotifierProvider(create: (_) => BadgeProvider(authProvider)),
+        ChangeNotifierProvider(
+          create: (_) => MemberBadgeProvider(authProvider),
+        ),
       ],
       child: const MyApp(),
     ),
