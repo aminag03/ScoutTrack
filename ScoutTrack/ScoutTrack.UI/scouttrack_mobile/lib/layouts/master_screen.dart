@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../providers/troop_provider.dart';
 import '../screens/login_screen.dart';
-import '../screens/member_home_screen.dart';
+import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/troop_details_screen.dart';
@@ -54,7 +54,7 @@ class _MasterScreenState extends State<MasterScreen> {
     } else {
       switch (index) {
         case 0:
-          NavigationUtils.navigateWithFade(context, const MemberHomeScreen());
+          NavigationUtils.navigateWithFade(context, const HomeScreen());
           break;
         case 1:
           NavigationUtils.navigateWithFade(context, const ProfileScreen());

@@ -7,6 +7,7 @@ import '../providers/activity_provider.dart';
 import '../providers/activity_type_provider.dart';
 import '../providers/troop_provider.dart';
 import '../providers/activity_registration_provider.dart';
+import '../providers/member_provider.dart';
 import '../models/activity.dart';
 import '../models/activity_type.dart';
 import '../models/activity_registration.dart';
@@ -22,6 +23,7 @@ class ActivityListScreen extends StatefulWidget {
   final bool showMyRegistrations;
   final bool showMemberActivities;
   final String? memberName;
+  final bool showAllAvailableActivities;
 
   const ActivityListScreen({
     super.key,
@@ -31,6 +33,7 @@ class ActivityListScreen extends StatefulWidget {
     this.showMyRegistrations = false,
     this.showMemberActivities = false,
     this.memberName,
+    this.showAllAvailableActivities = false,
   });
 
   @override
@@ -48,14 +51,18 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String? _error;
   int? _currentUserId;
   Map<int, ActivityRegistration> _userRegistrations = {};
-  Map<int, ActivityRegistration> _memberRegistrations =
-      {};
+  Map<int, ActivityRegistration> _memberRegistrations = {};
 
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _startDateFromController =
+      TextEditingController();
+  final TextEditingController _startDateToController = TextEditingController();
+  final TextEditingController _endDateFromController = TextEditingController();
+  final TextEditingController _endDateToController = TextEditingController();
   String _selectedActivityType = 'Svi tipovi';
   String _selectedTroop = 'Svi odredi';
   String _selectedStatus = 'Sve aktivnosti';
-  String _selectedSort = 'Najnovije prvo';
+  String _selectedSort = 'Najranije prvo';
   double _minFee = 0;
   double _maxFee = 1000;
   DateTime? _startDateFrom;
@@ -74,6 +81,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _startDateFromController.dispose();
+    _startDateToController.dispose();
+    _endDateFromController.dispose();
+    _endDateToController.dispose();
     super.dispose();
   }
 
@@ -93,7 +104,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       _activityTypes = await activityTypeProvider.getAllActivityTypes();
       _currentUserId = await authProvider.getUserIdFromToken();
 
-      if (widget.memberId != null || widget.showMyRegistrations) {
+      if (widget.memberId != null ||
+          widget.showMyRegistrations ||
+          widget.showAllAvailableActivities) {
         final troopResult = await troopProvider.get(
           filter: {"RetrieveAll": true},
         );
@@ -120,6 +133,18 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               .where((registration) => registration.status != 4)
               .toList();
         }
+      } else if (widget.showAllAvailableActivities) {
+        final memberProvider = MemberProvider(authProvider);
+        final currentMember = await memberProvider.getById(_currentUserId!);
+
+        final allActivitiesResult = await activityProvider.get(
+          filter: {
+            "RetrieveAll": true,
+            "ShowPublicAndOwn": true,
+            "OwnTroopId": currentMember.troopId,
+          },
+        );
+        _allActivities = allActivitiesResult.items ?? [];
       } else if (widget.memberId != null) {
         _allActivities = await activityProvider.getMemberActivities(
           widget.memberId!,
@@ -150,7 +175,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final userRegistrationsResult = await registrationProvider
             .getMemberRegistrations(
               memberId: _currentUserId,
-              statuses: [0, 1],
+              statuses: [
+                0,
+                1,
+                2,
+                3,
+              ],
               pageSize: 1000,
             );
 
@@ -243,6 +273,16 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         _applySorting();
       } else {
         _filteredActivities = _allActivities.where((activity) {
+          if (widget.showAllAvailableActivities) {
+            if (activity.activityState != 'RegistrationsOpenActivityState') {
+              return false;
+            }
+
+            if (_userRegistrations.containsKey(activity.id)) {
+              return false;
+            }
+          }
+
           if (_searchController.text.isNotEmpty) {
             if (!activity.title.toLowerCase().contains(
                   _searchController.text.toLowerCase(),
@@ -260,7 +300,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             }
           }
 
-          if (widget.memberId != null && _selectedTroop != 'Svi odredi') {
+          if ((widget.memberId != null || widget.showAllAvailableActivities) &&
+              _selectedTroop != 'Svi odredi') {
             if (activity.troopName != _selectedTroop) {
               return false;
             }
@@ -338,7 +379,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       _selectedActivityType = 'Svi tipovi';
       _selectedTroop = 'Svi odredi';
       _selectedStatus = 'Sve aktivnosti';
-      _selectedSort = 'Najnovije prvo';
+      _selectedSort = 'Najkasnije prvo';
       _minFee = 0;
       _maxFee = _getMaxFeeForSlider();
       _startDateFrom = null;
@@ -346,6 +387,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       _endDateFrom = null;
       _endDateTo = null;
     });
+    _updateDateControllers();
     _applyFilters();
   }
 
@@ -355,7 +397,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final dateA = a.activityStartTime ?? a.registeredAt;
         final dateB = b.activityStartTime ?? b.registeredAt;
 
-        if (_selectedSort == 'Najnovije prvo') {
+        if (_selectedSort == 'Najkasnije prvo') {
           return dateB.compareTo(dateA);
         } else {
           return dateA.compareTo(dateB);
@@ -366,7 +408,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final dateA = a.startTime ?? a.createdAt;
         final dateB = b.startTime ?? b.createdAt;
 
-        if (_selectedSort == 'Najnovije prvo') {
+        if (_selectedSort == 'Najkasnije prvo') {
           return dateB.compareTo(dateA);
         } else {
           return dateA.compareTo(dateB);
@@ -385,8 +427,42 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         child: Column(
           children: [
             _buildFilterToggle(),
-            if (_showFilters) _buildFiltersSection(),
-            Expanded(child: _buildBody()),
+            if (_showFilters)
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.grey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ScrollbarTheme(
+                  data: ScrollbarThemeData(
+                    thumbVisibility: MaterialStateProperty.all(true),
+                    trackVisibility: MaterialStateProperty.all(true),
+                    thickness: MaterialStateProperty.all(12),
+                    radius: const Radius.circular(6),
+                    thumbColor: MaterialStateProperty.all(
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ),
+                    trackColor: MaterialStateProperty.all(
+                      Colors.grey.withOpacity(0.2),
+                    ),
+                    trackBorderColor: MaterialStateProperty.all(
+                      Colors.grey.withOpacity(0.3),
+                    ),
+                    crossAxisMargin: 4,
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: _buildFiltersSection(),
+                  ),
+                ),
+              ),
+            Expanded(child: SingleChildScrollView(child: _buildBody())),
           ],
         ),
       ),
@@ -537,6 +613,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 _allActivities.isEmpty
                     ? (widget.showMemberActivities
                           ? '${widget.memberName ?? "Član"} nema aktivnosti u kojima je sudjelovao/la'
+                          : widget.showAllAvailableActivities
+                          ? 'Nema dostupnih aktivnosti'
                           : widget.memberId != null
                           ? 'Nema aktivnosti u kojima ste sudjelovali'
                           : 'Nema aktivnosti za ovaj odred')
@@ -832,6 +910,26 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   String _formatDateTime(DateTime dateTime) {
     final formatter = DateFormat('dd.MM.yyyy HH:mm');
     return formatter.format(dateTime);
+  }
+
+  String _formatDate(DateTime date) {
+    final formatter = DateFormat('dd.MM.yyyy');
+    return formatter.format(date);
+  }
+
+  void _updateDateControllers() {
+    _startDateFromController.text = _startDateFrom != null
+        ? _formatDate(_startDateFrom!)
+        : '';
+    _startDateToController.text = _startDateTo != null
+        ? _formatDate(_startDateTo!)
+        : '';
+    _endDateFromController.text = _endDateFrom != null
+        ? _formatDate(_endDateFrom!)
+        : '';
+    _endDateToController.text = _endDateTo != null
+        ? _formatDate(_endDateTo!)
+        : '';
   }
 
   String _getRegistrationPlural(int count) {
@@ -1150,6 +1248,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     if (result == true && mounted) {
       _loadActivities();
+
+      if (widget.showAllAvailableActivities) {
+        Navigator.of(context).pop(true);
+      }
     }
   }
 
@@ -1373,12 +1475,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             ),
             items: const [
               DropdownMenuItem(
-                value: 'Najnovije prvo',
-                child: Text('Najnovije prvo'),
+                value: 'Najkasnije prvo',
+                child: Text('Najkasnije prvo'),
               ),
               DropdownMenuItem(
-                value: 'Najstarije prvo',
-                child: Text('Najstarije prvo'),
+                value: 'Najranije prvo',
+                child: Text('Najranije prvo'),
               ),
             ],
             onChanged: (value) {
@@ -1463,7 +1565,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             const SizedBox(height: 16),
           ],
 
-          if (widget.memberId != null || widget.showMyRegistrations) ...[
+          if (widget.memberId != null ||
+              widget.showMyRegistrations ||
+              widget.showAllAvailableActivities) ...[
             DropdownButtonFormField<String>(
               value: _selectedTroop,
               decoration: InputDecoration(
@@ -1507,227 +1611,335 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             const SizedBox(height: 16),
           ],
 
-          if (!widget.showMemberActivities) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Cijena',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_minFee.toStringAsFixed(0)} - ${_maxFee.toStringAsFixed(0)} KM',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  RangeSlider(
-                    values: RangeValues(
-                      _minFee.clamp(0.0, _getMaxFeeForSlider()),
-                      _maxFee.clamp(0.0, _getMaxFeeForSlider()),
-                    ),
-                    min: 0,
-                    max: _getMaxFeeForSlider(),
-                    divisions: _getMaxFeeForSlider() ~/ 5,
-                    activeColor: Theme.of(context).colorScheme.primary,
-                    inactiveColor: Colors.grey[300],
-                    onChanged: (values) {
-                      setState(() {
-                        _minFee = values.start.round().toDouble();
-                        _maxFee = values.end.round().toDouble();
-                      });
-                      _applyFilters();
-                    },
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '0 KM',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      Text(
-                        '${_getMaxFeeForSlider().toStringAsFixed(0)} KM',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            const SizedBox(height: 16),
-
-            Column(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Početak',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            initialValue: _startDateFrom != null
-                                ? '${_startDateFrom!.day}.${_startDateFrom!.month}.${_startDateFrom!.year}'
-                                : '',
-                            decoration: InputDecoration(
-                              hintText: 'Odaberite datum',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              suffixIcon: Icon(
-                                Icons.calendar_today,
-                                color: Colors.grey[600],
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            readOnly: true,
-                            onTap: () async {
-                              final DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: _startDateFrom ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2030),
-                                helpText: 'Odaberite datum početka',
-                                cancelText: 'Otkaži',
-                                confirmText: 'Potvrdi',
-                                fieldHintText: 'DD/MM/YYYY',
-                                fieldLabelText: 'Datum početka',
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _startDateFrom = picked;
-                                });
-                                _applyFilters();
-                              }
-                            },
-                          ),
-                        ],
+                    Text(
+                      'Cijena',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Kraj',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            initialValue: _startDateTo != null
-                                ? '${_startDateTo!.day}.${_startDateTo!.month}.${_startDateTo!.year}'
-                                : '',
-                            decoration: InputDecoration(
-                              hintText: 'Odaberite datum',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              suffixIcon: Icon(
-                                Icons.calendar_today,
-                                color: Colors.grey[600],
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            readOnly: true,
-                            onTap: () async {
-                              final DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: _startDateTo ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2030),
-                                helpText: 'Odaberite datum kraja',
-                                cancelText: 'Otkaži',
-                                confirmText: 'Potvrdi',
-                                fieldHintText: 'DD/MM/YYYY',
-                                fieldLabelText: 'Datum kraja',
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _startDateTo = picked;
-                                });
-                                _applyFilters();
-                              }
-                            },
-                          ),
-                        ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_minFee.toStringAsFixed(0)} - ${_maxFee.toStringAsFixed(0)} KM',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                RangeSlider(
+                  values: RangeValues(
+                    _minFee.clamp(0.0, _getMaxFeeForSlider()),
+                    _maxFee.clamp(0.0, _getMaxFeeForSlider()),
+                  ),
+                  min: 0,
+                  max: _getMaxFeeForSlider(),
+                  divisions: _getMaxFeeForSlider() ~/ 5,
+                  activeColor: Theme.of(context).colorScheme.primary,
+                  inactiveColor: Colors.grey[300],
+                  onChanged: (values) {
+                    setState(() {
+                      _minFee = values.start.round().toDouble();
+                      _maxFee = values.end.round().toDouble();
+                    });
+                    _applyFilters();
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '0 KM',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '${_getMaxFeeForSlider().toStringAsFixed(0)} KM',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ],
             ),
-          ],
+          ),
+          const SizedBox(height: 16),
+
+          Column(
+            children: [
+              const Text(
+                'Datum početka',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Od', style: TextStyle(fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _startDateFromController,
+                          decoration: InputDecoration(
+                            hintText: 'Odaberite',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _startDateFrom ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              helpText: 'Odaberite datum početka od',
+                              cancelText: 'Otkaži',
+                              confirmText: 'Potvrdi',
+                              fieldHintText: 'DD/MM/YYYY',
+                              fieldLabelText: 'Početak od',
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _startDateFrom = picked;
+                              });
+                              _updateDateControllers();
+                              _applyFilters();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Do', style: TextStyle(fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _startDateToController,
+                          decoration: InputDecoration(
+                            hintText: 'Odaberite',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _startDateTo ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              helpText: 'Odaberite datum početka do',
+                              cancelText: 'Otkaži',
+                              confirmText: 'Potvrdi',
+                              fieldHintText: 'DD/MM/YYYY',
+                              fieldLabelText: 'Početak do',
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _startDateTo = picked;
+                              });
+                              _updateDateControllers();
+                              _applyFilters();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Datum završetka',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Od', style: TextStyle(fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _endDateFromController,
+                          decoration: InputDecoration(
+                            hintText: 'Odaberite',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _endDateFrom ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              helpText: 'Odaberite datum završetka od',
+                              cancelText: 'Otkaži',
+                              confirmText: 'Potvrdi',
+                              fieldHintText: 'DD/MM/YYYY',
+                              fieldLabelText: 'Završetak od',
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _endDateFrom = picked;
+                              });
+                              _updateDateControllers();
+                              _applyFilters();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Do', style: TextStyle(fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _endDateToController,
+                          decoration: InputDecoration(
+                            hintText: 'Odaberite',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey[600],
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: _endDateTo ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              helpText: 'Odaberite datum završetka do',
+                              cancelText: 'Otkaži',
+                              confirmText: 'Potvrdi',
+                              fieldHintText: 'DD/MM/YYYY',
+                              fieldLabelText: 'Završetak do',
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _endDateTo = picked;
+                              });
+                              _updateDateControllers();
+                              _applyFilters();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );

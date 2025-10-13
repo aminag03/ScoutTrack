@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scouttrack_mobile/screens/member_home_screen.dart';
+import 'package:scouttrack_mobile/screens/home_screen.dart';
 import 'package:scouttrack_mobile/providers/auth_provider.dart';
 import 'package:scouttrack_mobile/utils/navigation_utils.dart';
 
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
         final role = await authProvider.getUserRole();
         if (!mounted) return;
         if (role == 'Member') {
-          NavigationUtils.navigateWithFade(context, const MemberHomeScreen());
+          NavigationUtils.navigateWithFade(context, const HomeScreen());
         } else {
           setState(() {
             _loading = false;

@@ -58,4 +58,27 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       return [];
     }
   }
+
+  Future<List<Activity>> getRecommendedActivities({int topN = 10}) async {
+    try {
+      return await handleWithRefresh(() async {
+        final uri = Uri.parse(
+          "${BaseProvider.baseUrl}Recommendation/me?topN=$topN",
+        );
+        final headers = await createHeaders();
+        final response = await http.get(uri, headers: headers);
+
+        if (isValidResponse(response)) {
+          final data = jsonDecode(response.body);
+          if (data is List) {
+            return data.map((item) => fromJson(item)).toList();
+          }
+        }
+        return [];
+      });
+    } catch (e) {
+      print('Error fetching recommended activities: $e');
+      return [];
+    }
+  }
 }

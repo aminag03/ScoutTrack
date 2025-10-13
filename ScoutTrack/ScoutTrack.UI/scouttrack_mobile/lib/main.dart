@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scouttrack_mobile/screens/login_screen.dart';
-import 'package:scouttrack_mobile/screens/member_home_screen.dart';
+import 'package:scouttrack_mobile/screens/home_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/member_provider.dart';
 import 'providers/city_provider.dart';
@@ -100,7 +100,7 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
-              return const MemberHomeScreen();
+              return const HomeScreen();
             },
           );
         } else {

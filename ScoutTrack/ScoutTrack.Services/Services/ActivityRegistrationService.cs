@@ -23,13 +23,15 @@ namespace ScoutTrack.Services.Services
         private readonly ScoutTrackDbContext _context;
         protected readonly BaseActivityRegistrationState _baseActivityRegistrationState;
         private readonly IAccessControlService _accessControlService;
+        private readonly IActivityService _activityService;
 
-        public ActivityRegistrationService(ScoutTrackDbContext context, IMapper mapper, BaseActivityRegistrationState baseActivityRegistrationState, IAccessControlService accessControlService) 
+        public ActivityRegistrationService(ScoutTrackDbContext context, IMapper mapper, BaseActivityRegistrationState baseActivityRegistrationState, IAccessControlService accessControlService, IActivityService activityService) 
             : base(context, mapper)
         {
             _context = context;
             _baseActivityRegistrationState = baseActivityRegistrationState;
             _accessControlService = accessControlService;
+            _activityService = activityService;
         }
 
         public override async Task<ActivityRegistrationResponse> CreateAsync(ActivityRegistrationUpsertRequest request)
@@ -184,6 +186,8 @@ namespace ScoutTrack.Services.Services
 
             _context.ActivityRegistrations.Add(entity);
             await _context.SaveChangesAsync();
+
+            _activityService.RetrainModelForMember(userId);
 
             return MapToResponse(entity);
         }

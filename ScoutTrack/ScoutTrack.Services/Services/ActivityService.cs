@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.ML;
+using Microsoft.ML.Data;
+using Microsoft.ML.Trainers;
 using ScoutTrack.Model.Exceptions;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
@@ -654,6 +657,299 @@ namespace ScoutTrack.Services
                 .ToListAsync();
 
             return activities.Select(MapToResponse).ToList();
+        }
+
+        public async Task<List<ActivityResponse>> GetRecommendedActivitiesForMemberAsync(int memberId, int topN = 10)
+        {
+            var member = await _context.Members
+                .Include(m => m.City)
+                .FirstOrDefaultAsync(m => m.Id == memberId);
+
+            if (member == null)
+            {
+                return new List<ActivityResponse>();
+            }
+
+            var mlContext = new MLContext(seed: 0);
+
+            var trainingData = await PrepareContentBasedTrainingDataAsync(memberId);
+            
+            if (trainingData.Count == 0)
+            {
+                _logger.LogInformation($"Member {memberId} has no interaction history, returning popular activities");
+                return await GetPopularActivitiesAsync(topN);
+            }
+
+            var dataView = mlContext.Data.LoadFromEnumerable(trainingData);
+
+            var pipeline = mlContext.Transforms.Concatenate("Features",
+                    nameof(ActivityFeatures.Latitude),
+                    nameof(ActivityFeatures.Longitude),
+                    nameof(ActivityFeatures.ActivityTypeId),
+                    nameof(ActivityFeatures.TroopId),
+                    nameof(ActivityFeatures.Fee),
+                    nameof(ActivityFeatures.DurationHours),
+                    nameof(ActivityFeatures.MonthOfYear))
+                .Append(mlContext.Transforms.NormalizeMinMax("Features"))
+                .Append(mlContext.Regression.Trainers.Sdca(
+                    labelColumnName: nameof(ActivityFeatures.Label),
+                    featureColumnName: "Features",
+                    maximumNumberOfIterations: 100));
+
+            var modelPath = Path.Combine("Models", $"Member_{memberId}_ActivityModel.zip");
+            ITransformer model;
+
+            if (File.Exists(modelPath))
+            {
+                _logger.LogInformation($"✅ Loading cached model for member {memberId} from {modelPath}");
+                model = mlContext.Model.Load(modelPath, out _);
+            }
+            else
+            {
+                _logger.LogInformation($"🔄 Training new ML model for member {memberId} with {trainingData.Count} data points");
+                model = pipeline.Fit(dataView);
+
+                var trainingPredictions = model.Transform(dataView);
+                var metrics = mlContext.Regression.Evaluate(trainingPredictions, labelColumnName: nameof(ActivityFeatures.Label));
+                _logger.LogInformation($"📊 Model Metrics - R²: {metrics.RSquared:F4}, RMSE: {metrics.RootMeanSquaredError:F4}, MAE: {metrics.MeanAbsoluteError:F4}");
+
+                Directory.CreateDirectory("Models");
+                mlContext.Model.Save(model, dataView.Schema, modelPath);
+                _logger.LogInformation($"💾 Model saved to {modelPath}");
+            }
+
+            var interactedActivityIds = await _context.ActivityRegistrations
+                .Where(r => r.MemberId == memberId)
+                .Select(r => r.ActivityId)
+                .Union(_context.Reviews
+                    .Where(r => r.MemberId == memberId)
+                    .Select(r => r.ActivityId))
+                .ToListAsync();
+            
+            _logger.LogInformation($"Member {memberId} has interacted with {interactedActivityIds.Count} activities: [{string.Join(", ", interactedActivityIds)}]");
+
+            var candidateActivities = await _context.Activities
+                .Include(a => a.ActivityType)
+                .Include(a => a.Troop)
+                .Include(a => a.City)
+                .Include(a => a.Registrations)
+                .Where(a => !interactedActivityIds.Contains(a.Id))
+                .Where(a => a.ActivityState == "RegistrationsOpenActivityState")
+                .Where(a => !a.isPrivate || a.TroopId == member.TroopId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var candidateIds = candidateActivities.Select(a => a.Id).ToList();
+            _logger.LogInformation($"Found {candidateActivities.Count} candidate activities for member {memberId}: [{string.Join(", ", candidateIds)}]");
+
+            if (!candidateActivities.Any())
+            {
+                _logger.LogInformation($"No candidate activities found for member {memberId}");
+                return new List<ActivityResponse>();
+            }
+
+            _logger.LogInformation($"Predicting scores for {candidateActivities.Count} candidate activities");
+
+            var predictionEngine = mlContext.Model.CreatePredictionEngine<ActivityFeatures, ActivityPrediction>(model);
+
+            var predictions = new List<(ActivityResponse Activity, float Score)>();
+
+            foreach (var activity in candidateActivities)
+            {
+                var duration = activity.EndTime.HasValue && activity.StartTime.HasValue
+                    ? (float)(activity.EndTime.Value - activity.StartTime.Value).TotalHours
+                    : 24.0f;
+
+                var month = activity.StartTime?.Month ?? DateTime.Now.Month;
+
+                var input = new ActivityFeatures
+                {
+                    Latitude = (float)activity.Latitude,
+                    Longitude = (float)activity.Longitude,
+                    ActivityTypeId = (float)activity.ActivityTypeId,
+                    TroopId = (float)activity.TroopId,
+                    Fee = (float)(activity.Fee ?? 0),
+                    DurationHours = duration,
+                    MonthOfYear = (float)month
+                };
+
+                var prediction = predictionEngine.Predict(input);
+                predictions.Add((MapToResponse(activity), prediction.Score));
+            }
+
+            var recommendations = predictions
+                .OrderByDescending(p => p.Score)
+                .Take(topN)
+                .Select(p => p.Activity)
+                .ToList();
+
+            _logger.LogInformation($"Returning {recommendations.Count} recommendations for member {memberId}");
+            return recommendations;
+        }
+
+        private async Task<List<ActivityFeatures>> PrepareContentBasedTrainingDataAsync(int memberId)
+        {
+            var trainingData = new List<ActivityFeatures>();
+
+            var completedActivities = await _context.ActivityRegistrations
+                .Where(r => r.MemberId == memberId && r.Status == Common.Enums.RegistrationStatus.Completed)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.ActivityType)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.City)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.Troop)
+                .AsNoTracking()
+                .Select(r => r.Activity)
+                .ToListAsync();
+
+            foreach (var activity in completedActivities)
+            {
+                var duration = activity.EndTime.HasValue && activity.StartTime.HasValue
+                    ? (float)(activity.EndTime.Value - activity.StartTime.Value).TotalHours
+                    : 24.0f;
+
+                var month = activity.StartTime?.Month ?? DateTime.Now.Month;
+
+                trainingData.Add(new ActivityFeatures
+                {
+                    Latitude = (float)activity.Latitude,
+                    Longitude = (float)activity.Longitude,
+                    ActivityTypeId = (float)activity.ActivityTypeId,
+                    TroopId = (float)activity.TroopId,
+                    Fee = (float)(activity.Fee ?? 0),
+                    DurationHours = duration,
+                    MonthOfYear = (float)month,
+                    Label = 1.0f
+                });
+            }
+
+            var reviewedActivities = await _context.Reviews
+                .Where(r => r.MemberId == memberId && r.Rating >= 4)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.ActivityType)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.City)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.Troop)
+                .AsNoTracking()
+                .Select(r => new { r.Activity, r.Rating })
+                .ToListAsync();
+
+            foreach (var item in reviewedActivities)
+            {
+                var duration = item.Activity.EndTime.HasValue && item.Activity.StartTime.HasValue
+                    ? (float)(item.Activity.EndTime.Value - item.Activity.StartTime.Value).TotalHours
+                    : 24.0f;
+
+                var month = item.Activity.StartTime?.Month ?? DateTime.Now.Month;
+
+                trainingData.Add(new ActivityFeatures
+                {
+                    Latitude = (float)item.Activity.Latitude,
+                    Longitude = (float)item.Activity.Longitude,
+                    ActivityTypeId = (float)item.Activity.ActivityTypeId,
+                    TroopId = (float)item.Activity.TroopId,
+                    Fee = (float)(item.Activity.Fee ?? 0),
+                    DurationHours = duration,
+                    MonthOfYear = (float)month,
+                    Label = item.Rating / 5.0f
+                });
+            }
+
+            var approvedActivities = await _context.ActivityRegistrations
+                .Where(r => r.MemberId == memberId && r.Status == Common.Enums.RegistrationStatus.Approved)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.ActivityType)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.City)
+                .Include(r => r.Activity)
+                    .ThenInclude(a => a.Troop)
+                .AsNoTracking()
+                .Select(r => r.Activity)
+                .ToListAsync();
+
+            foreach (var activity in approvedActivities)
+            {
+                var duration = activity.EndTime.HasValue && activity.StartTime.HasValue
+                    ? (float)(activity.EndTime.Value - activity.StartTime.Value).TotalHours
+                    : 24.0f;
+
+                var month = activity.StartTime?.Month ?? DateTime.Now.Month;
+
+                trainingData.Add(new ActivityFeatures
+                {
+                    Latitude = (float)activity.Latitude,
+                    Longitude = (float)activity.Longitude,
+                    ActivityTypeId = (float)activity.ActivityTypeId,
+                    TroopId = (float)activity.TroopId,
+                    Fee = (float)(activity.Fee ?? 0),
+                    DurationHours = duration,
+                    MonthOfYear = (float)month,
+                    Label = 0.7f
+                });
+            }
+
+            _logger.LogInformation($"Prepared {trainingData.Count} training data points with activity features");
+            return trainingData;
+        }
+
+        private async Task<List<ActivityResponse>> GetPopularActivitiesAsync(int topN)
+        {
+            var popularActivities = await _context.Activities
+                .Include(a => a.ActivityType)
+                .Include(a => a.Troop)
+                .Include(a => a.City)
+                .Include(a => a.Registrations)
+                .Where(a => a.ActivityState == "RegistrationsOpenActivityState")
+                .Where(a => !a.isPrivate)
+                .OrderByDescending(a => a.Registrations.Count)
+                .Take(topN)
+                .ToListAsync();
+
+            return popularActivities.Select(MapToResponse).ToList();
+        }
+
+        public void RetrainModelForMember(int memberId)
+        {
+            var modelPath = Path.Combine("Models", $"Member_{memberId}_ActivityModel.zip");
+            if (File.Exists(modelPath))
+            {
+                File.Delete(modelPath);
+                _logger.LogInformation($"Deleted cached model for member {memberId}, will retrain on next recommendation request");
+            }
+        }
+
+        public class ActivityFeatures
+        {
+            [LoadColumn(0)]
+            public float Latitude { get; set; }
+
+            [LoadColumn(1)]
+            public float Longitude { get; set; }
+
+            [LoadColumn(2)]
+            public float ActivityTypeId { get; set; }
+
+            [LoadColumn(3)]
+            public float TroopId { get; set; }
+
+            [LoadColumn(4)]
+            public float Fee { get; set; }
+
+            [LoadColumn(5)]
+            public float DurationHours { get; set; }
+
+            [LoadColumn(6)]
+            public float MonthOfYear { get; set; }
+
+            [LoadColumn(7)]
+            public float Label { get; set; }
+        }
+
+        public class ActivityPrediction
+        {
+            public float Score { get; set; }
         }
     }
 } 
