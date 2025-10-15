@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScoutTrack.Model.Requests;
 using ScoutTrack.Model.Responses;
 using ScoutTrack.Model.SearchObjects;
+using ScoutTrack.Services;
 using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.WebAPI.Controllers
@@ -126,6 +127,34 @@ namespace ScoutTrack.WebAPI.Controllers
             
             var result = await _friendshipService.GetAsync(search);
             return Ok(result);
+        }
+
+        [HttpGet("recommendations")]
+        [Authorize(Roles = "Member")]
+        public async Task<IActionResult> GetFriendRecommendations([FromQuery] int topN = 5, [FromQuery] int[]? candidateUserIds = null)
+        {
+            var memberId = _authService.GetUserId(User);
+            if (memberId == null)
+                return Unauthorized();
+
+            var recommendations = await _friendshipService.RecommendFriendsAsync(memberId.Value, candidateUserIds, topN);
+            return Ok(recommendations);
+        }
+
+        [HttpPost("train-model")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> TrainRecommendationModel()
+        {
+            await _friendshipService.TrainModelAsync();
+            return Ok(new { message = "Friend recommendation model training completed successfully." });
+        }
+
+        [HttpPost("retrain-model")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RetrainRecommendationModel()
+        {
+            await _friendshipService.RetrainModelAsync();
+            return Ok(new { message = "Friend recommendation model retraining completed successfully." });
         }
     }
 

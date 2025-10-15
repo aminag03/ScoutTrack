@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/friendship.dart';
+import '../models/friend_recommendation.dart';
 import '../models/search_result.dart';
 import 'base_provider.dart';
 import 'auth_provider.dart';
@@ -160,6 +161,28 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
       } else {
         handleHttpError(response);
         return false;
+      }
+    });
+  }
+
+  Future<List<FriendRecommendation>> getFriendRecommendations({
+    int topN = 5,
+    List<int>? candidateUserIds,
+  }) async {
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/recommendations?topN=$topN",
+      );
+
+      final headers = await createHeaders();
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => FriendRecommendation.fromJson(json)).toList();
+      } else {
+        handleHttpError(response);
+        throw Exception('Failed to load friend recommendations');
       }
     });
   }

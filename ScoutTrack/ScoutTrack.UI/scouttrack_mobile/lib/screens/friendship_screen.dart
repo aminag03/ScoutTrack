@@ -7,6 +7,7 @@ import '../providers/member_provider.dart';
 import '../providers/city_provider.dart';
 import '../providers/troop_provider.dart';
 import '../models/friendship.dart';
+import '../models/friend_recommendation.dart';
 import '../models/member.dart';
 import '../models/city.dart';
 import '../models/troop.dart';
@@ -24,7 +25,7 @@ class FriendshipScreen extends StatefulWidget {
 }
 
 class _FriendshipScreenState extends State<FriendshipScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   late FriendshipProvider _friendshipProvider;
   late MemberProvider _memberProvider;
@@ -36,10 +37,13 @@ class _FriendshipScreenState extends State<FriendshipScreen>
   SearchResult<Friendship>? _myFriends;
   SearchResult<Friendship>? _pendingRequests;
   SearchResult<Friendship>? _sentRequests;
+  List<FriendRecommendation> _recommendations = [];
+  Set<int> _sentRequestUserIds = {};
 
   bool _loadingFriends = false;
   bool _loadingPending = false;
   bool _loadingSent = false;
+  bool _loadingRecommendations = false;
 
   String? _error;
   int? _currentUserId;
@@ -64,6 +68,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
     _tabController = TabController(length: 3, vsync: this);
     SnackBarUtils.initialize(_scaffoldMessengerKey);
     _searchController.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
   }
 
@@ -71,7 +76,16 @@ class _FriendshipScreenState extends State<FriendshipScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _loadRecommendations();
+    }
   }
 
   Future<void> _loadData() async {
@@ -90,6 +104,8 @@ class _FriendshipScreenState extends State<FriendshipScreen>
       _loadPendingRequests(),
       _loadSentRequests(),
     ]);
+
+    await _loadRecommendations();
   }
 
   Future<void> _loadFilterData() async {
@@ -279,6 +295,8 @@ class _FriendshipScreenState extends State<FriendshipScreen>
         setState(() {
           _sentRequests = result;
           _loadingSent = false;
+          _sentRequestUserIds =
+              result.items?.map((f) => f.responderId).toSet() ?? {};
         });
       }
     } catch (e) {
@@ -286,6 +304,33 @@ class _FriendshipScreenState extends State<FriendshipScreen>
         setState(() {
           _loadingSent = false;
         });
+      }
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    if (_loadingRecommendations) return;
+
+    setState(() {
+      _loadingRecommendations = true;
+    });
+
+    try {
+      final recommendations = await _friendshipProvider
+          .getFriendRecommendations(topN: 5);
+
+      if (mounted) {
+        setState(() {
+          _recommendations = recommendations;
+          _loadingRecommendations = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingRecommendations = false;
+        });
+        print('Error loading recommendations: $e');
       }
     }
   }
@@ -766,21 +811,54 @@ class _FriendshipScreenState extends State<FriendshipScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
+                if (_loadingRecommendations)
+                  const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: Text(
-                        'Funkcionalnost će biti implementirana uskoro',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_recommendations.isEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Nema preporučenih prijatelja',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: _recommendations.map((recommendation) {
+                        return _buildRecommendationItem(recommendation);
+                      }).toList(),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -956,6 +1034,51 @@ class _FriendshipScreenState extends State<FriendshipScreen>
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       onTap: onTap,
+    );
+  }
+
+  Widget _buildRecommendationItem(FriendRecommendation recommendation) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: CircleAvatar(
+        radius: 25,
+        backgroundImage: recommendation.profilePictureUrl.isNotEmpty
+            ? NetworkImage(
+                UrlUtils.buildImageUrl(recommendation.profilePictureUrl),
+              )
+            : null,
+        child: recommendation.profilePictureUrl.isEmpty
+            ? const Icon(Icons.person, size: 30)
+            : null,
+      ),
+      title: Text(
+        recommendation.fullName,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+      subtitle: null,
+      trailing: _sentRequestUserIds.contains(recommendation.userId)
+          ? IconButton(
+              icon: const Icon(
+                Icons.hourglass_empty,
+                color: Colors.orange,
+                size: 20,
+              ),
+              onPressed: null,
+              tooltip: 'Zahtjev poslan',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+            )
+          : IconButton(
+              icon: const Icon(Icons.person_add, color: Colors.green, size: 20),
+              onPressed: () =>
+                  _sendFriendRequestToRecommendation(recommendation),
+              tooltip: 'Pošalji zahtjev za prijateljstvo',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+            ),
+      onTap: () => _showRecommendationProfile(recommendation),
     );
   }
 
@@ -1369,5 +1492,105 @@ class _FriendshipScreenState extends State<FriendshipScreen>
     } catch (e) {
       SnackBarUtils.showErrorSnackBar('Greška: $e');
     }
+  }
+
+  Future<void> _sendFriendRequestToRecommendation(
+    FriendRecommendation recommendation,
+  ) async {
+    final confirmed = await _showSendRequestConfirmationDialog(recommendation);
+    if (!confirmed) return;
+
+    try {
+      await _friendshipProvider.sendFriendRequest(recommendation.userId);
+      SnackBarUtils.showSuccessSnackBar(
+        'Zahtjev za prijateljstvo je poslan izviđaču ${recommendation.fullName}',
+      );
+
+      setState(() {
+        _sentRequestUserIds.add(recommendation.userId);
+      });
+
+      await _loadSentRequests();
+    } catch (e) {
+      SnackBarUtils.showErrorSnackBar('Greška: $e');
+    }
+  }
+
+  Future<bool> _showSendRequestConfirmationDialog(
+    FriendRecommendation recommendation,
+  ) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Pošalji zahtjev za prijateljstvo',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            content: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Da li ste sigurni da želite poslati zahtjev za prijateljstvo ${recommendation.fullName}?',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      child: const Text(
+                        'Otkaži',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: const Text(
+                        'Pošalji',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _showRecommendationProfile(FriendRecommendation recommendation) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(memberId: recommendation.userId),
+      ),
+    );
   }
 }
