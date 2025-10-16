@@ -662,6 +662,35 @@ namespace ScoutTrack.Services
             return activities.Select(MapToResponse).ToList();
         }
 
+        public async Task<ActivityResponse?> GetEarliestUpcomingActivityForMemberAsync(int memberId)
+        {
+            var registrations = await _context.ActivityRegistrations
+                .Where(r => r.MemberId == memberId && 
+                           (r.Status == Common.Enums.RegistrationStatus.Pending || 
+                            r.Status == Common.Enums.RegistrationStatus.Approved))
+                .Select(r => r.ActivityId)
+                .ToListAsync();
+
+            if (!registrations.Any())
+            {
+                return null;
+            }
+
+            var activity = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .Include(a => a.City)
+                .Include(a => a.Registrations)
+                .Where(a => registrations.Contains(a.Id))
+                .Where(a => a.ActivityState == "RegistrationsOpenActivityState" || 
+                           a.ActivityState == "RegistrationsClosedActivityState")
+                .Where(a => a.StartTime.HasValue && a.StartTime > DateTime.Now)
+                .OrderBy(a => a.StartTime)
+                .FirstOrDefaultAsync();
+
+            return activity != null ? MapToResponse(activity) : null;
+        }
+
         public async Task<List<ActivityResponse>> GetRecommendedActivitiesForMemberAsync(int memberId, int topN = 10)
         {
             var cacheKey = $"activity_recs_{memberId}";

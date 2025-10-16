@@ -23,6 +23,7 @@ namespace ScoutTrack.Services.Interfaces
         Task<ActivityResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id);
         Task<List<ActivityResponse>> GetActivitiesByMemberAsync(int memberId);
         Task<List<ActivityResponse>> GetActivitiesByTroopAsync(int troopId);
+        Task<ActivityResponse?> GetEarliestUpcomingActivityForMemberAsync(int memberId);
         Task<List<ActivityResponse>> GetRecommendedActivitiesForMemberAsync(int memberId, int topN = 10);
         void RetrainModelForMember(int memberId);
     }

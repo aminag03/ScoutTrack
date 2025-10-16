@@ -81,4 +81,25 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       return [];
     }
   }
+
+  Future<Activity?> getEarliestUpcomingActivity(int memberId) async {
+    try {
+      return await handleWithRefresh(() async {
+        final uri = Uri.parse(
+          "${BaseProvider.baseUrl}Activity/earliest-upcoming/$memberId",
+        );
+        final headers = await createHeaders();
+        final response = await http.get(uri, headers: headers);
+
+        if (isValidResponse(response)) {
+          final data = jsonDecode(response.body);
+          return fromJson(data);
+        }
+        return null;
+      });
+    } catch (e) {
+      print('Error fetching earliest upcoming activity: $e');
+      return null;
+    }
+  }
 }

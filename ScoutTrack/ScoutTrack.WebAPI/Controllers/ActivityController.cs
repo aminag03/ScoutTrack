@@ -167,6 +167,24 @@ namespace ScoutTrack.WebAPI.Controllers
             }
         }
 
+        [HttpGet("earliest-upcoming/{memberId}")]
+        public async Task<ActionResult<ActivityResponse>> GetEarliestUpcoming(int memberId)
+        {
+            try
+            {
+                var activity = await _activityService.GetEarliestUpcomingActivityForMemberAsync(memberId);
+                if (activity == null)
+                {
+                    return NotFound();
+                }
+                return Ok(activity);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPut("{id}/close-registrations")]
         [Authorize(Roles = "Admin,Troop")]
         public virtual async Task<ActivityResponse?> CloseRegistrationsAsync(int id)
