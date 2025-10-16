@@ -67,6 +67,11 @@ namespace ScoutTrack.Services
         
         private readonly Dictionary<int, (List<FriendRecommendationResponse> Data, DateTime Timestamp)> _cache = new();
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
+        
+        private PredictionEngine<FriendData, FriendPrediction>? _cachedPredictionEngine;
+        private readonly object _predictionEngineLock = new object();
+        private DateTime _lastPredictionEngineCreation = DateTime.MinValue;
+        private readonly TimeSpan _predictionEngineLifetime = TimeSpan.FromHours(1);
 
         public FriendshipService(ScoutTrackDbContext context, IMapper mapper, ILogger<FriendshipService> logger) : base(context, mapper)
         {
@@ -283,7 +288,10 @@ namespace ScoutTrack.Services
 
             if (!candidateIds.Any()) return await GetMostActiveMembersAsync(userId, topN);
 
-            var predictionEngine = _mlContext.Model.CreatePredictionEngine<FriendData, FriendPrediction>(_model);
+            var predictionEngine = GetPredictionEngine();
+            if (predictionEngine == null) 
+                return await GetMostActiveMembersAsync(userId, topN);
+            
             var predictions = new List<(int UserId, float Score)>();
 
             foreach (var candidateId in candidateIds)
@@ -320,29 +328,44 @@ namespace ScoutTrack.Services
 
         private async Task<float> CalculateUserSimilarityAsync(int userId, int otherUserId)
         {
-            var interactions = await _context.Database.SqlQueryRaw<UserInteractionCounts>(@"
-                SELECT 
-                    (SELECT COUNT(*) FROM ActivityRegistrations ar1 INNER JOIN ActivityRegistrations ar2 ON ar1.ActivityId = ar2.ActivityId 
-                     WHERE ar1.MemberId = {0} AND ar2.MemberId = {1} AND ar1.Status = 1 AND ar2.Status = 1) as CommonActivities,
-                    (SELECT COUNT(*) FROM Likes l1 INNER JOIN Likes l2 ON l1.PostId = l2.PostId 
-                     WHERE l1.CreatedById = {0} AND l2.CreatedById = {1}) as SharedLikes,
-                    (SELECT COUNT(*) FROM Comments c1 INNER JOIN Comments c2 ON c1.PostId = c2.PostId 
-                     WHERE c1.CreatedById = {0} AND c2.CreatedById = {1}) as SharedComments,
-                    (SELECT COUNT(*) FROM Likes l INNER JOIN Posts p ON l.PostId = p.Id 
-                     WHERE l.CreatedById = {0} AND p.CreatedById = {1}) as DirectLikes,
-                    (SELECT COUNT(*) FROM Likes l INNER JOIN Posts p ON l.PostId = p.Id 
-                     WHERE l.CreatedById = {1} AND p.CreatedById = {0}) as ReciprocalLikes,
-                    (SELECT COUNT(*) FROM Comments c INNER JOIN Posts p ON c.PostId = p.Id 
-                     WHERE c.CreatedById = {0} AND p.CreatedById = {1}) as DirectComments,
-                    (SELECT COUNT(*) FROM Comments c INNER JOIN Posts p ON c.PostId = p.Id 
-                     WHERE c.CreatedById = {1} AND p.CreatedById = {0}) as ReciprocalComments,
-                    (SELECT COUNT(*) FROM Reviews r1 INNER JOIN Reviews r2 ON r1.ActivityId = r2.ActivityId 
-                     WHERE r1.MemberId = {0} AND r2.MemberId = {1}) as CommonReviews",
-                userId, otherUserId).FirstOrDefaultAsync();
+            try
+            {
+                var interactions = await _context.Database.SqlQueryRaw<UserInteractionCounts>(@"
+                    SELECT 
+                        (SELECT COUNT(*) FROM ActivityRegistrations ar1 INNER JOIN ActivityRegistrations ar2 ON ar1.ActivityId = ar2.ActivityId 
+                         WHERE ar1.MemberId = {0} AND ar2.MemberId = {1} AND ar1.Status = 1 AND ar2.Status = 1) as CommonActivities,
+                        (SELECT COUNT(*) FROM Likes l1 INNER JOIN Likes l2 ON l1.PostId = l2.PostId 
+                         WHERE l1.CreatedById = {0} AND l2.CreatedById = {1}) as SharedLikes,
+                        (SELECT COUNT(*) FROM Comments c1 INNER JOIN Comments c2 ON c1.PostId = c2.PostId 
+                         WHERE c1.CreatedById = {0} AND c2.CreatedById = {1}) as SharedComments,
+                        (SELECT COUNT(*) FROM Likes l INNER JOIN Posts p ON l.PostId = p.Id 
+                         WHERE l.CreatedById = {0} AND p.CreatedById = {1}) as DirectLikes,
+                        (SELECT COUNT(*) FROM Likes l INNER JOIN Posts p ON l.PostId = p.Id 
+                         WHERE l.CreatedById = {1} AND p.CreatedById = {0}) as ReciprocalLikes,
+                        (SELECT COUNT(*) FROM Comments c INNER JOIN Posts p ON c.PostId = p.Id 
+                         WHERE c.CreatedById = {0} AND p.CreatedById = {1}) as DirectComments,
+                        (SELECT COUNT(*) FROM Comments c INNER JOIN Posts p ON c.PostId = p.Id 
+                         WHERE c.CreatedById = {1} AND p.CreatedById = {0}) as ReciprocalComments,
+                        (SELECT COUNT(*) FROM Reviews r1 INNER JOIN Reviews r2 ON r1.ActivityId = r2.ActivityId 
+                         WHERE r1.MemberId = {0} AND r2.MemberId = {1}) as CommonReviews",
+                    userId, otherUserId).FirstOrDefaultAsync();
 
-            var totalInteractions = (interactions?.CommonActivities ?? 0) * 3.0f + (interactions?.SharedLikes ?? 0) * 1.5f + 
-                (interactions?.SharedComments ?? 0) * 2.0f + ((interactions?.DirectLikes ?? 0) + (interactions?.ReciprocalLikes ?? 0)) * 3.0f + 
-                ((interactions?.DirectComments ?? 0) + (interactions?.ReciprocalComments ?? 0)) * 4.0f + (interactions?.CommonReviews ?? 0) * 4.0f;
+                return CalculateWeightedScore(interactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error calculating similarity for users {User1} and {User2}", userId, otherUserId);
+                return 0.1f;
+            }
+        }
+
+        private float CalculateWeightedScore(UserInteractionCounts? interactions)
+        {
+            if (interactions == null) return 0.1f;
+
+            var totalInteractions = (interactions.CommonActivities * 3.0f) + (interactions.SharedLikes * 1.5f) +
+                (interactions.SharedComments * 2.0f) + ((interactions.DirectLikes + interactions.ReciprocalLikes) * 3.0f) +
+                ((interactions.DirectComments + interactions.ReciprocalComments) * 4.0f) + (interactions.CommonReviews * 4.0f);
 
             return ClampScore(0.1f + Math.Min(totalInteractions / 20.0f, 0.9f));
         }
@@ -383,38 +406,69 @@ namespace ScoutTrack.Services
                 var data = trainingData?.ToList() ?? await GenerateTrainingDataAsync();
                 if (!data.Any()) { return; }
 
+                var (iterations, rank) = GetOptimalTrainingParams();
+                _logger.LogInformation($"Training ML model with {iterations} iterations and rank {rank} for {data.Count} training samples");
+
                 var dataView = _mlContext.Data.LoadFromEnumerable(data);
                 var pipeline = _mlContext.Transforms.Conversion.MapValueToKey("UserIdEncoded", "UserId")
                     .Append(_mlContext.Transforms.Conversion.MapValueToKey("OtherUserIdEncoded", "OtherUserId"))
                     .Append(_mlContext.Recommendation().Trainers.MatrixFactorization(
-                        labelColumnName: "Label", matrixColumnIndexColumnName: "UserIdEncoded", matrixRowIndexColumnName: "OtherUserIdEncoded",
-                        numberOfIterations: 50, approximationRank: 32, learningRate: 0.1f));
+                        labelColumnName: "Label", 
+                        matrixColumnIndexColumnName: "UserIdEncoded", 
+                        matrixRowIndexColumnName: "OtherUserIdEncoded",
+                        numberOfIterations: iterations, 
+                        approximationRank: rank,
+                        learningRate: 0.1f));
 
                 _model = pipeline.Fit(dataView);
                 await SaveModelAsync();
+                _logger.LogInformation($"ML model training completed successfully");
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error training ML model");
                 throw;
             }
         }
 
         private async Task<List<FriendData>> GenerateTrainingDataAsync()
         {
-            var trainingData = new List<FriendData>();
-            var memberIds = await _context.Members.Select(m => m.Id).Take(200).ToListAsync();
+            var interactingUsers = await _context.Database.SqlQueryRaw<int>(@"
+                SELECT DISTINCT m1.Id FROM Members m1
+                WHERE EXISTS (SELECT 1 FROM Posts p WHERE p.CreatedById = m1.Id)
+                   OR EXISTS (SELECT 1 FROM ActivityRegistrations ar WHERE ar.MemberId = m1.Id)
+                   OR EXISTS (SELECT 1 FROM Likes l WHERE l.CreatedById = m1.Id)
+                LIMIT 500
+            ").ToListAsync();
 
-            for (int i = 0; i < memberIds.Count; i++)
+            var trainingData = new List<FriendData>();
+            
+            foreach (var user1 in interactingUsers)
             {
-                for (int j = i + 1; j < memberIds.Count; j++)
+                var potentialConnections = await _context.Database.SqlQueryRaw<int>(@"
+                    SELECT DISTINCT 
+                        CASE WHEN f.RequesterId = {0} THEN f.ResponderId ELSE f.RequesterId END as ConnectedUserId
+                    FROM Friendships f 
+                    WHERE (f.RequesterId = {0} OR f.ResponderId = {0}) AND f.Status = 1
+                    UNION
+                    SELECT DISTINCT ar2.MemberId 
+                    FROM ActivityRegistrations ar1 
+                    INNER JOIN ActivityRegistrations ar2 ON ar1.ActivityId = ar2.ActivityId 
+                    WHERE ar1.MemberId = {0} AND ar2.MemberId != {0}
+                    LIMIT 50
+                ", user1).ToListAsync();
+                
+                foreach (var user2 in potentialConnections.Take(20))
                 {
-                    var similarityScore = await CalculateUserSimilarityAsync(memberIds[i], memberIds[j]);
-                    var scaledLabel = Math.Max(0.01f, similarityScore);
-                    trainingData.Add(new FriendData { UserId = memberIds[i], OtherUserId = memberIds[j], Label = scaledLabel });
-                    trainingData.Add(new FriendData { UserId = memberIds[j], OtherUserId = memberIds[i], Label = scaledLabel });
+                    var similarity = await CalculateUserSimilarityAsync(user1, user2);
+                    trainingData.Add(new FriendData { 
+                        UserId = user1, 
+                        OtherUserId = user2, 
+                        Label = Math.Max(0.01f, similarity)
+                    });
                 }
             }
-
+            
             return trainingData;
         }
 
@@ -441,9 +495,42 @@ namespace ScoutTrack.Services
             }
         }
 
+        private PredictionEngine<FriendData, FriendPrediction>? GetPredictionEngine()
+        {
+            lock (_predictionEngineLock)
+            {
+                if (_cachedPredictionEngine == null || DateTime.Now - _lastPredictionEngineCreation > _predictionEngineLifetime)
+                {
+                    _cachedPredictionEngine?.Dispose();
+                    _cachedPredictionEngine = _model != null
+                        ? _mlContext.Model.CreatePredictionEngine<FriendData, FriendPrediction>(_model)
+                        : null;
+                    _lastPredictionEngineCreation = DateTime.Now;
+                }
+                return _cachedPredictionEngine;
+            }
+        }
+
+        private (int iterations, int rank) GetOptimalTrainingParams()
+        {
+            var userCount = _context.Members.Count();
+            return userCount switch
+            {
+                < 100 => (30, 8),
+                < 500 => (40, 16),
+                < 2000 => (50, 32),
+                < 10000 => (60, 64),
+                _ => (80, 128)
+            };
+        }
+
         public async Task RetrainModelAsync()
         {
-            _model = null;
+            lock (_predictionEngineLock)
+            {
+                _model = null;
+                _cachedPredictionEngine = null;
+            }
             await TrainModelAsync();
         }
 
