@@ -54,24 +54,6 @@ namespace ScoutTrack.WebAPI.Controllers
             return await base.Delete(id);
         }
 
-        [HttpPatch("{id}/de-activate")]
-        [Authorize(Roles = "Admin,Troop")]
-        public async Task<IActionResult> DeActivate(int id)
-        {
-            if (_authService.IsInRole(User, "Troop"))
-            {
-                if (_authService.GetUserId(User) != id)
-                {
-                    return Forbid();
-                }
-            }
-
-            var result = await _troopService.DeActivateAsync(id);
-            if (result == null)
-                return NotFound();
-            return Ok(result);
-        }
-
         [HttpPatch("{id}/change-password")]
         [Authorize(Roles = "Troop")]
         public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request)

@@ -73,7 +73,7 @@ namespace ScoutTrack.Services.Services
             return await state.RejectAsync(id);
         }
 
-        public async Task<ActivityRegistrationResponse> CancelAsync(int id)
+        public async Task<bool> CancelAsync(int id)
         {
             var entity = await _context.ActivityRegistrations
                 .Include(ar => ar.Activity)
@@ -86,8 +86,9 @@ namespace ScoutTrack.Services.Services
             if (entity == null)
                 throw new UserException("Activity registration not found.");
 
-            var state = _baseActivityRegistrationState.GetActivityRegistrationState(GetStateNameFromStatus(entity.Status));
-            return await state.CancelAsync(id);
+            _context.ActivityRegistrations.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<ActivityRegistrationResponse> CompleteAsync(int id)
@@ -212,7 +213,7 @@ namespace ScoutTrack.Services.Services
             return await RejectAsync(id);
         }
 
-        public async Task<ActivityRegistrationResponse> CancelForUserAsync(ClaimsPrincipal user, int id)
+        public async Task<bool> CancelForUserAsync(ClaimsPrincipal user, int id)
         {
             if (!await _accessControlService.CanCancelActivityRegistrationAsync(user, id))
             {
@@ -283,7 +284,6 @@ namespace ScoutTrack.Services.Services
                 Common.Enums.RegistrationStatus.Pending => nameof(PendingActivityRegistrationState),
                 Common.Enums.RegistrationStatus.Approved => nameof(ApprovedActivityRegistrationState),
                 Common.Enums.RegistrationStatus.Rejected => nameof(RejectedActivityRegistrationState),
-                Common.Enums.RegistrationStatus.Cancelled => nameof(CancelledActivityRegistrationState),
                 Common.Enums.RegistrationStatus.Completed => nameof(CompletedActivityRegistrationState),
                 _ => throw new Exception($"Unknown registration status: {status}")
             };

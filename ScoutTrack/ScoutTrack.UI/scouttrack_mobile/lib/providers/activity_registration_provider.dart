@@ -73,7 +73,7 @@ class ActivityRegistrationProvider
     }
   }
 
-  Future<ActivityRegistration> cancelRegistration(int id) async {
+  Future<bool> cancelRegistration(int id) async {
     try {
       return await handleWithRefresh(() async {
         final headers = await createHeaders();
@@ -82,20 +82,12 @@ class ActivityRegistrationProvider
           headers: headers,
         );
 
-        if (isValidResponse(response)) {
-          try {
-            if (response.body.isEmpty) {
-              throw Exception("Prazan odgovor od servera.");
-            }
-            final data = jsonDecode(response.body);
-            return fromJson(data);
-          } catch (e) {
-            print('JSON decode error in cancelRegistration(): $e');
-            print('Response body: ${response.body}');
-            throw Exception("Greška pri parsiranju podataka od servera.");
-          }
+        if (response.statusCode == 204) {
+          return true;
+        } else if (response.statusCode == 404) {
+          throw Exception("Registracija nije pronađena.");
         } else {
-          throw Exception("Nepoznata greška.");
+          throw Exception("Greška pri otkazivanju registracije.");
         }
       });
     } catch (e) {

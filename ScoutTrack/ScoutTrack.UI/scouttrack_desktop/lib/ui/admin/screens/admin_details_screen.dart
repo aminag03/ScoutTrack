@@ -467,11 +467,6 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
                   Icons.person_outline,
                 ),
                 UIComponents.buildDetailRow(
-                  'Aktivan',
-                  _admin.isActive ? 'Da' : 'Ne',
-                  _admin.isActive ? Icons.check_circle : Icons.block,
-                ),
-                UIComponents.buildDetailRow(
                   'Kreiran',
                   formatDateTime(_admin.createdAt),
                   Icons.date_range,

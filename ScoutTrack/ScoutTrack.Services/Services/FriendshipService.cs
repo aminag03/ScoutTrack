@@ -550,7 +550,7 @@ namespace ScoutTrack.Services
         {
             try
             {
-                var activeUsers = await _context.Members.Where(m => m.IsActive)
+                var activeUsers = await _context.Members
                     .Select(m => new { m.Id, ActivityScore = (m.ActivityRegistrations.Count(ar => ar.Status == RegistrationStatus.Approved)) * 2.0f +
                         m.Posts.Count() * 1.5f + m.Comments.Count() * 1.0f + m.Likes.Count() * 0.5f + m.Reviews.Count() * 1.2f })
                     .OrderByDescending(x => x.ActivityScore).Take(maxUsers).Select(x => x.Id).ToListAsync();

@@ -125,12 +125,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   0,
                   1,
                   2,
-                  3,
-                ], // Pending, Approved, Rejected, Cancelled (exclude Completed)
+                ], // Pending, Approved, Rejected (exclude Completed)
                 pageSize: 1000,
               );
           _allRegistrations = (registrationsResult.items ?? [])
-              .where((registration) => registration.status != 4)
+              .where((registration) => registration.status != 3)
               .toList();
         }
       } else if (widget.showAllAvailableActivities) {
@@ -154,7 +153,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           final memberRegistrationsResult = await registrationProvider
               .getMemberRegistrations(
                 memberId: widget.memberId!,
-                statuses: [0, 1, 2, 3, 4],
+                statuses: [0, 1, 2, 3],
                 pageSize: 1000,
               );
 
@@ -175,12 +174,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final userRegistrationsResult = await registrationProvider
             .getMemberRegistrations(
               memberId: _currentUserId,
-              statuses: [
-                0,
-                1,
-                2,
-                3,
-              ],
+              statuses: [0, 1, 2, 3],
               pageSize: 1000,
             );
 
@@ -212,7 +206,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     setState(() {
       if (widget.showMyRegistrations) {
         _filteredRegistrations = _allRegistrations.where((registration) {
-          if (registration.status == 4) {
+          if (registration.status == 3) {
             return false;
           }
 
@@ -319,10 +313,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   return registration != null && registration.status == 1;
                 case 'Odbijen':
                   return registration != null && registration.status == 2;
-                case 'Otkazan':
-                  return registration != null && registration.status == 3;
                 case 'Aktivnost završena':
-                  return registration != null && registration.status == 4;
+                  return registration != null && registration.status == 3;
                 default:
                   return true;
               }
@@ -1068,12 +1060,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
         break;
-      case 3: // Cancelled
-        statusText = 'Prijava otkazana';
-        statusColor = Colors.grey;
-        statusIcon = Icons.block;
-        break;
-      case 4: // Completed
+      case 3: // Completed
         statusText = 'Prisustvovao/la si';
         statusColor = Colors.blue;
         statusIcon = Icons.done_all;
@@ -1178,7 +1165,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Nakon otkazivanja nećete moći ponovo se prijaviti za ovu aktivnost.',
+                      'Vaša prijava će biti obrisana. Možete se ponovo prijaviti ako želite.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.orange[700],
@@ -1210,26 +1197,23 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final registrationProvider = ActivityRegistrationProvider(authProvider);
 
-        final cancelledRegistration = await registrationProvider
-            .cancelRegistration(registration.id);
+        final success = await registrationProvider.cancelRegistration(
+          registration.id,
+        );
 
-        setState(() {
-          final registrationIndex = _allRegistrations.indexWhere(
-            (r) => r.id == registration.id,
-          );
-          if (registrationIndex != -1) {
-            _allRegistrations[registrationIndex] = cancelledRegistration;
+        if (success) {
+          setState(() {
+            _allRegistrations.removeWhere((r) => r.id == registration.id);
+            _userRegistrations.remove(registration.activityId);
+          });
+          _applyFilters();
+
+          if (mounted) {
+            SnackBarUtils.showSuccessSnackBar(
+              'Prijava je uspješno otkazana',
+              context: context,
+            );
           }
-
-          _userRegistrations[registration.activityId] = cancelledRegistration;
-        });
-        _applyFilters();
-
-        if (mounted) {
-          SnackBarUtils.showSuccessSnackBar(
-            'Prijava je uspješno otkazana',
-            context: context,
-          );
         }
       } catch (e) {
         if (mounted) {
@@ -1305,12 +1289,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           statusColor = Colors.red;
           statusIcon = Icons.cancel;
           break;
-        case 3: // Cancelled
-          statusText = 'Prijava otkazana';
-          statusColor = Colors.grey;
-          statusIcon = Icons.block;
-          break;
-        case 4: // Completed
+        case 3: // Completed
           statusText = 'Prisustvovao/la je';
           statusColor = Colors.blue;
           statusIcon = Icons.done_all;

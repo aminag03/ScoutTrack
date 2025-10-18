@@ -18,7 +18,6 @@ namespace ScoutTrack.Model.Responses
         public DateTime FoundingDate { get; set; }
         public string ContactPhone { get; set; } = string.Empty;
         public string LogoUrl { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }

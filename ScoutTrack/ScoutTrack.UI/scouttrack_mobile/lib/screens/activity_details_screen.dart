@@ -151,7 +151,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final registrationProvider = ActivityRegistrationProvider(authProvider);
         final registrations = await registrationProvider.getMemberRegistrations(
           memberId: userInfo['id'],
-          statuses: [4], // Completed status
+          statuses: [3], // Completed status
         );
 
         final hasCompletedRegistration =
@@ -243,7 +243,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final registrationProvider = ActivityRegistrationProvider(authProvider);
         final registrations = await registrationProvider.getMemberRegistrations(
           memberId: userInfo['id'],
-          statuses: [4], // Completed status
+          statuses: [3], // Completed status
         );
 
         final hasCompletedRegistration =

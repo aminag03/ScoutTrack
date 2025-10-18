@@ -21,7 +21,6 @@ namespace ScoutTrack.Model.Responses
         public string TroopName { get; set; } = string.Empty;
         public int CityId { get; set; }
         public string CityName { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }

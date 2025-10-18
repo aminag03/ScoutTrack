@@ -46,11 +46,6 @@ namespace ScoutTrack.Services.Services.ActivityRegistrationStateMachine
             throw new UserException("Not allowed");
         }
 
-        public virtual async Task<ActivityRegistrationResponse> CancelAsync(int id)
-        {
-            throw new UserException("Not allowed");
-        }
-
         public virtual async Task<ActivityRegistrationResponse> CompleteAsync(int id)
         {
             throw new UserException("Not allowed");
@@ -74,11 +69,6 @@ namespace ScoutTrack.Services.Services.ActivityRegistrationStateMachine
                     var rejectedState = _serviceProvider.GetService<RejectedActivityRegistrationState>();
                     if (rejectedState == null) throw new Exception($"State {stateName} is not registered in DI container.");
                     return rejectedState;
-                    
-                case nameof(CancelledActivityRegistrationState):
-                    var cancelledState = _serviceProvider.GetService<CancelledActivityRegistrationState>();
-                    if (cancelledState == null) throw new Exception($"State {stateName} is not registered in DI container.");
-                    return cancelledState;
                     
                 case nameof(CompletedActivityRegistrationState):
                     var completedState = _serviceProvider.GetService<CompletedActivityRegistrationState>();

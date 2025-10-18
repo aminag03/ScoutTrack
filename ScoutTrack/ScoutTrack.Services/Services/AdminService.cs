@@ -118,14 +118,13 @@ namespace ScoutTrack.Services
             var currentYear = year ?? now.Year;
             var timePeriod = timePeriodDays ?? 30;
 
-            var troopCount = await _context.Troops.CountAsync(t => t.IsActive);
-            var memberCount = await _context.Members.CountAsync(m => m.IsActive);
+            var troopCount = await _context.Troops.CountAsync();
+            var memberCount = await _context.Members.CountAsync();
             var activityCount = await _context.Activities.CountAsync(a => a.ActivityState == "FinishedActivityState");
             var postCount = await _context.Posts.CountAsync();
 
             var timePeriodStart = now.AddDays(-timePeriod);
             var mostActiveTroops = await _context.Troops
-                .Where(t => t.IsActive)
                 .Select(t => new
                 {
                     Troop = t,
@@ -200,12 +199,12 @@ namespace ScoutTrack.Services
                 });
             }
 
-            var totalMembers = await _context.Members.CountAsync(m => m.IsActive);
+            var totalMembers = await _context.Members.CountAsync();
             var scoutCategoriesData = await _context.Categories
                 .Select(c => new
                 {
                     Category = c,
-                    MemberCount = _context.Members.Count(m => m.CategoryId == c.Id && m.IsActive)
+                    MemberCount = _context.Members.Count(m => m.CategoryId == c.Id)
                 })
                 .Where(x => x.MemberCount > 0)
                 .ToListAsync();

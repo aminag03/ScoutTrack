@@ -56,7 +56,6 @@ builder.Services.AddTransient<BaseActivityRegistrationState>();
 builder.Services.AddTransient<PendingActivityRegistrationState>();
 builder.Services.AddTransient<ApprovedActivityRegistrationState>();
 builder.Services.AddTransient<RejectedActivityRegistrationState>();
-builder.Services.AddTransient<CancelledActivityRegistrationState>();
 builder.Services.AddTransient<CompletedActivityRegistrationState>();
 
 

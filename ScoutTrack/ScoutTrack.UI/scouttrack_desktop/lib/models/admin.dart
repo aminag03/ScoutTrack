@@ -8,7 +8,6 @@ class Admin {
   final String username;
   final String email;
   final String fullName;
-  final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? lastLoginAt;
@@ -18,7 +17,6 @@ class Admin {
     this.username = '',
     this.email = '',
     this.fullName = '',
-    this.isActive = false,
     required this.createdAt,
     this.updatedAt,
     this.lastLoginAt,

@@ -172,69 +172,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
     }
   }
 
-  Future<void> _toggleActivation() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_member.isActive ? 'Deaktivacija' : 'Aktivacija'),
-        content: Text(
-          _member.isActive
-              ? 'Da li ste sigurni da želite deaktivirati ovog člana?'
-              : 'Da li ste sigurni da želite aktivirati ovog člana?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Potvrdi'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
-
-    try {
-      final memberProvider = Provider.of<MemberProvider>(
-        context,
-        listen: false,
-      );
-      final updatedMember = await memberProvider.activate(_member.id);
-
-      if (mounted) {
-        setState(() {
-          _member = updatedMember;
-        });
-      }
-
-      if (context.mounted) {
-        showSuccessSnackbar(
-          context,
-          _member.isActive
-              ? 'Član je uspješno aktiviran.'
-              : 'Član je uspješno deaktiviran.',
-        );
-      }
-    } catch (e) {
-      if (context.mounted) showErrorSnackbar(context, e);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   Future<bool> _onEdit() async {
     final _formKey = GlobalKey<FormState>();
     final TextEditingController firstNameController = TextEditingController(
@@ -1440,18 +1377,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                                     ? Colors.blue
                                                     : Colors.pink,
                                               ),
-                                              const SizedBox(width: 16),
-                                              UIComponents.buildInfoChip(
-                                                _member.isActive
-                                                    ? 'Aktivan'
-                                                    : 'Neaktivan',
-                                                _member.isActive
-                                                    ? Icons.check_circle
-                                                    : Icons.block,
-                                                color: _member.isActive
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                              ),
                                             ],
                                           ),
                                         ],
@@ -1509,38 +1434,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                                 onPressed:
                                                     _showChangePasswordDialog,
                                               ),
-                                            const SizedBox(height: 16),
-                                            ElevatedButton.icon(
-                                              icon: Icon(
-                                                _member.isActive
-                                                    ? Icons.block
-                                                    : Icons.check_circle,
-                                              ),
-                                              label: Text(
-                                                _member.isActive
-                                                    ? 'Deaktiviraj'
-                                                    : 'Aktiviraj',
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                minimumSize: const Size(
-                                                  180,
-                                                  48,
-                                                ),
-                                                backgroundColor:
-                                                    _member.isActive
-                                                    ? Colors.red
-                                                    : Colors.green,
-                                                foregroundColor: Colors.white,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                      vertical: 12,
-                                                    ),
-                                              ),
-                                              onPressed: _isLoading
-                                                  ? null
-                                                  : _toggleActivation,
-                                            ),
                                           ],
                                         ),
                                     ],
@@ -2267,8 +2160,6 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
       case 2:
         return 'Odbijeno';
       case 3:
-        return 'Otkazano';
-      case 4:
         return 'Završeno';
       default:
         return 'Nepoznato';
@@ -2811,8 +2702,6 @@ class _HoverableActivityCardState extends State<_HoverableActivityCard> {
       case 2:
         return Colors.red; // Rejected
       case 3:
-        return Colors.grey; // Cancelled
-      case 4:
         return Colors.blue; // Completed
       default:
         return Colors.grey;
@@ -2828,8 +2717,6 @@ class _HoverableActivityCardState extends State<_HoverableActivityCard> {
       case 2:
         return Icons.cancel; // Rejected
       case 3:
-        return Icons.block; // Cancelled
-      case 4:
         return Icons.done_all; // Completed
       default:
         return Icons.help;
@@ -2845,8 +2732,6 @@ class _HoverableActivityCardState extends State<_HoverableActivityCard> {
       case 2:
         return 'Odbijeno';
       case 3:
-        return 'Otkazano';
-      case 4:
         return 'Završeno';
       default:
         return 'Nepoznato';

@@ -17,7 +17,6 @@ Troop _$TroopFromJson(Map<String, dynamic> json) => Troop(
   longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
   contactPhone: json['contactPhone'] as String? ?? '',
   logoUrl: json['logoUrl'] as String? ?? '',
-  isActive: json['isActive'] as bool? ?? false,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: json['updatedAt'] == null
       ? null
@@ -42,7 +41,6 @@ Map<String, dynamic> _$TroopToJson(Troop instance) => <String, dynamic>{
   'longitude': instance.longitude,
   'contactPhone': instance.contactPhone,
   'logoUrl': instance.logoUrl,
-  'isActive': instance.isActive,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
   'lastLoginAt': instance.lastLoginAt?.toIso8601String(),

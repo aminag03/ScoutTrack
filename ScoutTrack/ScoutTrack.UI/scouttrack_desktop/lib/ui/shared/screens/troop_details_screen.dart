@@ -108,60 +108,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     }
   }
 
-  Future<void> _toggleActivation() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_troop.isActive ? 'Deaktivacija' : 'Aktivacija'),
-        content: Text(
-          _troop.isActive
-              ? 'Da li ste sigurni da želite deaktivirati ovaj odred?'
-              : 'Da li ste sigurni da želite aktivirati ovaj odred?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Potvrdi'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final troopProvider = Provider.of<TroopProvider>(context, listen: false);
-      final updatedTroop = await troopProvider.activate(_troop.id);
-
-      setState(() {
-        _troop = updatedTroop;
-      });
-
-      if (context.mounted) {
-        showSuccessSnackbar(
-          context,
-          _troop.isActive
-              ? 'Odred je uspješno aktiviran.'
-              : 'Odred je uspješno deaktiviran.',
-        );
-      }
-    } catch (e) {
-      if (context.mounted) showErrorSnackbar(context, e);
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<bool> _onEdit() async {
     if (_isCitiesLoading) {
       showErrorSnackbar(context, 'Molimo sačekajte da se učitaju gradovi...');
@@ -1292,18 +1238,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                           'Članovi: ${_troop.memberCount}',
                                           Icons.people,
                                         ),
-                                        const SizedBox(width: 16),
-                                        UIComponents.buildInfoChip(
-                                          _troop.isActive
-                                              ? 'Aktivan'
-                                              : 'Neaktivan',
-                                          _troop.isActive
-                                              ? Icons.check_circle
-                                              : Icons.block,
-                                          color: _troop.isActive
-                                              ? Colors.green
-                                              : Colors.red,
-                                        ),
                                       ],
                                     ),
                                   ],
@@ -1365,35 +1299,6 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
                                           ),
                                           onPressed: _showChangePasswordDialog,
                                         ),
-                                      if (isAdmin) ...[
-                                        const SizedBox(height: 16),
-                                        ElevatedButton.icon(
-                                          icon: Icon(
-                                            _troop.isActive
-                                                ? Icons.block
-                                                : Icons.check_circle,
-                                          ),
-                                          label: Text(
-                                            _troop.isActive
-                                                ? 'Deaktiviraj'
-                                                : 'Aktiviraj',
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            minimumSize: const Size(180, 48),
-                                            backgroundColor: _troop.isActive
-                                                ? Colors.red
-                                                : Colors.green,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 12,
-                                            ),
-                                          ),
-                                          onPressed: _isLoading
-                                              ? null
-                                              : _toggleActivation,
-                                        ),
-                                      ],
                                     ],
                                   ),
                               ],

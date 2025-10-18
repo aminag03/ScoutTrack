@@ -20,7 +20,6 @@ class Member {
   final String troopName;
   final int cityId;
   final String cityName;
-  final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? lastLoginAt;
@@ -42,7 +41,6 @@ class Member {
     this.troopName = '',
     this.cityId = 0,
     this.cityName = '',
-    this.isActive = false,
     required this.createdAt,
     this.updatedAt,
     this.lastLoginAt,

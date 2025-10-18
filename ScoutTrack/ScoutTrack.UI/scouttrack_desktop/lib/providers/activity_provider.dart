@@ -229,4 +229,21 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       }
     });
   }
+
+  Future<bool> cleanupPendingAndRejectedRegistrations(int id) async {
+    return await handleWithRefresh(() async {
+      final uri = Uri.parse(
+        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/cleanup-registrations",
+      );
+
+      final response = await http.delete(uri, headers: await createHeaders());
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        handleHttpError(response);
+        return false;
+      }
+    });
+  }
 }

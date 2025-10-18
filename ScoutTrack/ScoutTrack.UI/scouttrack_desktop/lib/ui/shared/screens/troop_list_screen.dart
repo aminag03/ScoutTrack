@@ -550,12 +550,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     child: Text('BROJ ČLANOVA'),
                   ),
                 ),
-                DataColumn(
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('AKTIVAN'),
-                  ),
-                ),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
                 DataColumn(label: Text('')),
@@ -597,14 +591,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(troop.memberCount.toString()),
-                      ),
-                    ),
-                    DataCell(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: troop.isActive
-                            ? const Icon(Icons.check, color: Colors.green)
-                            : const Icon(Icons.close, color: Colors.red),
                       ),
                     ),
                     if (_role == 'Admin') ...[

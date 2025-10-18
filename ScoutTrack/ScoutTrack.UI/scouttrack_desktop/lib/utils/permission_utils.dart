@@ -19,7 +19,7 @@ class PermissionUtils {
 
     if (userRole == 'Member') {
       final registration = registrations.firstWhere(
-        (r) => r.memberId == userId && r.status == 4, // 4 = Completed status
+        (r) => r.memberId == userId && r.status == 3, // 3 = Completed status
         orElse: () => ActivityRegistration(
           id: 0,
           activityId: 0,

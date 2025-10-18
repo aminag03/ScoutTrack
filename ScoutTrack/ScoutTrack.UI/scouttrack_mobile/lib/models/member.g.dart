@@ -23,7 +23,6 @@ Member _$MemberFromJson(Map<String, dynamic> json) => Member(
   troopName: json['troopName'] as String? ?? '',
   cityId: (json['cityId'] as num?)?.toInt() ?? 0,
   cityName: json['cityName'] as String? ?? '',
-  isActive: json['isActive'] as bool? ?? false,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: json['updatedAt'] == null
       ? null
@@ -50,7 +49,6 @@ Map<String, dynamic> _$MemberToJson(Member instance) => <String, dynamic>{
   'troopName': instance.troopName,
   'cityId': instance.cityId,
   'cityName': instance.cityName,
-  'isActive': instance.isActive,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),
   'lastLoginAt': instance.lastLoginAt?.toIso8601String(),

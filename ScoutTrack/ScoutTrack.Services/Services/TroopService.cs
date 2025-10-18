@@ -327,21 +327,6 @@ namespace ScoutTrack.Services
             }
         }
 
-        public async Task<TroopResponse?> DeActivateAsync(int id)
-        {
-            var troop = await _context.Set<Troop>().FindAsync(id);
-            if (troop == null)
-                return null;
-
-            if (!troop.IsActive)
-                troop.IsActive = true;
-            else
-                troop.IsActive = false;
-
-            await _context.SaveChangesAsync();
-            return MapToResponse(troop);
-        }
-
         public async Task<TroopResponse?> UpdateLogoAsync(int id, string? logoUrl)
         {
             var entity = await _context.Troops.FindAsync(id);
@@ -391,7 +376,7 @@ namespace ScoutTrack.Services
             var currentYear = year ?? now.Year;
             var timePeriod = timePeriodDays ?? 30;
 
-            var memberCount = await _context.Members.CountAsync(m => m.TroopId == troopId && m.IsActive);
+            var memberCount = await _context.Members.CountAsync(m => m.TroopId == troopId);
 
             var pendingRegistrationCount = await _context.ActivityRegistrations
                 .Where(ar => ar.Activity.TroopId == troopId && ar.Status == RegistrationStatus.Pending)
@@ -421,7 +406,7 @@ namespace ScoutTrack.Services
 
             var timePeriodStart = now.AddDays(-timePeriod);
             var mostActiveMembers = await _context.Members
-                .Where(m => m.TroopId == troopId && m.IsActive)
+                .Where(m => m.TroopId == troopId)
                 .Select(m => new
                 {
                     Member = m,
@@ -524,7 +509,6 @@ namespace ScoutTrack.Services
                 ScoutMaster = entity.ScoutMaster,
                 TroopLeader = entity.TroopLeader,
                 FoundingDate = entity.FoundingDate,
-                IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 LastLoginAt = entity.LastLoginAt,

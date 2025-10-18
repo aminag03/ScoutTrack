@@ -93,10 +93,13 @@ namespace ScoutTrack.WebAPI.Controllers
         }
 
         [HttpPost("{id}/cancel")]
-        public async Task<ActionResult<ActivityRegistrationResponse>> Cancel(int id)
+        public async Task<IActionResult> Cancel(int id)
         {
             var result = await _activityRegistrationService.CancelAsync(id);
-            return Ok(result);
+            if (!result)
+                return NotFound();
+
+            return NoContent();
         }
 
         [HttpPost("{id}/complete")]

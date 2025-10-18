@@ -307,21 +307,6 @@ namespace ScoutTrack.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<MemberResponse?> DeActivateAsync(int id)
-        {
-            var member = await _context.Set<Member>().FindAsync(id);
-            if (member == null)
-                return null;
-
-            if (!member.IsActive)
-                member.IsActive = true;
-            else
-                member.IsActive = false;
-
-            await _context.SaveChangesAsync();
-            return MapToResponse(member);
-        }
-
         public async Task<bool?> ChangePasswordAsync(int id, ChangePasswordRequest request)
         {
             var entity = await _context.Members.FindAsync(id);
@@ -517,7 +502,6 @@ namespace ScoutTrack.Services
                 TroopName = entity.Troop?.Name ?? string.Empty,
                 CityId = entity.CityId,
                 CityName = entity.City?.Name ?? string.Empty,
-                IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 LastLoginAt = entity.LastLoginAt,

@@ -1020,25 +1020,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: null,
-                                        icon: const Icon(
-                                          Icons.auto_awesome,
-                                          size: 16,
-                                        ),
-                                        label: const Text('AI prijedlog'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.grey,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),

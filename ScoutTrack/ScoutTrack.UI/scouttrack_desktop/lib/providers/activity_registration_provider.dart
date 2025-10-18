@@ -109,7 +109,7 @@ class ActivityRegistrationProvider
     });
   }
 
-  Future<ActivityRegistration> cancel(int id) async {
+  Future<bool> cancel(int id) async {
     return await handleWithRefresh(() async {
       final headers = await createHeaders();
       final response = await http.post(
@@ -119,11 +119,12 @@ class ActivityRegistrationProvider
         headers: headers,
       );
 
-      if (isValidResponse(response)) {
-        final data = jsonDecode(response.body);
-        return fromJson(data);
+      if (response.statusCode == 204) {
+        return true;
+      } else if (response.statusCode == 404) {
+        throw Exception("Registracija nije pronađena.");
       } else {
-        throw Exception("Nepoznata greška.");
+        throw Exception("Greška pri otkazivanju registracije.");
       }
     });
   }

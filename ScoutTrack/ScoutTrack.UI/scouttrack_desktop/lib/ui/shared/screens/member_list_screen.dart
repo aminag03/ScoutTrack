@@ -1810,12 +1810,6 @@ class _MemberListScreenState extends State<MemberListScreen>
                       child: Text('KATEGORIJA'),
                     ),
                   ),
-                  DataColumn(
-                    label: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('AKTIVAN'),
-                    ),
-                  ),
                   DataColumn(label: Text('')),
                   DataColumn(label: Text('')),
                   DataColumn(label: Text('')),
@@ -1876,14 +1870,6 @@ class _MemberListScreenState extends State<MemberListScreen>
                                 ? member.categoryName
                                 : '-',
                           ),
-                        ),
-                      ),
-                      DataCell(
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: member.isActive
-                              ? const Icon(Icons.check, color: Colors.green)
-                              : const Icon(Icons.close, color: Colors.red),
                         ),
                       ),
                       DataCell(

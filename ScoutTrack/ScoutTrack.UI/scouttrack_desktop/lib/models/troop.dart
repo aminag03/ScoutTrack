@@ -14,7 +14,6 @@ class Troop {
   final double longitude;
   final String contactPhone;
   final String logoUrl;
-  final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? lastLoginAt;
@@ -34,7 +33,6 @@ class Troop {
     this.longitude = 0,
     this.contactPhone = '',
     this.logoUrl = '',
-    this.isActive = false,
     required this.createdAt,
     this.updatedAt,
     this.lastLoginAt,

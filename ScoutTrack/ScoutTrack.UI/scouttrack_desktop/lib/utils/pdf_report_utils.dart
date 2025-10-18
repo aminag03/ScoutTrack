@@ -816,7 +816,6 @@ class PdfReportUtils {
         'Datum rodjenja',
         'Spol',
         'Kategorija',
-        'Aktivan',
         'Vrijeme kreiranja',
       ],
       data: members
@@ -834,7 +833,6 @@ class PdfReportUtils {
               _convertToAscii(
                 member.categoryName.isNotEmpty ? member.categoryName : '-',
               ),
-              member.isActive ? 'Da' : 'Ne',
               formatDateTime(member.createdAt),
             ],
           )
@@ -888,7 +886,6 @@ class PdfReportUtils {
         'Grad',
         'Broj clanova',
         'Datum osnivanja',
-        'Aktivan',
         'Vrijeme kreiranja',
       ],
       data: troops
@@ -900,7 +897,6 @@ class PdfReportUtils {
               _convertToAscii(troop.cityName.isNotEmpty ? troop.cityName : '-'),
               '${troop.memberCount}',
               formatDate(troop.foundingDate),
-              troop.isActive ? 'Da' : 'Ne',
               formatDateTime(troop.createdAt),
             ],
           )

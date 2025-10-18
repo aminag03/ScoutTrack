@@ -11,7 +11,6 @@ namespace ScoutTrack.Common.Enums
         Pending,    // Registration is pending approval
         Approved,   // Registration has been approved
         Rejected,   // Registration has been rejected
-        Cancelled,  // Registration has been cancelled by the member
         Completed   // Registration is completed (e.g., for past activities)
     }
 }

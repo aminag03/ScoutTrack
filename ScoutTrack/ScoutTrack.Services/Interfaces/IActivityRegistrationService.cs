@@ -14,13 +14,13 @@ namespace ScoutTrack.Services.Interfaces
     {
         Task<ActivityRegistrationResponse> ApproveAsync(int id);
         Task<ActivityRegistrationResponse> RejectAsync(int id);
-        Task<ActivityRegistrationResponse> CancelAsync(int id);
+        Task<bool> CancelAsync(int id);
         Task<ActivityRegistrationResponse> CompleteAsync(int id);
         Task<PagedResult<ActivityRegistrationResponse>> GetForUserAsync(ClaimsPrincipal user, ActivityRegistrationSearchObject search);
         Task<ActivityRegistrationResponse> CreateForUserAsync(ClaimsPrincipal user, ActivityRegistrationUpsertRequest request);
         Task<ActivityRegistrationResponse> ApproveForUserAsync(ClaimsPrincipal user, int id);
         Task<ActivityRegistrationResponse> RejectForUserAsync(ClaimsPrincipal user, int id);
-        Task<ActivityRegistrationResponse> CancelForUserAsync(ClaimsPrincipal user, int id);
+        Task<bool> CancelForUserAsync(ClaimsPrincipal user, int id);
         Task<ActivityRegistrationResponse> CompleteForUserAsync(ClaimsPrincipal user, int id);
         Task<ActivityRegistrationResponse?> GetByIdForUserAsync(ClaimsPrincipal user, int id);
         Task<ActivityRegistrationResponse> UpdateForUserAsync(ClaimsPrincipal user, int id, ActivityRegistrationUpsertRequest request);

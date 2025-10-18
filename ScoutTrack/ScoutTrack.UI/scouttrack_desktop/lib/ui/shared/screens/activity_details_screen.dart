@@ -1587,14 +1587,35 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                     DropdownMenuItem<int>(value: 0, child: Text('Na čekanju')),
                     DropdownMenuItem<int>(value: 1, child: Text('Odobreno')),
                     DropdownMenuItem<int>(value: 2, child: Text('Odbijeno')),
-                    DropdownMenuItem<int>(value: 3, child: Text('Otkazano')),
-                    DropdownMenuItem<int>(value: 4, child: Text('Završeno')),
+                    DropdownMenuItem<int>(value: 3, child: Text('Završeno')),
                   ],
                   onChanged: _onStatusFilterChanged,
                 ),
               ),
             ],
           ),
+          if (_activity?.activityState == 'FinishedActivityState' &&
+              _canManageRegistrations) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _onCleanupRegistrations,
+                  icon: const Icon(Icons.cleaning_services, size: 18),
+                  label: const Text('Obriši odbijene i prijave na čekanju'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Expanded(
             child: Container(
@@ -1752,8 +1773,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       0: {'text': 'Na čekanju', 'color': Colors.orange},
       1: {'text': 'Odobreno', 'color': Colors.green},
       2: {'text': 'Odbijeno', 'color': Colors.red},
-      3: {'text': 'Otkazano', 'color': Colors.grey},
-      4: {'text': 'Završeno', 'color': Colors.blue},
+      3: {'text': 'Završeno', 'color': Colors.blue},
     };
 
     final data =
@@ -2007,6 +2027,65 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         showSuccessSnackbar(
           context,
           'Registracija za ${registration.memberName} je obrisana.',
+        );
+      } catch (e) {
+        showErrorSnackbar(context, e);
+      }
+    }
+  }
+
+  Future<void> _onCleanupRegistrations() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Očisti registracije'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jeste li sigurni da želite obrisati sve prijave na čekanju i odbijene prijave za ovu aktivnost?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text('Posljedice:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Sve prijave na čekanju će biti obrisane'),
+            Text('• Sve odbijene prijave će biti obrisane'),
+            Text('• Završene prijave će ostati'),
+            Text('• Ova akcija je nepovratna'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('Očisti'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _activityProvider.cleanupPendingAndRejectedRegistrations(
+          _activity!.id,
+        );
+        await _refreshActivity();
+        await _loadRegistrations();
+        showSuccessSnackbar(
+          context,
+          'Prijave na čekanju i odbijene prijave su uspješno obrisane.',
         );
       } catch (e) {
         showErrorSnackbar(context, e);

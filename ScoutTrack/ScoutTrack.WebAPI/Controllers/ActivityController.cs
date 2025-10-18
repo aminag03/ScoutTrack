@@ -298,5 +298,28 @@ namespace ScoutTrack.WebAPI.Controllers
             }
             return await _activityService.ReactivateAsync(id);
         }
+
+        [HttpDelete("{id}/cleanup-registrations")]
+        [Authorize(Roles = "Admin,Troop")]
+        public virtual async Task<IActionResult> CleanupPendingAndRejectedRegistrationsAsync(int id)
+        {
+            if (_authService.IsInRole(User, "Troop"))
+            {
+                if (!await _accessControlService.CanTroopAccessActivityAsync(User, id))
+                {
+                    return Forbid();
+                }
+            }
+
+            try
+            {
+                var result = await _activityService.CleanupPendingAndRejectedRegistrationsAsync(id);
+                return Ok(new { success = result, message = "Registrations cleaned up successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 } 

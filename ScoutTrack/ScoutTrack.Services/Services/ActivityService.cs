@@ -442,17 +442,6 @@ namespace ScoutTrack.Services
 
             var result = await registrationsClosedState.FinishAsync(id);
 
-            var registrationsToDelete = await _context.ActivityRegistrations
-                .Where(ar => ar.ActivityId == id && (ar.Status == Common.Enums.RegistrationStatus.Pending 
-                || ar.Status == Common.Enums.RegistrationStatus.Rejected || ar.Status == Common.Enums.RegistrationStatus.Cancelled))
-                .ToListAsync();
-
-            if (registrationsToDelete.Any())
-            {
-                _context.ActivityRegistrations.RemoveRange(registrationsToDelete);
-                await _context.SaveChangesAsync();
-            }
-
             return result;
         }
 
@@ -540,6 +529,31 @@ namespace ScoutTrack.Services
             }
 
             throw new UserException("Invalid state for reactivation.");
+        }
+
+        public async Task<bool> CleanupPendingAndRejectedRegistrationsAsync(int id)
+        {
+            var entity = await _context.Activities.FindAsync(id);
+            if (entity == null)
+                throw new UserException("Activity not found.");
+
+            if (entity.ActivityState != "FinishedActivityState")
+            {
+                throw new UserException("Can only cleanup registrations for finished activities.");
+            }
+
+            var registrationsToDelete = await _context.ActivityRegistrations
+                .Where(ar => ar.ActivityId == id && (ar.Status == Common.Enums.RegistrationStatus.Pending 
+                || ar.Status == Common.Enums.RegistrationStatus.Rejected))
+                .ToListAsync();
+
+            if (registrationsToDelete.Any())
+            {
+                _context.ActivityRegistrations.RemoveRange(registrationsToDelete);
+                await _context.SaveChangesAsync();
+            }
+
+            return true;
         }
 
         protected override ActivityResponse MapToResponse(Activity entity)
@@ -1010,10 +1024,15 @@ namespace ScoutTrack.Services
                 .Select(g => g.Key)
                 .ToList();
 
-            var avgFee = completedActivities.Where(a => a.Fee.HasValue).Average(a => a.Fee.Value);
-            var avgDuration = completedActivities
+            var activitiesWithFee = completedActivities.Where(a => a.Fee.HasValue).ToList();
+            var activitiesWithDuration = completedActivities
                 .Where(a => a.StartTime.HasValue && a.EndTime.HasValue)
-                .Average(a => (a.EndTime.Value - a.StartTime.Value).TotalHours);
+                .ToList();
+
+            var avgFee = activitiesWithFee.Any() ? activitiesWithFee.Average(a => a.Fee.Value) : 0;
+            var avgDuration = activitiesWithDuration.Any() 
+                ? activitiesWithDuration.Average(a => (a.EndTime.Value - a.StartTime.Value).TotalHours) 
+                : 0;
 
             return new UserActivityPreferences
             {

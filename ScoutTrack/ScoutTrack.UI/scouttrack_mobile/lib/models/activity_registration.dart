@@ -8,8 +8,7 @@ class ActivityRegistration {
   final DateTime registeredAt;
   final int activityId;
   final int memberId;
-  final int
-  status; // 0: Pending, 1: Approved, 2: Rejected, 3: Cancelled, 4: Completed
+  final int status; // 0: Pending, 1: Approved, 2: Rejected, 3: Completed
   final String notes;
   final String activityTitle;
   final String memberName;
@@ -66,8 +65,6 @@ class ActivityRegistration {
       case 2:
         return 'Odbijena';
       case 3:
-        return 'Otkazana';
-      case 4:
         return 'Završena';
       default:
         return 'Nepoznato';
@@ -77,8 +74,7 @@ class ActivityRegistration {
   bool get isPending => status == 0;
   bool get isApproved => status == 1;
   bool get isRejected => status == 2;
-  bool get isCancelled => status == 3;
-  bool get isCompleted => status == 4;
+  bool get isCompleted => status == 3;
 
   bool get canCancel => isPending || isApproved;
   bool get canComplete => isApproved;

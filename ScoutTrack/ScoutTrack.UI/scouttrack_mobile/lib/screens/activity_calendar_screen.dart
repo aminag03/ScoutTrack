@@ -777,7 +777,7 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Nakon otkazivanja nećete moći ponovo se prijaviti za ovu aktivnost.',
+                      'Vaša prijava će biti obrisana. Možete se ponovo prijaviti ako želite.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.orange[700],
@@ -809,18 +809,21 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final registrationProvider = ActivityRegistrationProvider(authProvider);
 
-        final cancelledRegistration = await registrationProvider
-            .cancelRegistration(registration.id);
+        final success = await registrationProvider.cancelRegistration(
+          registration.id,
+        );
 
-        setState(() {
-          _userRegistrations[registration.activityId] = cancelledRegistration;
-        });
+        if (success) {
+          setState(() {
+            _userRegistrations.remove(registration.activityId);
+          });
 
-        if (mounted) {
-          SnackBarUtils.showSuccessSnackBar(
-            'Prijava je uspješno otkazana',
-            context: context,
-          );
+          if (mounted) {
+            SnackBarUtils.showSuccessSnackBar(
+              'Prijava je uspješno otkazana',
+              context: context,
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
