@@ -102,12 +102,24 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
-        return Activity.fromJson(jsonDecode(response.body));
+        try {
+          return Activity.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          throw Exception(
+            'Greška prilikom parsiranja odgovora: ${e.toString()}',
+          );
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['title'] ?? 'Greška prilikom zatvaranja registracija.',
-        );
+        String errorMessage = 'Greška prilikom zatvaranja registracija.';
+        try {
+          final error = jsonDecode(response.body);
+          errorMessage = error['title'] ?? errorMessage;
+        } catch (e) {
+          if (response.body.isNotEmpty) {
+            errorMessage = response.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     });
   }
@@ -121,12 +133,24 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
-        return Activity.fromJson(jsonDecode(response.body));
+        try {
+          return Activity.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          throw Exception(
+            'Greška prilikom parsiranja odgovora: ${e.toString()}',
+          );
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['title'] ?? 'Greška prilikom završavanja aktivnosti.',
-        );
+        String errorMessage = 'Greška prilikom završavanja aktivnosti.';
+        try {
+          final error = jsonDecode(response.body);
+          errorMessage = error['title'] ?? errorMessage;
+        } catch (e) {
+          if (response.body.isNotEmpty) {
+            errorMessage = response.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     });
   }
@@ -140,12 +164,24 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
-        return Activity.fromJson(jsonDecode(response.body));
+        try {
+          return Activity.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          throw Exception(
+            'Greška prilikom parsiranja odgovora: ${e.toString()}',
+          );
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['title'] ?? 'Greška prilikom deaktivacije aktivnosti.',
-        );
+        String errorMessage = 'Greška prilikom deaktivacije aktivnosti.';
+        try {
+          final error = jsonDecode(response.body);
+          errorMessage = error['title'] ?? errorMessage;
+        } catch (e) {
+          if (response.body.isNotEmpty) {
+            errorMessage = response.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     });
   }
@@ -159,12 +195,24 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
-        return Activity.fromJson(jsonDecode(response.body));
+        try {
+          return Activity.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          throw Exception(
+            'Greška prilikom parsiranja odgovora: ${e.toString()}',
+          );
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['title'] ?? 'Greška prilikom aktivacije aktivnosti.',
-        );
+        String errorMessage = 'Greška prilikom aktivacije aktivnosti.';
+        try {
+          final error = jsonDecode(response.body);
+          errorMessage = error['title'] ?? errorMessage;
+        } catch (e) {
+          if (response.body.isNotEmpty) {
+            errorMessage = response.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     });
   }
@@ -220,12 +268,24 @@ class ActivityProvider extends BaseProvider<Activity, dynamic> {
       final response = await http.put(uri, headers: await createHeaders());
 
       if (response.statusCode == 200) {
-        return Activity.fromJson(jsonDecode(response.body));
+        try {
+          return Activity.fromJson(jsonDecode(response.body));
+        } catch (e) {
+          throw Exception(
+            'Greška prilikom parsiranja odgovora: ${e.toString()}',
+          );
+        }
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(
-          error['title'] ?? 'Greška prilikom reaktivacije aktivnosti.',
-        );
+        String errorMessage = 'Greška prilikom reaktivacije aktivnosti.';
+        try {
+          final error = jsonDecode(response.body);
+          errorMessage = error['title'] ?? errorMessage;
+        } catch (e) {
+          if (response.body.isNotEmpty) {
+            errorMessage = response.body;
+          }
+        }
+        throw Exception(errorMessage);
       }
     });
   }

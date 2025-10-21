@@ -3,6 +3,7 @@ using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ScoutTrack.Model.Events;
 using ScoutTrack.Services;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Interfaces;
@@ -10,7 +11,9 @@ using ScoutTrack.Services.Services;
 using ScoutTrack.Services.Services.ActivityStateMachine;
 using ScoutTrack.Services.Services.ActivityRegistrationStateMachine;
 using ScoutTrack.WebAPI.Filters;
+using ScoutTrack.WebAPI.Hubs;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
 
 Env.Load(@"../.env");
 
@@ -18,6 +21,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 builder.Services.AddTransient<IBadgeService, BadgeService>();
 builder.Services.AddTransient<IBadgeRequirementService, BadgeRequirementService>();
 builder.Services.AddTransient<ICityService, CityService>();
@@ -41,6 +58,12 @@ builder.Services.AddTransient<IDocumentService, DocumentService>();
 builder.Services.AddTransient<INotificationService, NotificationService>();
 builder.Services.AddTransient<ICategoryService, CategoryService>();
 builder.Services.AddTransient<IFriendshipService, FriendshipService>();
+
+// Register RabbitMQ services
+builder.Services.AddRabbitMQServices();
+
+// Register background service for notification broadcasting
+builder.Services.AddHostedService<ScoutTrack.WebAPI.Services.NotificationBroadcastService>();
 
 // Activity State Machine
 builder.Services.AddTransient<BaseActivityState>();
@@ -144,11 +167,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStaticFiles();
 
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<NotificationHub>("/notificationhub");
 
 app.Run();

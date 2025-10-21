@@ -20,13 +20,15 @@ namespace ScoutTrack.Services.Services
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<LikeService> _logger;
         private readonly IAccessControlService _accessControlService;
+        private readonly INotificationPublisherService _notificationPublisher;
 
-        public LikeService(ScoutTrackDbContext context, IMapper mapper, ILogger<LikeService> logger, IAccessControlService accessControlService)
+        public LikeService(ScoutTrackDbContext context, IMapper mapper, ILogger<LikeService> logger, IAccessControlService accessControlService, INotificationPublisherService notificationPublisher)
             : base(context, mapper)
         {
             _context = context;
             _logger = logger;
             _accessControlService = accessControlService;
+            _notificationPublisher = notificationPublisher;
         }
 
         public async Task<PagedResult<LikeResponse>> GetByPostAsync(int postId, LikeSearchObject search)
@@ -67,6 +69,38 @@ namespace ScoutTrack.Services.Services
 
             _context.Likes.Add(like);
             await _context.SaveChangesAsync();
+
+            try
+            {
+                var post = await _context.Posts
+                    .Include(p => p.CreatedBy)
+                    .FirstOrDefaultAsync(p => p.Id == postId);
+
+                if (post != null && post.CreatedById != userId) // Don't notify if user likes their own post
+                {
+                    var liker = await _context.UserAccounts
+                        .FirstOrDefaultAsync(u => u.Id == userId);
+                    var likerName = GetUserAccountName(liker);
+                    
+                    var notificationMessage = $"{likerName} je lajkovao/la vašu objavu.";
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { post.CreatedById },
+                        SenderId = userId,
+                        CreatedAt = DateTime.Now,
+                        ActivityId = post.ActivityId.ToString(),
+                        NotificationType = "NewLike"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for new like");
+            }
 
             return await GetByIdAsync(like.Id);
         }

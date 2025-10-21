@@ -21,12 +21,14 @@ namespace ScoutTrack.Services
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<NotificationService> _logger;
         private readonly IAuthService _authService;
+        private readonly INotificationPublisherService _notificationPublisher;
 
-        public NotificationService(ScoutTrackDbContext context, IMapper mapper, ILogger<NotificationService> logger, IAuthService authService) : base(context, mapper)
+        public NotificationService(ScoutTrackDbContext context, IMapper mapper, ILogger<NotificationService> logger, IAuthService authService, INotificationPublisherService notificationPublisher) : base(context, mapper)
         {
             _context = context;
             _logger = logger;
             _authService = authService;
+            _notificationPublisher = notificationPublisher;
         }
 
         public override async Task<PagedResult<NotificationResponse>> GetAsync(NotificationSearchObject search)
@@ -120,12 +122,22 @@ namespace ScoutTrack.Services
                 throw new UserException($"Invalid receiver IDs: {string.Join(", ", missingIds)}. These users do not exist.");
             }
 
-            // Validate that sender ID exists
             var senderExists = await _context.UserAccounts.AnyAsync(u => u.Id == senderId);
             if (!senderExists)
             {
                 throw new UserException($"Invalid sender ID: {senderId}. Sender does not exist.");
             }
+
+            var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+            {
+                Message = request.Message,
+                UserIds = request.UserIds,
+                SenderId = senderId,
+                CreatedAt = DateTime.Now,
+                NotificationType = "General"
+            };
+
+            await _notificationPublisher.PublishNotificationAsync(notificationEvent);
 
             var notifications = new List<Notification>();
             var now = DateTime.Now;
@@ -143,9 +155,6 @@ namespace ScoutTrack.Services
 
                 notifications.Add(notification);
             }
-
-            await _context.Notifications.AddRangeAsync(notifications);
-            await _context.SaveChangesAsync();
 
             var responseList = _mapper.Map<List<NotificationResponse>>(notifications);
             return responseList;

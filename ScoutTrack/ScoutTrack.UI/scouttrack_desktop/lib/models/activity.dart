@@ -13,8 +13,6 @@ class Activity {
   final double latitude;
   final double longitude;
   final String locationName;
-  final int cityId;
-  final String cityName;
   final double fee;
   final int troopId;
   final String troopName;
@@ -39,8 +37,6 @@ class Activity {
     this.latitude = 0,
     this.longitude = 0,
     this.locationName = '',
-    this.cityId = 0,
-    this.cityName = '',
     this.fee = 0,
     required this.troopId,
     this.troopName = '',

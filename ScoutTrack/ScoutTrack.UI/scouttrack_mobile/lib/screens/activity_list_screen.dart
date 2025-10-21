@@ -210,6 +210,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             return false;
           }
 
+          if (registration.activityState == 'DraftActivityState' ||
+              registration.activityState == 'CancelledActivityState') {
+            return false;
+          }
+
           if (_searchController.text.isNotEmpty) {
             if (!registration.activityTitle.toLowerCase().contains(
                   _searchController.text.toLowerCase(),
@@ -267,6 +272,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         _applySorting();
       } else {
         _filteredActivities = _allActivities.where((activity) {
+          if (activity.activityState == 'DraftActivityState' ||
+              activity.activityState == 'CancelledActivityState') {
+            return false;
+          }
+
           if (widget.showAllAvailableActivities) {
             if (activity.activityState != 'RegistrationsOpenActivityState') {
               return false;

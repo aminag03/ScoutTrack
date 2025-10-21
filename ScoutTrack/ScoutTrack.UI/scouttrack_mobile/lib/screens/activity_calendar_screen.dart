@@ -76,6 +76,11 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
       final allActivities = result.items ?? [];
 
       _activities = allActivities.where((activity) {
+        if (activity.activityState == 'DraftActivityState' ||
+            activity.activityState == 'CancelledActivityState') {
+          return false;
+        }
+
         if (activity.startTime == null) {
           return false;
         }
@@ -121,7 +126,9 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
 
       _userRegistrations = {
         for (var registration in userRegistrationsResult.items ?? [])
-          registration.activityId: registration,
+          if (registration.activityState != 'DraftActivityState' &&
+              registration.activityState != 'CancelledActivityState')
+            registration.activityId: registration,
       };
     } catch (e) {
       // Handle error silently for now

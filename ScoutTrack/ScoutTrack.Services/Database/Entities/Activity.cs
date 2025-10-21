@@ -33,9 +33,6 @@ namespace ScoutTrack.Services.Database.Entities
 
         public string LocationName { get; set; } = string.Empty;
 
-        [ForeignKey(nameof(City))]
-        public int? CityId { get; set; }
-        public City? City { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? Fee { get; set; }

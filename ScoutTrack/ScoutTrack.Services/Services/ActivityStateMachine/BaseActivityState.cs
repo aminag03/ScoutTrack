@@ -110,7 +110,6 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
         {
             return original.StartTime != request.StartTime ||
                    original.EndTime != request.EndTime ||
-                   original.CityId != request.CityId ||
                    original.LocationName != request.LocationName ||
                    original.Fee != request.Fee;
         }
@@ -141,11 +140,6 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
                 changes.Add($"Kraj: {oldTime} → {newTime}");
             }
 
-            if (original.CityId != request.CityId)
-            {
-                changes.Add($"Grad: ID {original.CityId} → ID {request.CityId}");
-            }
-
             if (original.LocationName != request.LocationName)
             {
                 changes.Add($"Lokacija: {original.LocationName} → {request.LocationName}");
@@ -164,12 +158,18 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
 
         protected async Task<List<int>> GetRegisteredMemberUserIdsAsync(int activityId)
         {
-            return await _context.ActivityRegistrations
+            Console.WriteLine($"🔍 GetRegisteredMemberUserIdsAsync called for activity {activityId}");
+            
+            var userIds = await _context.ActivityRegistrations
+                .Include(ar => ar.Member)
                 .Where(ar => ar.ActivityId == activityId && 
                            (ar.Status == Common.Enums.RegistrationStatus.Approved || 
                             ar.Status == Common.Enums.RegistrationStatus.Pending))
                 .Select(ar => ar.Member.Id)
                 .ToListAsync();
+                
+            Console.WriteLine($"🔍 Found {userIds.Count} registered member user IDs: [{string.Join(", ", userIds)}]");
+            return userIds;
         }
     }
 }

@@ -80,9 +80,15 @@ class _ActivityRegistrationScreenState
             children: [
               _buildActivityInfoCard(),
 
-              const SizedBox(height: 24),
-
-              _buildRegistrationFormCard(),
+              if (widget.activity.activityState != 'DraftActivityState' &&
+                  widget.activity.activityState !=
+                      'CancelledActivityState') ...[
+                const SizedBox(height: 24),
+                _buildRegistrationFormCard(),
+              ] else ...[
+                const SizedBox(height: 24),
+                _buildUnavailableRegistrationCard(),
+              ],
             ],
           ),
         ),
@@ -434,6 +440,84 @@ class _ActivityRegistrationScreenState
                           ),
                         ],
                       ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnavailableRegistrationCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Prijava na aktivnost',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange[700],
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.activity.activityState == 'DraftActivityState'
+                        ? 'Aktivnost je u nacrtu'
+                        : 'Aktivnost je otkazana',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.activity.activityState == 'DraftActivityState'
+                        ? 'Ova aktivnost je trenutno u nacrtu i nije dostupna za prijave. Molimo pričekajte dok organizator ne aktivira aktivnost.'
+                        : 'Ova aktivnost je otkazana i nije moguće se prijaviti na nju.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ],

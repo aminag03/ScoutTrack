@@ -2565,8 +2565,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               activityTypeName: originalActivity.activityTypeName,
               createdAt: updatedActivity.createdAt,
               updatedAt: updatedActivity.updatedAt,
-              cityId: originalActivity.cityId,
-              cityName: originalActivity.cityName,
               registrationCount: originalActivity.registrationCount,
               summary: originalActivity.summary,
             );

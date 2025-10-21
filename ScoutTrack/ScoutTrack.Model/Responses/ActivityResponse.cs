@@ -13,8 +13,6 @@ namespace ScoutTrack.Model.Responses
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public string LocationName { get; set; } = string.Empty;
-        public int? CityId { get; set; }
-        public string CityName { get; set; } = string.Empty;
         public decimal? Fee { get; set; }
         public int TroopId { get; set; }
         public string TroopName { get; set; } = string.Empty;

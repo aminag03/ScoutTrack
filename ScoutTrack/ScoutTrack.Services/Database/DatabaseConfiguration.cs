@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ScoutTrack.Services.Services;
+using ScoutTrack.Services.Interfaces;
 
 namespace ScoutTrack.Services.Database
 {
@@ -9,6 +11,12 @@ namespace ScoutTrack.Services.Database
         {
             services.AddDbContext<ScoutTrackDbContext>(options =>
                 options.UseSqlServer(connectionString));
+        }
+
+        public static void AddRabbitMQServices(this IServiceCollection services)
+        {
+            services.AddSingleton<IRabbitMQService, RabbitMQService>();
+            services.AddTransient<INotificationPublisherService, NotificationPublisherService>();
         }
     }
 }

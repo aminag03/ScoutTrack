@@ -29,8 +29,6 @@ namespace ScoutTrack.Model.Requests
         [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "LocationName contains invalid characters.")]
         public string LocationName { get; set; } = string.Empty;
 
-        public int? CityId { get; set; }
-
         public decimal? Fee { get; set; }
 
         [Required]

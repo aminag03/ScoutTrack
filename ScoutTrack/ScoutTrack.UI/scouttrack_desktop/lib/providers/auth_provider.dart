@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:scouttrack_desktop/services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isRefreshing = false;
   final List<Completer<bool>> _refreshCompleters = [];
   bool _shouldRedirectToLogin = false;
+  NotificationService? _notificationService;
 
   Future<Map<String, dynamic>?> fetchCurrentUser({
     bool forceRefresh = false,
@@ -84,10 +86,14 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _decodeJwt(String token) {
     final parts = token.split('.');
     if (parts.length != 3) return null;
-    final payload = utf8.decode(
-      base64Url.decode(base64Url.normalize(parts[1])),
-    );
-    return jsonDecode(payload);
+    try {
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      return jsonDecode(payload);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>?> getCurrentUserInfo() async {
@@ -110,6 +116,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   String? get username => _username;
+  NotificationService? get notificationService => _notificationService;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -121,6 +128,7 @@ class AuthProvider with ChangeNotifier {
     if (_accessToken != null) {
       try {
         await fetchCurrentUser();
+        await _initializeNotificationService();
       } catch (e) {
         await logout();
       }
@@ -156,6 +164,8 @@ class AuthProvider with ChangeNotifier {
       await prefs.setString('refreshToken', _refreshToken!);
       await prefs.setString('role', _role!);
       await prefs.setString('username', _username!);
+
+      await _initializeNotificationService();
 
       notifyListeners();
     } else {
@@ -216,6 +226,18 @@ class AuthProvider with ChangeNotifier {
             await prefs.setString('accessToken', _accessToken!);
             await prefs.setString('refreshToken', _refreshToken!);
             print('Token refreshed successfully');
+
+            if (_notificationService != null) {
+              final userId = await getUserIdFromToken();
+              if (userId != null) {
+                await _notificationService!.updateTokenAndReconnect(
+                  _accessToken!,
+                  userId,
+                );
+                print('✅ Notification service token updated and reconnected');
+              }
+            }
+
             success = true;
             notifyListeners();
           }
@@ -259,6 +281,9 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _notificationService?.disconnect();
+    _notificationService = null;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('accessToken');
     await prefs.remove('refreshToken');
@@ -274,6 +299,70 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _initializeNotificationService() async {
+    try {
+      print('🔧 Starting notification service initialization...');
+      final userId = await getUserIdFromToken();
+      print('🔑 User ID from token: $userId');
+      print('🔑 Access token exists: ${_accessToken != null}');
+
+      if (userId == null || _accessToken == null) {
+        print(
+          '⚠️ Cannot initialize notification service: userId=$userId, token=${_accessToken != null}',
+        );
+        return;
+      }
+
+      final baseUrl = const String.fromEnvironment(
+        "BASE_URL",
+        defaultValue: "http://localhost:5164/",
+      );
+      print('🔧 Base URL: $baseUrl');
+
+      _notificationService = NotificationService(
+        baseUrl: baseUrl,
+        accessToken: _accessToken,
+      );
+
+      _notificationService!.onNotificationReceived =
+          (message, senderId, createdAt, activityId, notificationType) {
+            print('📨 AuthProvider: Real-time notification received');
+            print('📨 Message: $message');
+            print('📨 SenderId: $senderId');
+            print('📨 Type: $notificationType');
+
+            print(
+              '📨 Calling onNotificationReceived callback (for screens)...',
+            );
+            onNotificationReceived?.call();
+            print('✅ onNotificationReceived callback executed');
+
+            print('📨 Calling notifyListeners()...');
+            notifyListeners();
+            print('✅ notifyListeners() executed');
+          };
+
+      _notificationService!.onConnected = () {
+        print('Notification service connected');
+      };
+
+      _notificationService!.onDisconnected = () {
+        print('Notification service disconnected');
+      };
+
+      _notificationService!.onError = (error) {
+        print('Notification service error: $error');
+      };
+
+      print('🔧 Attempting to connect to SignalR...');
+      await _notificationService!.connect(userId);
+      print('✅ Notification service initialization complete');
+    } catch (e, stackTrace) {
+      print('❌ Error initializing notification service: $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
+
   bool get shouldRedirectToLogin => _shouldRedirectToLogin;
 
   void clearRedirectFlag() {
@@ -283,6 +372,53 @@ class AuthProvider with ChangeNotifier {
   void triggerRedirectToLogin() {
     _shouldRedirectToLogin = true;
     notifyListeners();
+  }
+
+  Function()? onNotificationReceived;
+
+  Future<void> ensureSignalRConnection() async {
+    if (_notificationService != null) {
+      print('🔍 Checking SignalR connection status...');
+      if (!_notificationService!.isConnected) {
+        print('⚠️ SignalR not connected, attempting to reconnect...');
+        try {
+          print(
+            '🔄 Attempting to refresh token before reconnecting SignalR...',
+          );
+          final tokenRefreshed = await refreshToken();
+          if (tokenRefreshed) {
+            print('✅ Token refreshed successfully');
+            final userId = await getUserIdFromToken();
+            if (userId != null && _accessToken != null) {
+              await _notificationService!.updateTokenAndReconnect(
+                _accessToken!,
+                userId,
+              );
+              print('✅ SignalR reconnected successfully');
+            }
+          }
+        } catch (e) {
+          print('❌ Failed to reconnect SignalR: $e');
+          if (e.toString().contains('401') ||
+              e.toString().contains('Unauthorized')) {
+            print(
+              '🔐 Still getting auth error, reinitializing notification service...',
+            );
+            try {
+              await _initializeNotificationService();
+            } catch (initError) {
+              print(
+                '❌ Failed to reinitialize notification service: $initError',
+              );
+            }
+          }
+        }
+      } else {
+        print('✅ SignalR is connected');
+      }
+    } else {
+      print('⚠️ Notification service not initialized');
+    }
   }
 
   Future<String?> getUserRole() async {

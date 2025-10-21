@@ -21,13 +21,15 @@ namespace ScoutTrack.Services.Services
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<CommentService> _logger;
         private readonly IAccessControlService _accessControlService;
+        private readonly INotificationPublisherService _notificationPublisher;
 
-        public CommentService(ScoutTrackDbContext context, IMapper mapper, ILogger<CommentService> logger, IAccessControlService accessControlService)
+        public CommentService(ScoutTrackDbContext context, IMapper mapper, ILogger<CommentService> logger, IAccessControlService accessControlService, INotificationPublisherService notificationPublisher)
             : base(context, mapper)
         {
             _context = context;
             _logger = logger;
             _accessControlService = accessControlService;
+            _notificationPublisher = notificationPublisher;
         }
 
         public async Task<PagedResult<CommentResponse>> GetByPostAsync(int postId, CommentSearchObject search)
@@ -64,6 +66,38 @@ namespace ScoutTrack.Services.Services
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
+
+            try
+            {
+                var post = await _context.Posts
+                    .Include(p => p.CreatedBy)
+                    .FirstOrDefaultAsync(p => p.Id == request.PostId);
+
+                if (post != null && post.CreatedById != userId) // Don't notify if user comments on their own post
+                {
+                    var commenter = await _context.UserAccounts
+                        .FirstOrDefaultAsync(u => u.Id == userId);
+                    var commenterName = GetUserAccountName(commenter);
+                    
+                    var notificationMessage = $"{commenterName} je komentirao/la vašu objavu.";
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { post.CreatedById },
+                        SenderId = userId,
+                        CreatedAt = DateTime.Now,
+                        ActivityId = post.ActivityId.ToString(),
+                        NotificationType = "NewComment"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for new comment");
+            }
 
             return await GetByIdAsync(comment.Id);
         }

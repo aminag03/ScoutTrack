@@ -27,19 +27,52 @@ class _NotificationScreenState extends State<NotificationScreen> {
   int totalPages = 1;
 
   late NotificationProvider _notificationProvider;
+  late AuthProvider _authProvider;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    _notificationProvider = NotificationProvider(authProvider);
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _notificationProvider = NotificationProvider(_authProvider);
+
+    _authProvider.onNotificationReceived = () {
+      print(
+        '🔔🔔🔔 Real-time notification received in notification screen 🔔🔔🔔',
+      );
+      print('🔔 Widget mounted: $mounted');
+      print('🔔 Current loading state: $_loading');
+      print(
+        '🔔 Current notifications count: ${_notifications?.items?.length ?? 0}',
+      );
+
+      if (mounted) {
+        print(
+          '✅ Widget is mounted, calling _loadNotifications with forceRefresh=true',
+        );
+        _loadNotifications(forceRefresh: true);
+        _loadUnreadCount();
+      } else {
+        print('❌ Widget not mounted, skipping refresh');
+      }
+    };
+
+    final notificationService = _authProvider.notificationService;
+    if (notificationService != null) {
+      print('📡 SignalR connection status: ${notificationService.isConnected}');
+    } else {
+      print('⚠️ Notification service not initialized');
+    }
+
     _loadInitialData();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+
+    _authProvider.onNotificationReceived = null;
+
     super.dispose();
   }
 
@@ -54,14 +87,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
     await _loadUnreadCount();
   }
 
-  Future<void> _loadNotifications({int? page}) async {
-    if (_loading) return;
+  Future<void> _loadNotifications({
+    int? page,
+    bool forceRefresh = false,
+  }) async {
+    print(
+      '📥 _loadNotifications called: forceRefresh=$forceRefresh, _loading=$_loading',
+    );
+
+    if (_loading && !forceRefresh) {
+      print('⏭️ Skipping load - already loading and not force refresh');
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
+      print('📥 Fetching notifications from API...');
       final result = await _notificationProvider.getMyNotifications(
         filter: {
           "Page": ((page ?? currentPage) - 1),
@@ -70,6 +115,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           "IncludeTotalCount": true,
         },
       );
+
+      print('📥 Received ${result.items?.length ?? 0} notifications from API');
+      print('📥 Total count: ${result.totalCount ?? 0}');
 
       if (mounted) {
         setState(() {
@@ -80,8 +128,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
           if (currentPage > totalPages) currentPage = totalPages;
           if (currentPage < 1) currentPage = 1;
         });
+        print('✅ Notifications updated in state');
       }
     } catch (e) {
+      print('❌ Error loading notifications: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -93,6 +143,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         setState(() {
           _loading = false;
         });
+        print('✅ Loading state set to false');
       }
     }
   }

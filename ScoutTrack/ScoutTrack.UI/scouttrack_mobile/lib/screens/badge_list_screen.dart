@@ -213,20 +213,6 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         requirements,
       );
 
-      if (canSendNotification) {
-        try {
-          await memberBadgeProvider.notifyTroopAboutBadgeStart(
-            userId,
-            username.isNotEmpty ? username : 'Član',
-            badge.name,
-            troopId,
-          );
-        } catch (notificationError) {
-          print('Failed to send notification: $notificationError');
-        }
-      } else {
-        print('DEBUG: Skipping notification - insufficient user data');
-      }
 
       Navigator.of(context).pop();
 

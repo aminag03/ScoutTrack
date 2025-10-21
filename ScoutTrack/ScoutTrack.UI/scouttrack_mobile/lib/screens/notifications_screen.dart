@@ -29,20 +29,66 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   late NotificationProvider _notificationProvider;
+  late AuthProvider _authProvider;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    _notificationProvider = NotificationProvider(authProvider);
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _notificationProvider = NotificationProvider(_authProvider);
+
+    _setupNotificationCallback();
     _loadInitialData();
+  }
+
+  void _setupNotificationCallback() async {
+    print('🔧 Setting up notification screen callback...');
+    _authProvider.onNotificationReceived = () {
+      print(
+        '🔔🔔🔔 Real-time notification received in notification screen 🔔🔔🔔',
+      );
+      print('🔔 Widget mounted: $mounted');
+      print('🔔 Current loading state: $_loading');
+      print(
+        '🔔 Current notifications count: ${_notifications?.items?.length ?? 0}',
+      );
+
+      if (mounted) {
+        print(
+          '✅ Widget is mounted, calling _loadNotifications with forceRefresh=true',
+        );
+        _loadNotifications(forceRefresh: true);
+        _loadUnreadCount();
+      } else {
+        print('❌ Widget not mounted, skipping refresh');
+      }
+    };
+    print('✅ Notification screen callback set up');
+
+    await _authProvider.ensureSignalRConnection();
+
+    final notificationService = _authProvider.notificationService;
+    if (notificationService != null) {
+      print('📡 SignalR connection status: ${notificationService.isConnected}');
+    } else {
+      print('⚠️ Notification service not initialized');
+    }
+  }
+
+  @override
+  void didUpdateWidget(NotificationsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _setupNotificationCallback();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+
+    _authProvider.onNotificationReceived = null;
+
     super.dispose();
   }
 
@@ -51,14 +97,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _loadUnreadCount();
   }
 
-  Future<void> _loadNotifications({int? page}) async {
-    if (_loading) return;
+  Future<void> _loadNotifications({
+    int? page,
+    bool forceRefresh = false,
+  }) async {
+    print(
+      '📥 _loadNotifications called: forceRefresh=$forceRefresh, _loading=$_loading',
+    );
+    print('📥 Call stack: ${StackTrace.current}');
+
+    if (_loading && !forceRefresh) {
+      print('⏭️ Skipping load - already loading and not force refresh');
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
+      print('📥 Fetching notifications from API...');
       final result = await _notificationProvider.getMyNotifications(
         filter: {
           "Page": page ?? currentPage,
@@ -68,6 +127,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         },
       );
 
+      print('📥 Received ${result.items?.length ?? 0} notifications from API');
+      print('📥 Total count: ${result.totalCount ?? 0}');
+
       if (mounted) {
         setState(() {
           _notifications = result;
@@ -76,8 +138,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (totalPages == 0) totalPages = 1;
           _applyFilters();
         });
+        print('✅ Notifications updated in state');
       }
     } catch (e) {
+      print('❌ Error loading notifications: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -89,6 +153,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         setState(() {
           _loading = false;
         });
+        print('✅ Loading state set to false');
       }
     }
   }
@@ -342,6 +407,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _setupNotificationCallback();
+      }
+    });
+
     return MasterScreen(
       headerTitle: 'Obavještenja',
       selectedIndex: 2,

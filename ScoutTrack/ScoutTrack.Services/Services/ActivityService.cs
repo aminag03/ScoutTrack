@@ -437,8 +437,8 @@ namespace ScoutTrack.Services
                 throw new UserException($"You can only finish an activity after closing registrations. Current state: {entity.ActivityState}");
             }
 
-            if (entity.EndTime.HasValue && entity.EndTime > DateTime.Now)
-                throw new UserException("You can't finish the activity before it's scheduled to end.");
+            //if (entity.EndTime.HasValue && entity.EndTime > DateTime.Now)
+                //throw new UserException("You can't finish the activity before it's scheduled to end.");
 
             var result = await registrationsClosedState.FinishAsync(id);
 
@@ -574,8 +574,6 @@ namespace ScoutTrack.Services
                 Latitude = entity.Latitude,
                 Longitude = entity.Longitude,
                 LocationName = entity.LocationName,
-                CityId = entity.CityId,
-                CityName = entity.City?.Name ?? string.Empty,
                 Fee = entity.Fee,
                 TroopId = entity.TroopId,
                 TroopName = entity.Troop?.Name ?? string.Empty,
@@ -693,7 +691,6 @@ namespace ScoutTrack.Services
             var activity = await _context.Activities
                 .Include(a => a.Troop)
                 .Include(a => a.ActivityType)
-                .Include(a => a.City)
                 .Include(a => a.Registrations)
                 .Where(a => registrations.Contains(a.Id))
                 .Where(a => a.ActivityState == "RegistrationsOpenActivityState" || 
@@ -740,7 +737,6 @@ namespace ScoutTrack.Services
             var candidateActivities = await _context.Activities
                 .Include(a => a.ActivityType)
                 .Include(a => a.Troop)
-                .Include(a => a.City)
                 .Include(a => a.Registrations)
                 .Where(a => !interactedActivityIds.Contains(a.Id))
                 .Where(a => a.ActivityState == "RegistrationsOpenActivityState")
@@ -800,7 +796,6 @@ namespace ScoutTrack.Services
             var popularActivities = await _context.Activities
                 .Include(a => a.ActivityType)
                 .Include(a => a.Troop)
-                .Include(a => a.City)
                 .Include(a => a.Registrations)
                 .Where(a => a.ActivityState == "RegistrationsOpenActivityState")
                 .Where(a => !a.isPrivate)
@@ -909,8 +904,6 @@ namespace ScoutTrack.Services
                 .Include(r => r.Activity)
                     .ThenInclude(a => a.ActivityType)
                 .Include(r => r.Activity)
-                    .ThenInclude(a => a.City)
-                .Include(r => r.Activity)
                     .ThenInclude(a => a.Troop)
                 .AsNoTracking()
                 .ToListAsync();
@@ -941,8 +934,6 @@ namespace ScoutTrack.Services
                 .Where(r => r.Rating >= 4)
                 .Include(r => r.Activity)
                     .ThenInclude(a => a.ActivityType)
-                .Include(r => r.Activity)
-                    .ThenInclude(a => a.City)
                 .Include(r => r.Activity)
                     .ThenInclude(a => a.Troop)
                 .AsNoTracking()

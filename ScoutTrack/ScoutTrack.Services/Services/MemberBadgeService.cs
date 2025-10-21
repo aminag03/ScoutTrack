@@ -22,11 +22,13 @@ namespace ScoutTrack.Services
     {
         private readonly ScoutTrackDbContext _context;
         private readonly ILogger<MemberBadgeService> _logger;
+        private readonly INotificationPublisherService _notificationPublisher;
 
-        public MemberBadgeService(ScoutTrackDbContext context, IMapper mapper, ILogger<MemberBadgeService> logger) : base(context, mapper)
+        public MemberBadgeService(ScoutTrackDbContext context, IMapper mapper, ILogger<MemberBadgeService> logger, INotificationPublisherService notificationPublisher) : base(context, mapper)
         {
             _context = context;
             _logger = logger;
+            _notificationPublisher = notificationPublisher;
         }
 
         public override async Task<PagedResult<MemberBadgeResponse>> GetAsync(MemberBadgeSearchObject search)
@@ -107,6 +109,7 @@ namespace ScoutTrack.Services
         {
             var memberBadge = await _context.MemberBadges
                 .Include(mb => mb.Badge)
+                .Include(mb => mb.Member)
                 .FirstOrDefaultAsync(mb => mb.Id == memberBadgeId);
 
             if (memberBadge == null)
@@ -128,6 +131,93 @@ namespace ScoutTrack.Services
             memberBadge.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+
+            try
+            {
+                if (memberBadge.Member != null && memberBadge.Badge != null)
+                {
+                    var notificationMessage = $"Čestitamo! Uspješno ste završili vještarstvo '{memberBadge.Badge.Name}'!";
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { memberBadge.Member.Id },
+                        SenderId = memberBadge.Member.Id,
+                        CreatedAt = DateTime.Now,
+                        NotificationType = "BadgeCompleted"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for badge completion");
+            }
+
+            return true;
+        }
+
+        public async Task<bool> UpdateMemberBadgeStatusAsync(int memberBadgeId, MemberBadgeStatus newStatus)
+        {
+            var memberBadge = await _context.MemberBadges
+                .Include(mb => mb.Badge)
+                .Include(mb => mb.Member)
+                .FirstOrDefaultAsync(mb => mb.Id == memberBadgeId);
+
+            if (memberBadge == null)
+                throw new UserException("Member badge not found.");
+
+            var oldStatus = memberBadge.Status;
+            memberBadge.Status = newStatus;
+            memberBadge.UpdatedAt = DateTime.Now;
+
+            if (newStatus == MemberBadgeStatus.Completed)
+            {
+                memberBadge.CompletedAt = DateTime.Now;
+            }
+            else if (oldStatus == MemberBadgeStatus.Completed && newStatus != MemberBadgeStatus.Completed)
+            {
+                memberBadge.CompletedAt = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                if (memberBadge.Member != null && memberBadge.Badge != null)
+                {
+                    string notificationMessage;
+                    if (newStatus == MemberBadgeStatus.Completed && oldStatus != MemberBadgeStatus.Completed)
+                    {
+                        notificationMessage = $"Čestitamo! Uspješno ste završili vještarstvo '{memberBadge.Badge.Name}'!";
+                    }
+                    else if (oldStatus == MemberBadgeStatus.Completed && newStatus != MemberBadgeStatus.Completed)
+                    {
+                        notificationMessage = $"Status vještarstva '{memberBadge.Badge.Name}' je promijenjen u 'U toku'.";
+                    }
+                    else
+                    {
+                        return true;
+                    }
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { memberBadge.Member.Id },
+                        SenderId = memberBadge.Member.Id,
+                        CreatedAt = DateTime.Now,
+                        NotificationType = "BadgeStatusChanged"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for badge status change");
+            }
+
             return true;
         }
 
@@ -288,6 +378,70 @@ namespace ScoutTrack.Services
             entity.CreatedAt = DateTime.Now;
         }
 
+        public override async Task<MemberBadgeResponse> UpdateAsync(int id, MemberBadgeUpsertRequest request)
+        {
+            var memberBadge = await _context.MemberBadges
+                .Include(mb => mb.Badge)
+                .Include(mb => mb.Member)
+                .FirstOrDefaultAsync(mb => mb.Id == id);
+
+            if (memberBadge == null)
+                throw new UserException("Member badge not found.");
+
+            var oldStatus = memberBadge.Status;
+
+            memberBadge.Status = (MemberBadgeStatus)request.Status;
+            memberBadge.UpdatedAt = DateTime.Now;
+
+            if (memberBadge.Status == MemberBadgeStatus.Completed)
+            {
+                memberBadge.CompletedAt = DateTime.Now;
+            }
+            else if (oldStatus == MemberBadgeStatus.Completed && memberBadge.Status != MemberBadgeStatus.Completed)
+            {
+                memberBadge.CompletedAt = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                if (memberBadge.Member != null && memberBadge.Badge != null)
+                {
+                    string notificationMessage;
+                    if (memberBadge.Status == MemberBadgeStatus.Completed && oldStatus != MemberBadgeStatus.Completed)
+                    {
+                        notificationMessage = $"Čestitamo! Uspješno ste završili vještarstvo '{memberBadge.Badge.Name}'!";
+                    }
+                    else if (oldStatus == MemberBadgeStatus.Completed && memberBadge.Status != MemberBadgeStatus.Completed)
+                    {
+                        notificationMessage = $"Status vještarstva '{memberBadge.Badge.Name}' je promijenjen u 'U toku'.";
+                    }
+                    else
+                    {
+                        return await GetByIdAsync(id);
+                    }
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { memberBadge.Member.Id },
+                        SenderId = memberBadge.Member.Id,
+                        CreatedAt = DateTime.Now,
+                        NotificationType = "BadgeStatusChanged"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for badge status change");
+            }
+
+            return await GetByIdAsync(id);
+        }
+
         public override async Task<MemberBadgeResponse> CreateAsync(MemberBadgeUpsertRequest request)
         {
             var response = await base.CreateAsync(request);
@@ -310,6 +464,53 @@ namespace ScoutTrack.Services
                 await _context.SaveChangesAsync();
             }
 
+            try
+            {
+                var member = await _context.Members
+                    .Include(m => m.Troop)
+                    .FirstOrDefaultAsync(m => m.Id == request.MemberId);
+
+                var badge = await _context.Badges
+                    .FirstOrDefaultAsync(b => b.Id == request.BadgeId);
+
+                if (member != null && badge != null)
+                {
+                    var memberNotificationMessage = $"Dodijeljeno vam je novo vještarstvo '{badge.Name}'.";
+
+                    var memberNotificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = memberNotificationMessage,
+                        UserIds = new List<int> { member.Id },
+                        SenderId = member.Id,
+                        CreatedAt = DateTime.Now,
+                        NotificationType = "BadgeAssigned"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(memberNotificationEvent);
+
+                    if (member.Troop != null)
+                    {
+                        var memberName = $"{member.FirstName} {member.LastName}";
+                        var troopNotificationMessage = $"{memberName} je započeo/la rad na vještarstvu '{badge.Name}'.";
+
+                        var troopNotificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                        {
+                            Message = troopNotificationMessage,
+                            UserIds = new List<int> { member.TroopId },
+                            SenderId = request.MemberId,
+                            CreatedAt = DateTime.Now,
+                            NotificationType = "MemberBadgeStarted"
+                        };
+
+                        await _notificationPublisher.PublishNotificationAsync(troopNotificationEvent);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for new member badge");
+            }
+
             return response;
         }
 
@@ -328,6 +529,34 @@ namespace ScoutTrack.Services
 
         protected override async Task BeforeDelete(MemberBadge entity)
         {
+            try
+            {
+                var memberBadge = await _context.MemberBadges
+                    .Include(mb => mb.Member)
+                    .Include(mb => mb.Badge)
+                    .FirstOrDefaultAsync(mb => mb.Id == entity.Id);
+
+                if (memberBadge?.Member != null && memberBadge.Badge != null)
+                {
+                    var notificationMessage = $"Vještarstvo '{memberBadge.Badge.Name}' je uklonjeno sa vašeg naloga.";
+
+                    var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                    {
+                        Message = notificationMessage,
+                        UserIds = new List<int> { memberBadge.Member.Id },
+                        SenderId = memberBadge.Member.Id,
+                        CreatedAt = DateTime.Now,
+                        NotificationType = "BadgeDeleted"
+                    };
+
+                    await _notificationPublisher.PublishNotificationAsync(notificationEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for badge deletion");
+            }
+
             var progressRecords = await _context.MemberBadgeProgresses
                 .Where(mbp => mbp.MemberBadgeId == entity.Id)
                 .ToListAsync();

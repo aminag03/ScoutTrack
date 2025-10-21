@@ -45,16 +45,20 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
                 {
                     var notificationMessage = CreateChangeNotificationMessage(entity, request, request.ChangeReason);
                     
-                    var notificationService = _serviceProvider.GetService(typeof(INotificationService)) as INotificationService;
-                    if (notificationService != null)
+                    var notificationPublisher = _serviceProvider.GetService(typeof(INotificationPublisherService)) as INotificationPublisherService;
+                    if (notificationPublisher != null)
                     {
-                        var notificationRequest = new NotificationUpsertRequest
+                        var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
                         {
                             Message = notificationMessage,
-                            UserIds = registeredUserIds
+                            UserIds = registeredUserIds,
+                            SenderId = currentUserId,
+                            CreatedAt = DateTime.Now,
+                            ActivityId = id.ToString(),
+                            NotificationType = "ActivityUpdate"
                         };
                         
-                        await notificationService.SendNotificationsToUsersAsync(notificationRequest, currentUserId);
+                        await notificationPublisher.PublishNotificationAsync(notificationEvent);
                     }
                 }
             }
@@ -73,6 +77,38 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
             entity.ActivityState = nameof(CancelledActivityState);
 
             await _context.SaveChangesAsync();
+
+            // Send notification to registered members
+            try
+            {
+                var registeredUserIds = await GetRegisteredMemberUserIdsAsync(id);
+                
+                if (registeredUserIds.Any())
+                {
+                    var notificationMessage = $"Aktivnost '{entity.Title}' je otkazana.";
+                    
+                    var notificationPublisher = _serviceProvider.GetService(typeof(INotificationPublisherService)) as INotificationPublisherService;
+                    if (notificationPublisher != null)
+                    {
+                        var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                        {
+                            Message = notificationMessage,
+                            UserIds = registeredUserIds,
+                            SenderId = entity.TroopId,
+                            CreatedAt = DateTime.Now,
+                            ActivityId = id.ToString(),
+                            NotificationType = "ActivityStateChanged"
+                        };
+                        
+                        await notificationPublisher.PublishNotificationAsync(notificationEvent);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending notification for activity cancellation: {ex.Message}");
+            }
+
             return _mapper.Map<ActivityResponse>(entity);
         }
 
@@ -96,6 +132,49 @@ namespace ScoutTrack.Services.Services.ActivityStateMachine
 
             await _context.SaveChangesAsync();
             Console.WriteLine($"RegistrationsOpenActivityState: Saved changes. Final state: {entity.ActivityState}");
+
+            // Send notification to registered members
+            try
+            {
+                Console.WriteLine($"🔔 Attempting to send notification for registration closure...");
+                var registeredUserIds = await GetRegisteredMemberUserIdsAsync(id);
+                
+                if (registeredUserIds.Any())
+                {
+                    var notificationMessage = $"Prijave za aktivnost '{entity.Title}' su zatvorene.";
+                    
+                    var notificationPublisher = _serviceProvider.GetService(typeof(INotificationPublisherService)) as INotificationPublisherService;
+                    if (notificationPublisher != null)
+                    {
+                        Console.WriteLine($"🔔 NotificationPublisher found, publishing notification...");
+                        var notificationEvent = new ScoutTrack.Model.Events.NotificationEvent
+                        {
+                            Message = notificationMessage,
+                            UserIds = registeredUserIds,
+                            SenderId = entity.TroopId,
+                            CreatedAt = DateTime.Now,
+                            ActivityId = id.ToString(),
+                            NotificationType = "ActivityStateChanged"
+                        };
+                        
+                        await notificationPublisher.PublishNotificationAsync(notificationEvent);
+                        Console.WriteLine($"✅ Notification published successfully");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ NotificationPublisher not found in service provider");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ No registered members found for activity {id}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error sending notification for registration closure: {ex.Message}");
+                Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+            }
             
             return _mapper.Map<ActivityResponse>(entity);
         }

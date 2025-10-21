@@ -364,6 +364,16 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         } catch (e) {
           print('Error loading troop data: $e');
           if (!mounted) return;
+
+          if (e.toString().contains('autorizovani') ||
+              e.toString().contains('401') ||
+              e.toString().contains('Unauthorized')) {
+            print(
+              'Authentication error detected, will retry after token refresh',
+            );
+            return;
+          }
+
           setState(() {
             _troopName = 'Nepoznat odred';
           });
@@ -383,6 +393,16 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         } catch (e) {
           print('Error loading activity type data: $e');
           if (!mounted) return;
+
+          if (e.toString().contains('autorizovani') ||
+              e.toString().contains('401') ||
+              e.toString().contains('Unauthorized')) {
+            print(
+              'Authentication error detected, will retry after token refresh',
+            );
+            return;
+          }
+
           setState(() {
             _activityTypeName = 'Nepoznat tip';
           });
@@ -409,6 +429,13 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       await _loadAdditionalDataIfNeeded();
     } catch (e) {
       print('Error refreshing activity: $e');
+
+      if (e.toString().contains('autorizovani') ||
+          e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
+        print('Authentication error detected in _refreshActivity');
+        rethrow;
+      }
     }
   }
 
