@@ -138,6 +138,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         !_isTimeInPast(_activity!.endTime);
   }
 
+  bool _canChangeRegistrations() {
+    if (_activity == null) return false;
+    return _activity!.activityState != 'CancelledActivityState' &&
+        _activity!.activityState != 'DraftActivityState';
+  }
+
   Future<void> _navigateToTroop(int troopId) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -1562,67 +1568,115 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Row(
+          Column(
             children: [
-              Icon(Icons.people, color: Colors.blue[600], size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Registracije',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Text(
-                  'Ukupno: $_totalRegistrations',
-                  style: TextStyle(
-                    color: Colors.blue.shade700,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              Row(
+                children: [
+                  Icon(Icons.people, color: Colors.blue[600], size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Registracije',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<int?>(
+                      value: _statusFilter,
+                      decoration: const InputDecoration(
+                        labelText: 'Filtriraj po statusu',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Svi statusi'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 0,
+                          child: Text('Na čekanju'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 1,
+                          child: Text('Odobreno'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 2,
+                          child: Text('Odbijeno'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 3,
+                          child: Text('Završeno'),
+                        ),
+                      ],
+                      onChanged: _onStatusFilterChanged,
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
-              SizedBox(
-                width: 200,
-                child: DropdownButtonFormField<int?>(
-                  value: _statusFilter,
-                  decoration: const InputDecoration(
-                    labelText: 'Filtriraj po statusu',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const SizedBox(width: 32),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 12,
-                      vertical: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Text(
+                      'Ukupno: $_totalRegistrations',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('Svi statusi'),
-                    ),
-                    DropdownMenuItem<int>(value: 0, child: Text('Na čekanju')),
-                    DropdownMenuItem<int>(value: 1, child: Text('Odobreno')),
-                    DropdownMenuItem<int>(value: 2, child: Text('Odbijeno')),
-                    DropdownMenuItem<int>(value: 3, child: Text('Završeno')),
-                  ],
-                  onChanged: _onStatusFilterChanged,
-                ),
+                ],
               ),
             ],
           ),
+          if (!_canChangeRegistrations()) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.orange.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Promjene statusa registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+                      style: TextStyle(
+                        color: Colors.orange.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (_activity?.activityState == 'FinishedActivityState' &&
-              _canManageRegistrations) ...[
+              _canManageRegistrations &&
+              _canChangeRegistrations()) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -1827,40 +1881,81 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   Widget _buildRegistrationActions(ActivityRegistration registration) {
     final actions = <Widget>[];
+    final canChangeRegistrations = _canChangeRegistrations();
 
     if (registration.status == 0) {
       actions.addAll([
         IconButton(
-          icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
-          tooltip: 'Odobri',
-          onPressed: () => _onApproveRegistration(registration),
+          icon: Icon(
+            Icons.check_circle,
+            color: canChangeRegistrations ? Colors.green : Colors.grey,
+            size: 20,
+          ),
+          tooltip: canChangeRegistrations
+              ? 'Odobri'
+              : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+          onPressed: canChangeRegistrations
+              ? () => _onApproveRegistration(registration)
+              : null,
         ),
         IconButton(
-          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-          tooltip: 'Odbij',
-          onPressed: () => _onRejectRegistration(registration),
+          icon: Icon(
+            Icons.cancel,
+            color: canChangeRegistrations ? Colors.red : Colors.grey,
+            size: 20,
+          ),
+          tooltip: canChangeRegistrations
+              ? 'Odbij'
+              : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+          onPressed: canChangeRegistrations
+              ? () => _onRejectRegistration(registration)
+              : null,
         ),
       ]);
     } else if (registration.status == 1) {
       actions.addAll([
         IconButton(
-          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-          tooltip: 'Odbij',
-          onPressed: () => _onRejectRegistration(registration),
+          icon: Icon(
+            Icons.cancel,
+            color: canChangeRegistrations ? Colors.red : Colors.grey,
+            size: 20,
+          ),
+          tooltip: canChangeRegistrations
+              ? 'Odbij'
+              : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+          onPressed: canChangeRegistrations
+              ? () => _onRejectRegistration(registration)
+              : null,
         ),
         if (_activity?.activityState == 'FinishedActivityState')
           IconButton(
-            icon: const Icon(Icons.done_all, color: Colors.blue, size: 20),
-            tooltip: 'Označi kao završeno',
-            onPressed: () => _onCompleteRegistration(registration),
+            icon: Icon(
+              Icons.done_all,
+              color: canChangeRegistrations ? Colors.blue : Colors.grey,
+              size: 20,
+            ),
+            tooltip: canChangeRegistrations
+                ? 'Označi kao završeno'
+                : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+            onPressed: canChangeRegistrations
+                ? () => _onCompleteRegistration(registration)
+                : null,
           ),
       ]);
     } else if (registration.status == 2) {
       actions.add(
         IconButton(
-          icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
-          tooltip: 'Odobri',
-          onPressed: () => _onApproveRegistration(registration),
+          icon: Icon(
+            Icons.check_circle,
+            color: canChangeRegistrations ? Colors.green : Colors.grey,
+            size: 20,
+          ),
+          tooltip: canChangeRegistrations
+              ? 'Odobri'
+              : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+          onPressed: canChangeRegistrations
+              ? () => _onApproveRegistration(registration)
+              : null,
         ),
       );
     }
@@ -1868,9 +1963,17 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     if (_canManageRegistrations) {
       actions.add(
         IconButton(
-          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-          tooltip: 'Obriši registraciju',
-          onPressed: () => _onDeleteRegistration(registration),
+          icon: Icon(
+            Icons.delete,
+            color: canChangeRegistrations ? Colors.red : Colors.grey,
+            size: 20,
+          ),
+          tooltip: canChangeRegistrations
+              ? 'Obriši registraciju'
+              : 'Promjene registracija nisu dozvoljene u trenutnom statusu aktivnosti.',
+          onPressed: canChangeRegistrations
+              ? () => _onDeleteRegistration(registration)
+              : null,
         ),
       );
     }
@@ -1892,7 +1995,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -1937,7 +2040,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -1984,7 +2087,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2030,7 +2133,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2089,7 +2192,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2509,7 +2612,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2829,7 +2932,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2905,7 +3008,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2965,7 +3068,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -3035,7 +3138,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -3080,7 +3183,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -3136,7 +3239,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -3227,7 +3330,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   vertical: 8,
                 ),
               ),
-              child: const Text('Otkaži'),
+              child: const Text('Odustani'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -3459,7 +3562,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       vertical: 8,
                     ),
                   ),
-                  child: const Text('Otkaži'),
+                  child: const Text('Odustani'),
                 ),
                 ElevatedButton(
                   onPressed: isUploading
@@ -4785,7 +4888,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                   vertical: 8,
                 ),
               ),
-              child: const Text('Otkaži'),
+              child: const Text('Odustani'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -4839,7 +4942,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),

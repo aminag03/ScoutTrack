@@ -542,7 +542,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             ? TimeOfDay.fromDateTime(activity!.startTime!)
             : const TimeOfDay(hour: 9, minute: 0),
         helpText: 'Odaberite vrijeme početka',
-        cancelText: 'Otkaži',
+        cancelText: 'Odustani',
         confirmText: 'Sačuvaj',
         builder: (context, child) {
           return Theme(
@@ -589,7 +589,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             ? TimeOfDay.fromDateTime(activity!.endTime!)
             : const TimeOfDay(hour: 9, minute: 0),
         helpText: 'Odaberite vrijeme završetka',
-        cancelText: 'Otkaži',
+        cancelText: 'Odustani',
         confirmText: 'Sačuvaj',
         builder: (context, child) {
           return Theme(
@@ -930,7 +930,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                         Navigator.of(
                                                           context,
                                                         ).pop(false),
-                                                    child: const Text('Otkaži'),
+                                                    child: const Text(
+                                                      'Odustani',
+                                                    ),
                                                   ),
                                                   TextButton(
                                                     onPressed: () =>
@@ -1444,7 +1446,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Otkaži'),
+                            child: const Text('Odustani'),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
@@ -2470,7 +2472,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 Navigator.of(context).pop();
                 result = null;
               },
-              child: const Text('Otkaži'),
+              child: const Text('Odustani'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -2516,7 +2518,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Otkaži'),
+            child: const Text('Odustani'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),

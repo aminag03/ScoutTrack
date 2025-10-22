@@ -177,7 +177,8 @@ namespace ScoutTrack.Services
             {
                 query = query.Where(a => 
                     (!a.isPrivate || a.TroopId == search.OwnTroopId.Value) && 
-                    (a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState"));
+                    (a.ActivityState != "DraftActivityState" || a.TroopId == search.OwnTroopId.Value) &&
+                    (a.ActivityState != "CancelledActivityState" || a.TroopId == search.OwnTroopId.Value));
             }
 
             query = query.Include(a => a.Troop);
