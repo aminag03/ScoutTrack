@@ -738,18 +738,19 @@ class _EquipmentListScreenState extends State<EquipmentListScreen> {
                                   context,
                                   'Oprema "${equipment.name}" je ažurirana.',
                                 );
+                                await _fetchEquipment(page: currentPage);
                               } else {
                                 await _equipmentProvider.insert(requestBody);
                                 showSuccessSnackbar(
                                   context,
                                   'Oprema je dodana.',
                                 );
+                                final newTotalCount =
+                                    (_equipment?.totalCount ?? 0) + 1;
+                                final newTotalPages = (newTotalCount / pageSize)
+                                    .ceil();
+                                await _fetchEquipment(page: newTotalPages);
                               }
-                              final newTotalCount =
-                                  (_equipment?.totalCount ?? 0) + 1;
-                              final newTotalPages = (newTotalCount / pageSize)
-                                  .ceil();
-                              await _fetchEquipment(page: newTotalPages);
                               Navigator.of(context).pop();
                             } catch (e) {
                               showErrorSnackbar(context, e);

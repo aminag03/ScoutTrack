@@ -51,11 +51,25 @@ namespace ScoutTrack.Services
             {
                 if (search.OrderBy.Equals("popularity", StringComparison.OrdinalIgnoreCase))
                 {
-                    query = query.OrderByDescending(b => b.MemberBadges.Count);
+                    if (search.TroopId.HasValue)
+                    {
+                        query = query.OrderByDescending(b => b.MemberBadges.Count(mb => mb.Member.TroopId == search.TroopId.Value));
+                    }
+                    else
+                    {
+                        query = query.OrderByDescending(b => b.MemberBadges.Count);
+                    }
                 }
                 else if (search.OrderBy.Equals("-popularity", StringComparison.OrdinalIgnoreCase))
                 {
-                    query = query.OrderBy(b => b.MemberBadges.Count);
+                    if (search.TroopId.HasValue)
+                    {
+                        query = query.OrderBy(b => b.MemberBadges.Count(mb => mb.Member.TroopId == search.TroopId.Value));
+                    }
+                    else
+                    {
+                        query = query.OrderBy(b => b.MemberBadges.Count);
+                    }
                 }
                 else if (search.OrderBy.Equals("name", StringComparison.OrdinalIgnoreCase))
                 {

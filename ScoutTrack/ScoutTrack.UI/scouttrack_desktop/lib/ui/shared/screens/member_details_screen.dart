@@ -527,10 +527,13 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen>
                                         context,
                                         listen: false,
                                       );
-                                  final updatedMember = await memberProvider
-                                      .update(_member.id, requestBody);
+                                  await memberProvider.update(
+                                    _member.id,
+                                    requestBody,
+                                  );
 
-                                  final refreshedMember = updatedMember;
+                                  final refreshedMember = await memberProvider
+                                      .getById(_member.id);
 
                                   if (context.mounted) {
                                     showSuccessSnackbar(

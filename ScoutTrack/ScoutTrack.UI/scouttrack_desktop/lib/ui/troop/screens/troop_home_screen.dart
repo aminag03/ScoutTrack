@@ -24,9 +24,10 @@ class _TroopHomePageState extends State<TroopHomePage> {
   TroopDashboard? _dashboard;
   bool _isLoading = true;
   int? _selectedYear;
-  int _timePeriodDays = 30;
+  int? _timePeriodDays = 30;
   int? _troopId;
   String? _troopName;
+  List<int> _cachedAvailableYears = [];
 
   @override
   void initState() {
@@ -59,6 +60,11 @@ class _TroopHomePageState extends State<TroopHomePage> {
               _troopName = troop.username.isNotEmpty
                   ? troop.username
                   : widget.username;
+              // Cache available years on first load only
+              if (_cachedAvailableYears.isEmpty &&
+                  dashboard.availableYears.isNotEmpty) {
+                _cachedAvailableYears = dashboard.availableYears;
+              }
               _isLoading = false;
             });
           }
@@ -353,7 +359,7 @@ class _TroopHomePageState extends State<TroopHomePage> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                DropdownButton<int>(
+                DropdownButton<int?>(
                   value: _timePeriodDays,
                   items: const [
                     DropdownMenuItem(value: 7, child: Text('Zadnjih 7 dana')),
@@ -365,14 +371,14 @@ class _TroopHomePageState extends State<TroopHomePage> {
                       value: 90,
                       child: Text('Zadnjih 3 mjeseca'),
                     ),
+                    DropdownMenuItem(value: 365, child: Text('Zadnja godina')),
+                    DropdownMenuItem(value: null, child: Text('Sve vrijeme')),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _timePeriodDays = value;
-                      });
-                      _loadDashboard();
-                    }
+                    setState(() {
+                      _timePeriodDays = value;
+                    });
+                    _loadDashboard();
                   },
                 ),
               ],
@@ -485,10 +491,10 @@ class _TroopHomePageState extends State<TroopHomePage> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                if (_dashboard!.availableYears.isNotEmpty)
+                if (_cachedAvailableYears.isNotEmpty)
                   DropdownButton<int>(
-                    value: _selectedYear ?? _dashboard!.availableYears.first,
-                    items: _dashboard!.availableYears
+                    value: _selectedYear ?? _cachedAvailableYears.first,
+                    items: _cachedAvailableYears
                         .map(
                           (year) => DropdownMenuItem(
                             value: year,

@@ -93,6 +93,12 @@ namespace ScoutTrack.Services.Services
                 throw new UserException("Equipment with this name already exists.");
         }
 
+        protected override void MapUpdateToEntity(Equipment entity, EquipmentUpsertRequest request)
+        {
+            entity.UpdatedAt = DateTime.Now;
+            base.MapUpdateToEntity(entity, request);
+        }
+
         protected override async Task BeforeDelete(Equipment entity)
         {
             var relatedActivityEquipments = await _context.ActivityEquipments

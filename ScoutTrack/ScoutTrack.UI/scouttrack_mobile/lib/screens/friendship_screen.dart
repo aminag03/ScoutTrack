@@ -907,6 +907,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
                   return _buildRequestItem(
                     name: request.requesterFullName,
                     profilePictureUrl: request.requesterProfilePictureUrl,
+                    memberId: request.requesterId,
                     onAccept: () => _acceptFriendRequest(request),
                     onReject: () => _rejectFriendRequest(request),
                   );
@@ -958,6 +959,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
                   return _buildSentRequestItem(
                     name: request.responderFullName,
                     profilePictureUrl: request.responderProfilePictureUrl,
+                    memberId: request.responderId,
                     onCancel: () => _cancelFriendRequest(request),
                   );
                 },
@@ -1085,6 +1087,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
   Widget _buildRequestItem({
     required String name,
     required String profilePictureUrl,
+    required int memberId,
     required VoidCallback onAccept,
     required VoidCallback onReject,
   }) {
@@ -1120,6 +1123,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
             ),
           ],
         ),
+        onTap: () => _navigateToProfile(memberId),
       ),
     );
   }
@@ -1127,6 +1131,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
   Widget _buildSentRequestItem({
     required String name,
     required String profilePictureUrl,
+    required int memberId,
     required VoidCallback onCancel,
   }) {
     return Card(
@@ -1151,6 +1156,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
           onPressed: onCancel,
           tooltip: 'Otkaži zahtjev',
         ),
+        onTap: () => _navigateToProfile(memberId),
       ),
     );
   }
@@ -1590,6 +1596,14 @@ class _FriendshipScreenState extends State<FriendshipScreen>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ProfileScreen(memberId: recommendation.userId),
+      ),
+    );
+  }
+
+  void _navigateToProfile(int memberId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(memberId: memberId),
       ),
     );
   }

@@ -69,6 +69,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   int _pageSize = 10;
   int _totalRegistrations = 0;
   bool _isLoadingRegistrations = false;
+  int _completedRegistrationCount = 0;
 
   List<Review> _reviews = [];
   int _currentReviewPage = 1;
@@ -332,6 +333,12 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       });
 
       await _loadEquipment();
+
+      // Initialize completed registration count for finished activities
+      if (_activity?.activityState == 'FinishedActivityState') {
+        _completedRegistrationCount = _activity?.registrationCount ?? 0;
+      }
+
       await _loadRegistrations();
       await _loadReviews();
       await _loadPosts();
@@ -496,10 +503,29 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         filter: filter,
       );
 
+      // For finished activities, load all completed registrations to get accurate count
+      int completedCount = 0;
+      if (_activity?.activityState == 'FinishedActivityState') {
+        try {
+          final allCompletedFilter = <String, dynamic>{
+            'retrieveAll': true,
+            'status': 3, // Completed status
+          };
+          final allCompletedRegistrations = await _activityRegistrationProvider
+              .getByActivity(_activity!.id, filter: allCompletedFilter);
+          completedCount = allCompletedRegistrations.items?.length ?? 0;
+        } catch (e) {
+          print('Error loading completed registrations: $e');
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _registrations = registrations.items ?? [];
         _totalRegistrations = registrations.totalCount ?? 0;
+        _completedRegistrationCount = completedCount > 0
+            ? completedCount
+            : _activity?.registrationCount ?? 0;
         _isLoadingRegistrations = false;
         _applyStatusFilter();
       });
@@ -1079,7 +1105,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _activity!.registrationCount.toString(),
+                            _getCompletedRegistrationCount().toString(),
                             style: const TextStyle(fontSize: 16),
                           ),
                         ),
@@ -4968,5 +4994,15 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         showErrorSnackbar(context, e);
       }
     }
+  }
+
+  int _getCompletedRegistrationCount() {
+    if (_activity?.activityState != 'FinishedActivityState') {
+      return _activity?.registrationCount ?? 0;
+    }
+
+    // For finished activities, use the stored completed registration count
+    // which is loaded separately from all completed registrations
+    return _completedRegistrationCount;
   }
 }

@@ -73,6 +73,12 @@ namespace ScoutTrack.Services
             await ValidateCategoryRequestAsync(request, entity.Id);
         }
 
+        protected override void MapUpdateToEntity(Category entity, CategoryUpsertRequest request)
+        {
+            entity.UpdatedAt = DateTime.Now;
+            base.MapUpdateToEntity(entity, request);
+        }
+
         private async Task ValidateCategoryRequestAsync(dynamic request, int? excludeId)
         {
             string name = request.Name;

@@ -255,27 +255,27 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                           child: Text('Bez sortiranja'),
                         ),
                         DropdownMenuItem(
-                          value: 'name',
+                          value: 'Name',
                           child: Text('Naziv (A-Ž)'),
                         ),
                         DropdownMenuItem(
-                          value: '-name',
+                          value: '-Name',
                           child: Text('Naziv (Ž-A)'),
                         ),
                         DropdownMenuItem(
-                          value: 'minAge',
+                          value: 'MinAge',
                           child: Text('Minimalna starost (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-minAge',
+                          value: '-MinAge',
                           child: Text('Minimalna starost (opadajuće)'),
                         ),
                         DropdownMenuItem(
-                          value: 'maxAge',
+                          value: 'MaxAge',
                           child: Text('Maksimalna starost (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-maxAge',
+                          value: '-MaxAge',
                           child: Text('Maksimalna starost (opadajuće)'),
                         ),
                       ],
@@ -813,7 +813,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                       context,
                                       'Kategorija je dodana.',
                                     );
-                                    await _fetchCategories();
+                                    final newTotalCount =
+                                        (_categories?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchCategories(page: newTotalPages);
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {

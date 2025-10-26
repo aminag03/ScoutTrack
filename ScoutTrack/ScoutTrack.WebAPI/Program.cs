@@ -117,11 +117,10 @@ builder.Services.AddControllers( x =>
         x.Filters.Add<ExceptionFilter>();
     }
 );
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Sapica.API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "ScoutTrack.API", Version = "v1" });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {

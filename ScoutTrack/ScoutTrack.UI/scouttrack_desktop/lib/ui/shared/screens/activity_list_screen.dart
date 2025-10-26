@@ -61,7 +61,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
   TextEditingController searchController = TextEditingController();
   Timer? _debounce;
-  Timer? _equipmentRemovalTimer;
 
   late ActivityProvider _activityProvider;
 
@@ -90,7 +89,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     _debounce?.cancel();
-    _equipmentRemovalTimer?.cancel();
     super.dispose();
   }
 
@@ -485,6 +483,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     List<Equipment?> selectedEquipment = [];
     Set<int> newlyAddedEquipmentIds =
         {}; // Track newly added equipment for highlighting
+    Map<int, Timer> equipmentHighlightTimers =
+        {}; // Track timers for each equipment item
 
     if (isEdit && activity != null) {
       try {
@@ -717,15 +717,21 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               newlyAddedEquipmentIds.add(result.id);
             });
 
-            _equipmentRemovalTimer?.cancel();
+            // Cancel any existing timer for this equipment
+            equipmentHighlightTimers[result.id]?.cancel();
 
-            _equipmentRemovalTimer = Timer(const Duration(seconds: 3), () {
-              if (mounted) {
-                this.setState(() {
-                  newlyAddedEquipmentIds.remove(result.id);
-                });
-              }
-            });
+            // Create a new timer for this specific equipment
+            equipmentHighlightTimers[result.id] = Timer(
+              const Duration(seconds: 3),
+              () {
+                if (mounted) {
+                  setState(() {
+                    newlyAddedEquipmentIds.remove(result.id);
+                    equipmentHighlightTimers.remove(result.id);
+                  });
+                }
+              },
+            );
           }
         } else {
           showCustomSnackbar(
@@ -1096,12 +1102,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                       }
                                       if (value.length > 200) {
                                         return 'Naziv lokacije ne smije imati više od 200 znakova.';
-                                      }
-                                      final regex = RegExp(
-                                        r"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$",
-                                      );
-                                      if (!regex.hasMatch(value.trim())) {
-                                        return 'Naziv lokacije može sadržavati samo slova (A-Ž, a-ž), brojeve (0-9), razmake, crtice (-) i apostrofe (\').';
                                       }
                                       return null;
                                     },
@@ -1834,22 +1834,22 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         },
         items: const [
           DropdownMenuItem(value: null, child: Text('Bez sortiranja')),
-          DropdownMenuItem(value: 'title', child: Text('Naziv (A-Ž)')),
-          DropdownMenuItem(value: '-title', child: Text('Naziv (Ž-A)')),
+          DropdownMenuItem(value: 'Title', child: Text('Naziv (A-Ž)')),
+          DropdownMenuItem(value: '-Title', child: Text('Naziv (Ž-A)')),
           DropdownMenuItem(
-            value: 'startTime',
+            value: 'StartTime',
             child: Text('Vrijeme početka (najranije)'),
           ),
           DropdownMenuItem(
-            value: '-startTime',
+            value: '-StartTime',
             child: Text('Vrijeme početka (najkasnije)'),
           ),
           DropdownMenuItem(
-            value: 'endTime',
+            value: 'EndTime',
             child: Text('Vrijeme završetka (najranije)'),
           ),
           DropdownMenuItem(
-            value: '-endTime',
+            value: '-EndTime',
             child: Text('Vrijeme završetka (najkasnije)'),
           ),
         ],

@@ -213,7 +213,6 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
         requirements,
       );
 
-
       Navigator.of(context).pop();
 
       showDialog(
@@ -485,6 +484,22 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
       );
     }
 
+    if (_allBadges.isEmpty ||
+        (_completedBadges.isEmpty &&
+            _inProgressBadges.isEmpty &&
+            _waitingToStartBadges.isEmpty)) {
+      return _buildEmptyState();
+    }
+
+    final hasCompleted = _completedBadges.isNotEmpty;
+    final hasInProgress = _inProgressBadges.isNotEmpty;
+    final hasWaiting =
+        !_isViewingOtherMember && _waitingToStartBadges.isNotEmpty;
+
+    if (!hasCompleted && !hasInProgress && !hasWaiting) {
+      return _buildEmptyState();
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -498,6 +513,77 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
             _buildWaitingToStartSection(),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF558B6E).withOpacity(0.1),
+                border: Border.all(
+                  color: const Color(0xFF558B6E).withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.star_outline_rounded,
+                size: 60,
+                color: Color(0xFF558B6E),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Nema vještarstava',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _isViewingOtherMember
+                  ? 'Ovaj član trenutno nema dostupnih vještarstava.'
+                  : 'Trenutno nema dostupnih vještarstava. Kontaktirajte Vaš odred za više informacija.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (!_isViewingOtherMember) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Osvježi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF558B6E),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -163,10 +163,12 @@ class _AdminDetailsScreenState extends State<AdminDetailsScreen> {
 
     try {
       final provider = Provider.of<AdminProvider>(context, listen: false);
-      final updatedAdmin = await provider.update(_admin.id, updatedRequest);
+      await provider.update(_admin.id, updatedRequest);
+
+      final refreshedAdmin = await provider.getById(_admin.id);
 
       setState(() {
-        _admin = updatedAdmin;
+        _admin = refreshedAdmin;
       });
 
       if (context.mounted) {

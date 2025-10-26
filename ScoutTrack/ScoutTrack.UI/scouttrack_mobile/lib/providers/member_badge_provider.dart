@@ -95,33 +95,6 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
       final memberBadgeData = jsonDecode(memberBadgeResponse.body);
       final memberBadge = MemberBadge.fromJson(memberBadgeData);
 
-      final progressRequests = requirements
-          .map(
-            (requirement) => {
-              'memberBadgeId': memberBadge.id,
-              'requirementId': requirement.id,
-              'isCompleted': false,
-              'completedAt': null,
-            },
-          )
-          .toList();
-
-      final progressUri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}MemberBadgeProgress",
-      );
-
-      for (final progressRequest in progressRequests) {
-        final progressResponse = await http.post(
-          progressUri,
-          headers: headers,
-          body: jsonEncode(progressRequest),
-        );
-
-        if (progressResponse.statusCode != 200) {
-          handleHttpError(progressResponse);
-          throw Exception('Failed to create member badge progress');
-        }
-      }
 
       return memberBadge;
     });

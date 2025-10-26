@@ -1432,7 +1432,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
         content: SizedBox(
-          width: 400,
+          width: 500,
           child: Form(
             key: _formKey,
             child: Column(
@@ -1471,69 +1471,21 @@ class _TroopListScreenState extends State<TroopListScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue.shade200),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'Obavještenje će biti poslano sljedećim odredima:',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 20,
                       ),
-                      const SizedBox(height: 8),
-                      ..._troops!.items!
-                          .map(
-                            (troop) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 1,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Odred:',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        const Text(
-                                          'Broj članova:',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          troop.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          troop.memberCount.toString(),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Obavještenje će biti poslano sljedećem broju odreda: $troopCount',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
                     ],
                   ),
                 ),

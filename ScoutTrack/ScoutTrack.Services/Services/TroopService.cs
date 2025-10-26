@@ -374,7 +374,6 @@ namespace ScoutTrack.Services
 
             var now = DateTime.Now;
             var currentYear = year ?? now.Year;
-            var timePeriod = timePeriodDays ?? 30;
 
             var memberCount = await _context.Members.CountAsync(m => m.TroopId == troopId);
 
@@ -404,22 +403,32 @@ namespace ScoutTrack.Services
                 })
                 .ToListAsync();
 
-            var timePeriodStart = now.AddDays(-timePeriod);
-            var mostActiveMembers = await _context.Members
+            var mostActiveMembersQuery = _context.Members
                 .Where(m => m.TroopId == troopId)
                 .Select(m => new
                 {
                     Member = m,
-                    ActivityCount = _context.ActivityRegistrations
-                        .Where(ar => ar.MemberId == m.Id && 
-                                   ar.Status == RegistrationStatus.Completed &&
-                                   ar.RegisteredAt >= timePeriodStart)
-                        .Count(),
-                    PostCount = _context.Posts
-                        .Where(p => p.CreatedById == m.Id && 
-                                  p.CreatedAt >= timePeriodStart)
-                        .Count()
-                })
+                    ActivityCount = timePeriodDays.HasValue
+                        ? _context.ActivityRegistrations
+                            .Where(ar => ar.MemberId == m.Id && 
+                                       ar.Status == RegistrationStatus.Completed &&
+                                       ar.RegisteredAt >= now.AddDays(-timePeriodDays.Value))
+                            .Count()
+                        : _context.ActivityRegistrations
+                            .Where(ar => ar.MemberId == m.Id && 
+                                       ar.Status == RegistrationStatus.Completed)
+                            .Count(),
+                    PostCount = timePeriodDays.HasValue
+                        ? _context.Posts
+                            .Where(p => p.CreatedById == m.Id && 
+                                      p.CreatedAt >= now.AddDays(-timePeriodDays.Value))
+                            .Count()
+                        : _context.Posts
+                            .Where(p => p.CreatedById == m.Id)
+                            .Count()
+                });
+
+            var mostActiveMembers = await mostActiveMembersQuery
                 .OrderByDescending(x => x.ActivityCount)
                 .ThenByDescending(x => x.PostCount)
                 .Take(3)

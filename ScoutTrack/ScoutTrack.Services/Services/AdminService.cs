@@ -116,24 +116,30 @@ namespace ScoutTrack.Services
         {
             var now = DateTime.Now;
             var currentYear = year ?? now.Year;
-            var timePeriod = timePeriodDays ?? 30;
 
             var troopCount = await _context.Troops.CountAsync();
             var memberCount = await _context.Members.CountAsync();
             var activityCount = await _context.Activities.CountAsync(a => a.ActivityState == "FinishedActivityState");
             var postCount = await _context.Posts.CountAsync();
 
-            var timePeriodStart = now.AddDays(-timePeriod);
-            var mostActiveTroops = await _context.Troops
-                .Select(t => new
-                {
-                    Troop = t,
-                    ActivityCount = _context.Activities
+            IQueryable<Troop> troopsQuery = _context.Troops;
+            
+            var mostActiveTroopsQuery = troopsQuery.Select(t => new
+            {
+                Troop = t,
+                ActivityCount = timePeriodDays.HasValue
+                    ? _context.Activities
                         .Where(a => a.TroopId == t.Id && 
                                    a.ActivityState == "FinishedActivityState" &&
-                                   a.EndTime >= timePeriodStart)
+                                   a.EndTime >= now.AddDays(-timePeriodDays.Value))
                         .Count()
-                })
+                    : _context.Activities
+                        .Where(a => a.TroopId == t.Id && 
+                                   a.ActivityState == "FinishedActivityState")
+                        .Count()
+            });
+
+            var mostActiveTroops = await mostActiveTroopsQuery
                 .OrderByDescending(x => x.ActivityCount)
                 .Take(3)
                 .Select(x => new MostActiveTroopResponse

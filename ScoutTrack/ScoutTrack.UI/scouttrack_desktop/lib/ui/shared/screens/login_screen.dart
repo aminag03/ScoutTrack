@@ -63,17 +63,12 @@ class _LoginPageState extends State<LoginPage> {
               builder: (_) => TroopHomePage(username: username),
             ),
           );
-        } else {
-          setState(() => _error = 'Samo administratori i odredi se mogu prijaviti putem desktop aplikacije. Molimo koristite mobilnu aplikaciju.');
         }
-      } else {
-        setState(() {
-          _error = 'Pogrešno korisničko ime/email ili lozinka.';
-        });
       }
     } catch (e) {
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
       setState(() {
-        _error = e.toString();
+        _error = errorMessage;
       });
     } finally {
       setState(() {

@@ -7,6 +7,7 @@ using ScoutTrack.Model.SearchObjects;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Database.Entities;
 using ScoutTrack.Services.Interfaces;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -50,6 +51,12 @@ namespace ScoutTrack.Services
         {
             if (await _context.Activities.AnyAsync(a => a.ActivityTypeId == entity.Id))
                 throw new UserException("Cannot delete ActivityType: there are activities using this type.");
+        }
+
+        protected override void MapUpdateToEntity(ActivityType entity, ActivityTypeUpsertRequest request)
+        {
+            entity.UpdatedAt = DateTime.Now;
+            base.MapUpdateToEntity(entity, request);
         }
 
         public override async Task<PagedResult<ActivityTypeResponse>> GetAsync(ActivityTypeSearchObject search)

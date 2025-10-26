@@ -151,26 +151,39 @@ class AuthProvider with ChangeNotifier {
       }),
     );
 
+    String errorMessage = 'Neuspješna prijava.';
+    bool isError = false;
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      _accessToken = data['accessToken'];
-      _refreshToken = data['refreshToken'];
-      _role = data['role'];
-      _username = data['username'];
-      await fetchCurrentUser(forceRefresh: true);
+      final userRole = data['role'];
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('accessToken', _accessToken!);
-      await prefs.setString('refreshToken', _refreshToken!);
-      await prefs.setString('role', _role!);
-      await prefs.setString('username', _username!);
+      // Desktop only allows Admin and Troop
+      if (userRole == 'Member') {
+        errorMessage =
+            'Samo administratori i odredi se mogu prijaviti putem desktop aplikacije. Molimo koristite mobilnu aplikaciju.';
+        isError = true;
+      } else {
+        _accessToken = data['accessToken'];
+        _refreshToken = data['refreshToken'];
+        _role = data['role'];
+        _username = data['username'];
+        await fetchCurrentUser(forceRefresh: true);
 
-      await _initializeNotificationService();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', _accessToken!);
+        await prefs.setString('refreshToken', _refreshToken!);
+        await prefs.setString('role', _role!);
+        await prefs.setString('username', _username!);
 
-      notifyListeners();
+        await _initializeNotificationService();
+
+        notifyListeners();
+        return; // Success
+      }
     } else {
+      isError = true;
       final errorData = jsonDecode(response.body);
-      String errorMessage = 'Neuspješna prijava.';
 
       if (errorData is Map<String, dynamic>) {
         if (errorData.containsKey('title')) {
@@ -185,6 +198,13 @@ class AuthProvider with ChangeNotifier {
           }
         }
       }
+    }
+
+    if (isError) {
+      if (errorMessage.toLowerCase().contains('unauthorized')) {
+        errorMessage = 'Pogrešno korisničko ime/email ili lozinka.';
+      }
+      throw Exception(errorMessage);
     }
   }
 

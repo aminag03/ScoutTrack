@@ -205,6 +205,12 @@ namespace ScoutTrack.Services
             entity.Gender = request.Gender;
         }
 
+        protected override void MapUpdateToEntity(Member entity, MemberUpdateRequest request)
+        {
+            entity.UpdatedAt = DateTime.Now;
+            base.MapUpdateToEntity(entity, request);
+        }
+
         protected override async Task BeforeDelete(Member entity)
         {
             if (!string.IsNullOrWhiteSpace(entity.ProfilePictureUrl))

@@ -73,25 +73,14 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
         if (role == 'Member') {
           NavigationUtils.navigateWithFade(context, const HomeScreen());
-        } else {
-          setState(() {
-            _loading = false;
-          });
-          _showTemporaryError(
-            'Samo članovi se mogu prijaviti putem mobilne aplikacije. Molimo koristite desktop aplikaciju.',
-          );
         }
-      } else {
-        setState(() {
-          _loading = false;
-        });
-        _showTemporaryError('Pogrešno korisničko ime/email ili lozinka.');
       }
     } catch (e) {
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
       setState(() {
         _loading = false;
       });
-      _showTemporaryError('Došlo je do greške. Molimo pokušajte ponovo.');
+      _showTemporaryError(errorMessage);
     }
   }
 

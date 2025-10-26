@@ -34,22 +34,33 @@ class ActivityFormWidgets {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextFormField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                      hintText: 'Unesite naziv opreme',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
+                  AbsorbPointer(
+                    child: TextFormField(
+                      controller: controller,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        hintText: 'Unesite naziv opreme',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.inventory_2,
+                          color: Colors.blue,
+                          size: 16,
+                        ),
+                        filled: true,
+                        fillColor: Colors.blue.shade50,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.blue.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.blue.shade300),
+                        ),
                       ),
-                      prefixIcon: Icon(
-                        equipment != null ? Icons.inventory_2 : Icons.add,
-                        color: equipment != null ? Colors.blue : Colors.green,
-                        size: 16,
-                      ),
+                      onChanged: (value) => onUpdate(setState, index, value),
                     ),
-                    onChanged: (value) => onUpdate(setState, index, value),
                   ),
                   if (equipment?.description.isNotEmpty == true)
                     Padding(

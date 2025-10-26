@@ -26,7 +26,6 @@ namespace ScoutTrack.Model.Requests
         public double Longitude { get; set; }
 
         [MaxLength(200, ErrorMessage = "Location name must not exceed 200 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9ČčĆćŽžĐđŠš\s\-\']+$", ErrorMessage = "LocationName contains invalid characters.")]
         public string LocationName { get; set; } = string.Empty;
 
         public decimal? Fee { get; set; }

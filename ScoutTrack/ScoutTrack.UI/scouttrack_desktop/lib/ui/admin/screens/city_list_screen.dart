@@ -271,19 +271,19 @@ class _CityListScreenState extends State<CityListScreen> {
                           child: Text('Naziv (Ž-A)'),
                         ),
                         DropdownMenuItem(
-                          value: 'troopcount',
+                          value: 'troopCount',
                           child: Text('Broj odreda (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-troopcount',
+                          value: '-troopCount',
                           child: Text('Broj odreda (opadajuće)'),
                         ),
                         DropdownMenuItem(
-                          value: 'membercount',
+                          value: 'memberCount',
                           child: Text('Broj članova (rastuće)'),
                         ),
                         DropdownMenuItem(
-                          value: '-membercount',
+                          value: '-memberCount',
                           child: Text('Broj članova (opadajuće)'),
                         ),
                       ],
@@ -761,7 +761,11 @@ class _CityListScreenState extends State<CityListScreen> {
                                       context,
                                       'Grad je dodan.',
                                     );
-                                    await _fetchCities();
+                                    final newTotalCount =
+                                        (_cities?.totalCount ?? 0) + 1;
+                                    final newTotalPages =
+                                        (newTotalCount / pageSize).ceil();
+                                    await _fetchCities(page: newTotalPages);
                                   }
                                   Navigator.of(context).pop();
                                 } catch (e) {
