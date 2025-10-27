@@ -328,8 +328,8 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                   Expanded(
                     child: Row(
                       children: [
-                        Container(
-                          width: 300,
+                        Flexible(
+                          flex: 5,
                           child: TextField(
                             controller: searchController,
                             decoration: InputDecoration(
@@ -344,10 +344,11 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        Container(
-                          width: 200,
+                        Flexible(
+                          flex: 4,
                           child: DropdownButtonFormField<String?>(
                             value: _selectedSort,
+                            isExpanded: true,
                             decoration: InputDecoration(
                               labelText: 'Sortiraj',
                               border: OutlineInputBorder(
@@ -355,28 +356,47 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                               ),
                               filled: true,
                               fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             onChanged: _onSortChanged,
                             items: const [
                               DropdownMenuItem(
                                 value: null,
-                                child: Text('Bez sortiranja'),
+                                child: Text(
+                                  'Bez sortiranja',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'name',
-                                child: Text('Naziv (A-Ž)'),
+                                child: Text(
+                                  'Naziv (A-Ž)',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: '-name',
-                                child: Text('Naziv (Ž-A)'),
+                                child: Text(
+                                  'Naziv (Ž-A)',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'popularity',
-                                child: Text('Najpopularnije'),
+                                child: Text(
+                                  'Najpopularnije',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: '-popularity',
-                                child: Text('Najmanje popularno'),
+                                child: Text(
+                                  'Najmanje popularno',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -384,6 +404,7 @@ class _BadgeListScreenState extends State<BadgeListScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 16),
                   if (_role == 'Admin')
                     Row(
                       children: [

@@ -20,6 +20,7 @@ class ActivityRegistrationProvider
     List<int>? statuses,
     int page = 0,
     int pageSize = 10,
+    bool retrieveAll = false,
   }) async {
     try {
       return await handleWithRefresh(() async {
@@ -28,7 +29,7 @@ class ActivityRegistrationProvider
           'Page': page,
           'PageSize': pageSize,
           'IncludeTotalCount': true,
-          'RetrieveAll': false,
+          'RetrieveAll': retrieveAll,
         };
 
         if (memberId != null) {

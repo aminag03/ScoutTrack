@@ -676,17 +676,6 @@ namespace ScoutTrack.Services.Database
             };
             modelBuilder.Entity<ActivityRegistration>().HasData(activityRegistrations);
 
-            // Seed Reviews
-            var reviews = new List<Review>
-            {
-                new Review { Id = 1, ActivityId = 1, MemberId = 7, Rating = 5, Content = "Odličan kamp! Naučio sam puno o preživljavanju u prirodi.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 2, ActivityId = 1, MemberId = 8, Rating = 4, Content = "Super iskustvo, organizatori su bili odlični.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 3, ActivityId = 2, MemberId = 9, Rating = 5, Content = "Prekrasna priroda i odličan trening.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 4, ActivityId = 3, MemberId = 11, Rating = 4, Content = "Zabavno i takmičarski duh!", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 5, ActivityId = 4, MemberId = 14, Rating = 5, Content = "Veoma korisna radionica, preporučujem svima.", CreatedAt = DateTime.Now.AddDays(-1) }
-            };
-            modelBuilder.Entity<Review>().HasData(reviews);
-
             // Seed Member Badges
             var memberBadges = new List<MemberBadge>
             {
@@ -1878,22 +1867,22 @@ namespace ScoutTrack.Services.Database
             modelBuilder.Entity<Like>().HasData(likes);
 
 
-            // Seed More Reviews for finished activities only
-            var moreReviews = new List<Review>
+            // Seed Reviews
+            var reviews = new List<Review>
             {
-                // Additional reviews for finished activities (for better statistics)
-                new Review { Id = 12, ActivityId = 3, MemberId = 17, Rating = 5, Content = "Fudbalski turnir je bio odličan! Tim 'Bregava' je zasluženo pobijedio.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 13, ActivityId = 3, MemberId = 19, Rating = 4, Content = "Super organizacija turnira. Naučio sam puno o timskom radu.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 14, ActivityId = 3, MemberId = 21, Rating = 5, Content = "Odličan turnir! Vidio sam mnoge dobre igre.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 15, ActivityId = 12, MemberId = 17, Rating = 5, Content = "Mostarska šetnja je bila fascinantna! Posjetili smo Stari Most.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 16, ActivityId = 12, MemberId = 19, Rating = 4, Content = "Prekrasna povijesna šetnja kroz Mostar.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 17, ActivityId = 12, MemberId = 21, Rating = 5, Content = "Naučio sam puno o povijesti Mostara. Preporučujem svima!", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 18, ActivityId = 19, MemberId = 17, Rating = 5, Content = "Turnir u košarci je bio fantastičan! Tim 'Bregava Eagles' je zasluženo pobijedio.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 19, ActivityId = 19, MemberId = 19, Rating = 4, Content = "Odličan turnir! Naučio sam puno o timskom radu i strategiji.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 20, ActivityId = 19, MemberId = 21, Rating = 5, Content = "Košarka je stvarno zabavna! Već se radujem sljedećem turniru.", CreatedAt = DateTime.Now.AddDays(-1) },
-                new Review { Id = 21, ActivityId = 19, MemberId = 23, Rating = 4, Content = "Dobar turnir s odličnom organizacijom.", CreatedAt = DateTime.Now.AddDays(-1) }
+                new Review { Id = 1, ActivityId = 3, MemberId = 11, Rating = 4, Content = "Zabavno i takmičarski duh!", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 2, ActivityId = 3, MemberId = 17, Rating = 5, Content = "Fudbalski turnir je bio odličan! Tim 'Bregava' je zasluženo pobijedio.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 3, ActivityId = 3, MemberId = 19, Rating = 4, Content = "Super organizacija turnira. Naučio sam puno o timskom radu.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 4, ActivityId = 3, MemberId = 21, Rating = 5, Content = "Odličan turnir! Vidio sam mnoge dobre igre.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 5, ActivityId = 12, MemberId = 17, Rating = 5, Content = "Mostarska šetnja je bila fascinantna! Posjetili smo Stari Most.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 6, ActivityId = 12, MemberId = 19, Rating = 4, Content = "Prekrasna povijesna šetnja kroz Mostar.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 7, ActivityId = 12, MemberId = 21, Rating = 5, Content = "Naučio sam puno o povijesti Mostara. Preporučujem svima!", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 8, ActivityId = 19, MemberId = 17, Rating = 5, Content = "Turnir u košarci je bio fantastičan! Tim 'Bregava Eagles' je zasluženo pobijedio.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 9, ActivityId = 19, MemberId = 19, Rating = 4, Content = "Odličan turnir! Naučio sam puno o timskom radu i strategiji.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 10, ActivityId = 19, MemberId = 21, Rating = 5, Content = "Košarka je stvarno zabavna! Već se radujem sljedećem turniru.", CreatedAt = DateTime.Now.AddDays(-1) },
+                new Review { Id = 11, ActivityId = 19, MemberId = 23, Rating = 4, Content = "Dobar turnir s odličnom organizacijom.", CreatedAt = DateTime.Now.AddDays(-1) }
             };
-            modelBuilder.Entity<Review>().HasData(moreReviews);
+            modelBuilder.Entity<Review>().HasData(reviews);
 
             // Seed More Notifications
             var moreNotifications = new List<Notification>

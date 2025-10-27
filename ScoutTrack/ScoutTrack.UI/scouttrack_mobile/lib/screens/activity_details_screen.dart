@@ -18,6 +18,7 @@ import '../utils/url_utils.dart';
 import '../utils/snackbar_utils.dart';
 import '../providers/troop_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/activity_provider.dart';
 import '../providers/activity_equipment_provider.dart';
 import '../providers/post_provider.dart';
 import '../providers/comment_provider.dart';
@@ -58,16 +59,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   Review? _myReview;
   bool _canCreateReview = false;
 
+  Activity? _currentActivity;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _mapController = MapController();
+    _currentActivity = widget.activity;
 
-    if (widget.activity.latitude != 0 && widget.activity.longitude != 0) {
+    if (_currentActivity!.latitude != 0 && _currentActivity!.longitude != 0) {
       _activityLocation = LatLng(
-        widget.activity.latitude,
-        widget.activity.longitude,
+        _currentActivity!.latitude,
+        _currentActivity!.longitude,
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_activityLocation != null) {
@@ -75,11 +79,28 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         }
       });
     }
+    _loadActivity();
     _loadEquipment();
     _loadPosts();
     _checkCanCreatePost();
     _loadReviews();
     _checkCanCreateReview();
+  }
+
+  Future<void> _loadActivity() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final activityProvider = ActivityProvider(authProvider);
+      final freshActivity = await activityProvider.getById(widget.activity.id);
+
+      if (mounted) {
+        setState(() {
+          _currentActivity = freshActivity;
+        });
+      }
+    } catch (e) {
+      print('Error loading activity: $e');
+    }
   }
 
   Future<void> _loadEquipment() async {
@@ -136,7 +157,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _checkCanCreatePost() async {
-    if (widget.activity.activityState != 'FinishedActivityState') {
+    final activity = _currentActivity ?? widget.activity;
+
+    if (activity.activityState != 'FinishedActivityState') {
       setState(() {
         _canCreatePost = false;
       });
@@ -152,12 +175,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final registrations = await registrationProvider.getMemberRegistrations(
           memberId: userInfo['id'],
           statuses: [3], // Completed status
+          retrieveAll: true,
         );
 
         final hasCompletedRegistration =
-            registrations.items?.any(
-              (reg) => reg.activityId == widget.activity.id,
-            ) ??
+            registrations.items?.any((reg) => reg.activityId == activity.id) ??
             false;
 
         if (mounted) {
@@ -228,7 +250,9 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Future<void> _checkCanCreateReview() async {
-    if (widget.activity.activityState != 'FinishedActivityState') {
+    final activity = _currentActivity ?? widget.activity;
+
+    if (activity.activityState != 'FinishedActivityState') {
       setState(() {
         _canCreateReview = false;
       });
@@ -244,12 +268,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         final registrations = await registrationProvider.getMemberRegistrations(
           memberId: userInfo['id'],
           statuses: [3], // Completed status
+          retrieveAll: true,
         );
 
         final hasCompletedRegistration =
-            registrations.items?.any(
-              (reg) => reg.activityId == widget.activity.id,
-            ) ??
+            registrations.items?.any((reg) => reg.activityId == activity.id) ??
             false;
 
         if (mounted) {
@@ -409,7 +432,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
-      headerTitle: widget.activity.title,
+      headerTitle: (_currentActivity ?? widget.activity).title,
       selectedIndex: -1,
       body: Container(
         color: const Color(0xFFF5F5DC),
@@ -2210,30 +2233,32 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
   }
 
   Widget _buildRegistrationStatusCard() {
-    if (widget.activity.activityState == 'FinishedActivityState') {
+    final activity = _currentActivity ?? widget.activity;
+
+    if (activity.activityState == 'FinishedActivityState') {
       return _buildInfoCard(
         icon: Icons.people,
         title: 'Broj prisutnih',
-        content: '${widget.activity.registrationCount} prisutnih',
+        content: '${activity.registrationCount} prisutnih',
         color: Colors.green,
       );
     }
 
-    if (widget.activity.activityState == 'RegistrationsOpenActivityState' ||
-        widget.activity.activityState == 'RegistrationsClosedActivityState') {
+    if (activity.activityState == 'RegistrationsOpenActivityState' ||
+        activity.activityState == 'RegistrationsClosedActivityState') {
       return Column(
         children: [
           _buildInfoCard(
             icon: Icons.pending_actions,
             title: 'Prijave na čekanju',
-            content: '${widget.activity.pendingRegistrationCount} prijava',
+            content: '${activity.pendingRegistrationCount} prijava',
             color: Colors.orange,
           ),
           const SizedBox(height: 16),
           _buildInfoCard(
             icon: Icons.check_circle,
             title: 'Odobrene prijave',
-            content: '${widget.activity.approvedRegistrationCount} prijava',
+            content: '${activity.approvedRegistrationCount} prijava',
             color: Colors.blue,
           ),
         ],
@@ -2243,7 +2268,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
     return _buildInfoCard(
       icon: Icons.people,
       title: 'Broj prijava',
-      content: '${widget.activity.registrationCount} prijava',
+      content: '${activity.registrationCount} prijava',
       color: Colors.purple,
     );
   }

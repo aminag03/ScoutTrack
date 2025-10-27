@@ -221,6 +221,7 @@ namespace ScoutTrack.Services
             var entity = await _context.Activities
                 .Include(a => a.Troop)
                 .Include(a => a.ActivityType)
+                .Include(a => a.Registrations)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (entity == null)
@@ -482,7 +483,16 @@ namespace ScoutTrack.Services
             entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return _mapper.Map<ActivityResponse>(entity);
+
+            var updatedEntity = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (updatedEntity == null)
+                return null;
+
+            return MapToResponse(updatedEntity);
         }
 
         public async Task<ActivityResponse?> UpdateSummaryAsync(int id, string summary)
@@ -495,7 +505,16 @@ namespace ScoutTrack.Services
             entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return _mapper.Map<ActivityResponse>(entity);
+
+            var updatedEntity = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (updatedEntity == null)
+                return null;
+
+            return MapToResponse(updatedEntity);
         }
 
         public async Task<ActivityResponse?> TogglePrivacyAsync(int id)
@@ -508,7 +527,16 @@ namespace ScoutTrack.Services
             entity.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return _mapper.Map<ActivityResponse>(entity);
+
+            var updatedEntity = await _context.Activities
+                .Include(a => a.Troop)
+                .Include(a => a.ActivityType)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (updatedEntity == null)
+                return null;
+
+            return MapToResponse(updatedEntity);
         }
 
         public async Task<ActivityResponse?> ReactivateAsync(int id)
@@ -653,6 +681,7 @@ namespace ScoutTrack.Services
             var activities = await _context.Activities
                 .Include(a => a.Troop)
                 .Include(a => a.ActivityType)
+                .Include(a => a.Registrations)
                 .Where(a => a.Registrations
                     .Any(ar => ar.MemberId == memberId && ar.Status == Common.Enums.RegistrationStatus.Completed))
                 .Where(a => a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState")
@@ -667,6 +696,7 @@ namespace ScoutTrack.Services
             var activities = await _context.Activities
                 .Include(a => a.Troop)
                 .Include(a => a.ActivityType)
+                .Include(a => a.Registrations)
                 .Where(a => a.TroopId == troopId)
                 .Where(a => a.ActivityState != "DraftActivityState" && a.ActivityState != "CancelledActivityState")
                 .OrderByDescending(a => a.StartTime)
