@@ -1,0 +1,80 @@
+version: '3'
+services:
+  scouttrack-sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      SA_PASSWORD: "MyStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1401:1433"
+    expose:
+      - "1433"
+    networks:
+      - scouttrack-2025
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_MQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_MQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - scouttrack-2025
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    user: "999:999"
+
+  scouttrack-api:
+    image: scouttrack.api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5164:5164"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=scouttrack-sql,1433;Database=220188;User Id=sa;Password=MyStrong!Passw0rd;TrustServerCertificate=True
+      - RabbitMQ__ConnectionString=host=${RABBIT_MQ_HOST};username=${RABBIT_MQ_USER};password=${RABBIT_MQ_PASS}
+      - JWT__KEY=${JWT__KEY}
+      - JWT__ISSUER=${JWT__ISSUER}
+      - JWT__AUDIENCE=${JWT__AUDIENCE}
+      - JWT__EXPIRESINMINUTES=${JWT__EXPIRESINMINUTES}
+    depends_on:
+      scouttrack-sql:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - scouttrack-2025
+    links:
+      - scouttrack-sql
+
+  scouttrack.subscriber:
+    image: scouttrack.subscriber:latest
+    build:
+      context: .
+      dockerfile: ScoutTrack.Subscriber/Dockerfile
+    environment:
+      - RABBITMQ_CONNECTIONSTRING=host=${RABBIT_MQ_HOST};username=${RABBIT_MQ_USER};password=${RABBIT_MQ_PASS}
+      - ConnectionStrings__DefaultConnection=Server=scouttrack-sql,1433;Database=220188;User Id=sa;Password=MyStrong!Passw0rd;TrustServerCertificate=True
+    networks:
+      - scouttrack-2025
+    links:
+      - rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh -c "sleep 90 && dotnet ScoutTrack.Subscriber.dll"
+
+networks:
+  scouttrack-2025:
+    driver: bridge

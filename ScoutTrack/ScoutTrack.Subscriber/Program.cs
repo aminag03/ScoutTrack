@@ -4,12 +4,23 @@ using Microsoft.Extensions.Configuration;
 using ScoutTrack.Model.Events;
 using ScoutTrack.Services.Database;
 using ScoutTrack.Services.Database.Entities;
+using DotNetEnv;
 
 Console.WriteLine("Starting ScoutTrack Notification Subscriber...");
 
+void TryLoadEnv()
+{
+    try { Env.Load(); } catch { }
+    try { Env.Load(".env"); } catch { }
+    try { Env.Load("../.env"); } catch { }
+    try { Env.Load("../../.env"); } catch { }
+}
+
+TryLoadEnv();
+
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables()
     .Build();
 
@@ -19,7 +30,29 @@ var options = new DbContextOptionsBuilder<ScoutTrackDbContext>()
     .UseSqlServer(connectionString)
     .Options;
 
-var rabbitMQConnectionString = configuration["RabbitMQ:ConnectionString"] ?? "host=localhost";
+var rabbitHost = Environment.GetEnvironmentVariable("RABBIT_MQ_HOST");
+var rabbitUser = Environment.GetEnvironmentVariable("RABBIT_MQ_USER") ?? "guest";
+var rabbitPass = Environment.GetEnvironmentVariable("RABBIT_MQ_PASS") ?? "guest";
+
+string rabbitMQConnectionString;
+if (!string.IsNullOrWhiteSpace(rabbitHost))
+{
+    rabbitMQConnectionString = $"host={rabbitHost};username={rabbitUser};password={rabbitPass}";
+}
+else
+{
+    var connectionStringEnv = Environment.GetEnvironmentVariable("RABBITMQ_CONNECTIONSTRING");
+    if (!string.IsNullOrWhiteSpace(connectionStringEnv))
+    {
+        rabbitMQConnectionString = connectionStringEnv;
+    }
+    else
+    {
+        rabbitMQConnectionString = configuration["RabbitMQ:ConnectionString"]
+            ?? "host=localhost;username=guest;password=guest";
+    }
+}
+
 var bus = RabbitHutch.CreateBus(rabbitMQConnectionString);
 
 Console.WriteLine("Connected to RabbitMQ. Waiting for notifications...");
@@ -64,7 +97,5 @@ await bus.PubSub.SubscribeAsync<NotificationEvent>(
     configure => configure.WithQueueName("notification.created")
 );
 
-Console.WriteLine("Subscriber is running. Press any key to exit...");
-Console.ReadKey();
-
-bus.Dispose();
+Console.WriteLine("Subscriber is running. Waiting for messages...");
+await Task.Delay(Timeout.InfiniteTimeSpan);

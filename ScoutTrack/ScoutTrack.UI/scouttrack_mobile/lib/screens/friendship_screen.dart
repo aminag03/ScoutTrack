@@ -1107,7 +1107,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
           name,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
-        subtitle: const Text('Želi da bude vaš prijatelj'),
+        subtitle: const Text('Želi da bude Vaš prijatelj'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1150,7 +1150,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
           name,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
-        subtitle: const Text('Čeka odgovor'),
+        subtitle: const Text('Čekanje odgovora'),
         trailing: IconButton(
           icon: const Icon(Icons.cancel, color: Colors.orange),
           onPressed: onCancel,

@@ -889,6 +889,11 @@ namespace ScoutTrack.Services
                 {
                     _globalActivityModel = model;
                 }
+                var modelDir = Path.GetDirectoryName(_globalModelPath);
+                if (!string.IsNullOrEmpty(modelDir) && !Directory.Exists(modelDir))
+                {
+                    Directory.CreateDirectory(modelDir);
+                }
                 _mlContext.Model.Save(_globalActivityModel, null, _globalModelPath);
             }
         }

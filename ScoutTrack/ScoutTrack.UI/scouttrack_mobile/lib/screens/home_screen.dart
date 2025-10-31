@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/activity_provider.dart';
+import '../providers/member_provider.dart';
 import '../providers/badge_provider.dart';
 import '../providers/member_badge_provider.dart';
 import '../models/activity.dart';
@@ -15,6 +16,7 @@ import '../screens/activity_registration_screen.dart';
 import '../screens/activity_list_screen.dart';
 import '../screens/badge_list_screen.dart';
 import '../screens/activity_calendar_screen.dart';
+import '../utils/url_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Activity> upcomingActivities = [];
   bool isLoadingUpcomingActivities = true;
+  int? _currentUserTroopId;
 
   @override
   void initState() {
@@ -67,14 +70,23 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final activityProvider = ActivityProvider(authProvider);
+      await _ensureCurrentUserTroopId(authProvider);
 
       final activities = await activityProvider.getRecommendedActivities(
         topN: 5,
       );
 
+      final filtered = _currentUserTroopId == null
+          ? activities
+          : activities
+                .where(
+                  (a) => !(a.isPrivate && a.troopId != _currentUserTroopId),
+                )
+                .toList();
+
       if (mounted) {
         setState(() {
-          recommendedActivities = activities;
+          recommendedActivities = filtered;
           isLoading = false;
         });
       }
@@ -202,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final activityProvider = ActivityProvider(authProvider);
+      await _ensureCurrentUserTroopId(authProvider);
 
       final userInfo = await authProvider.getCurrentUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
@@ -221,7 +234,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          upcomingActivities = activity != null ? [activity] : [];
+          final filtered = (activity != null && _currentUserTroopId != null)
+              ? (!activity.isPrivate || activity.troopId == _currentUserTroopId)
+                    ? [activity]
+                    : <Activity>[]
+              : activity != null
+              ? [activity]
+              : <Activity>[];
+          upcomingActivities = filtered;
           isLoadingUpcomingActivities = false;
         });
       }
@@ -232,6 +252,18 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  Future<void> _ensureCurrentUserTroopId(AuthProvider authProvider) async {
+    if (_currentUserTroopId != null) return;
+    try {
+      final memberProvider = MemberProvider(authProvider);
+      final userInfo = await authProvider.getCurrentUserInfo();
+      if (userInfo != null && userInfo['id'] != null) {
+        final member = await memberProvider.getById(userInfo['id'] as int);
+        _currentUserTroopId = member.troopId;
+      }
+    } catch (_) {}
   }
 
   @override
@@ -382,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: topBadgeImageUrl != null && topBadgeImageUrl!.isNotEmpty
                   ? ClipOval(
                       child: Image.network(
-                        topBadgeImageUrl!,
+                        UrlUtils.buildImageUrl(topBadgeImageUrl!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(
@@ -758,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           top: Radius.circular(12),
                         ),
                         child: Image.network(
-                          activity.imagePath,
+                          UrlUtils.buildImageUrl(activity.imagePath),
                           width: double.infinity,
                           height: 140,
                           fit: BoxFit.cover,
@@ -1031,7 +1063,7 @@ class _BadgeDetailsDialogState extends State<_BadgeDetailsDialog> {
                     child: widget.badge.imageUrl.isNotEmpty
                         ? ClipOval(
                             child: Image.network(
-                              widget.badge.imageUrl,
+                              UrlUtils.buildImageUrl(widget.badge.imageUrl),
                               fit: BoxFit.cover,
                               loadingBuilder:
                                   (context, child, loadingProgress) {

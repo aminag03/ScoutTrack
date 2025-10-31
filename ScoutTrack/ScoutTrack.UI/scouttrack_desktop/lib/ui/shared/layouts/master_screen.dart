@@ -272,16 +272,17 @@ class _MasterScreenState extends State<MasterScreen> {
                   ),
                   child: Column(
                     children: [
-                      _SidebarItem(
-                        icon: Icons.notifications,
-                        label: 'Obavještenja',
-                        selected: selectedLabel == 'Obavještenja',
-                        onTap: () => _handleTap('Obavještenja', () {
-                          Navigator.of(context).pushReplacement(
-                            _fadeRoute(const NotificationScreen()),
-                          );
-                        }),
-                      ),
+                      if (widget.role != 'Admin')
+                        _SidebarItem(
+                          icon: Icons.notifications,
+                          label: 'Obavještenja',
+                          selected: selectedLabel == 'Obavještenja',
+                          onTap: () => _handleTap('Obavještenja', () {
+                            Navigator.of(context).pushReplacement(
+                              _fadeRoute(const NotificationScreen()),
+                            );
+                          }),
+                        ),
                       if (widget.role == 'Admin') ...[
                         _SidebarItem(
                           icon: Icons.account_circle,

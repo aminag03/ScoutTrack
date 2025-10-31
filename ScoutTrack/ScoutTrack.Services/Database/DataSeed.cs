@@ -198,7 +198,8 @@ namespace ScoutTrack.Services.Database
                     CityId = 11,
                     TroopId = 2,
                     CategoryId = 4,
-                    ContactPhone = "+38763629533"
+                    ContactPhone = "+38763629533",
+                    ProfilePictureUrl = "/images/members/aminagutosic.jpg"
                 },
                 new Member
                 {
@@ -556,7 +557,8 @@ namespace ScoutTrack.Services.Database
                     TroopId = 4,
                     ActivityTypeId = 2,
                     Summary = "Prekrasna priroda i odličan trening",
-                    ActivityState = "RegistrationsClosedActivityState"
+                    ActivityState = "RegistrationsClosedActivityState",
+                    ImagePath = "images/activities/sutjeska_walk.jpg"
                 },
                 new Activity
                 {
@@ -574,7 +576,8 @@ namespace ScoutTrack.Services.Database
                     TroopId = 2,
                     ActivityTypeId = 3,
                     Summary = "Odličan turnir sa 8 timova! Pobjednik je bio tim 'Bregava' iz Stoca. Ukupno 24 igrača je sudjelovalo u 12 utakmica. Turnir je bio odlično organizovan s dobrim duhom sporta i izviđačkim vrijednostima.",
-                    ActivityState = "FinishedActivityState"
+                    ActivityState = "FinishedActivityState",
+                    ImagePath = "images/activities/football_tournament.jpg"
                 },
                 new Activity
                 {
@@ -1887,16 +1890,16 @@ namespace ScoutTrack.Services.Database
             // Seed More Notifications
             var moreNotifications = new List<Notification>
             {
-                new Notification { Id = 6, Message = "Vaša registracija za aktivnost 'Jesenji kamp u Jahorini' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true },
-                new Notification { Id = 7, Message = "Nova aktivnost 'Šetnja kroz Sutjesku' je dostupna za registraciju.", ReceiverId = 8, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-2), IsRead = true },
-                new Notification { Id = 8, Message = "Ana Marić je poslala zahtjev za prijateljstvo.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-30), IsRead = true },
-                new Notification { Id = 9, Message = "Vaša registracija za aktivnost 'Fudbalski turnir' je odobrena!", ReceiverId = 11, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
-                new Notification { Id = 10, Message = "Nova aktivnost 'Čišćenje rijeke Bosne' je dostupna za registraciju.", ReceiverId = 16, SenderId = 1, CreatedAt = DateTime.Now, IsRead = false },
-                new Notification { Id = 11, Message = "Vaša registracija za aktivnost 'Zimski kamp u Kozari' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-7), IsRead = true },
-                new Notification { Id = 12, Message = "Vaša registracija za aktivnost 'Radionica čvorova i konopca' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
-                new Notification { Id = 13, Message = "Marko Petrović je lajkao vaš post o kampu u Jahorini.", ReceiverId = 8, SenderId = 7, CreatedAt = DateTime.Now.AddDays(-1).AddHours(1), IsRead = true },
-                new Notification { Id = 14, Message = "Ana Marić je komentirala vaš post o zimskom kampu.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-2).AddHours(2), IsRead = true },
-                new Notification { Id = 15, Message = "Nova aktivnost 'Turnir u stolnom tenisu' je dostupna za registraciju.", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
+                new Notification { Id = 1, Message = "Vaša registracija za aktivnost 'Jesenji kamp u Jahorini' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true },
+                new Notification { Id = 2, Message = "Nova aktivnost 'Šetnja kroz Sutjesku' je dostupna za registraciju.", ReceiverId = 8, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-2), IsRead = true },
+                new Notification { Id = 3, Message = "Ana Marić je poslala zahtjev za prijateljstvo.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-30), IsRead = true },
+                new Notification { Id = 4, Message = "Vaša registracija za aktivnost 'Fudbalski turnir' je odobrena!", ReceiverId = 11, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
+                new Notification { Id = 5, Message = "Nova aktivnost 'Čišćenje rijeke Bosne' je dostupna za registraciju.", ReceiverId = 16, SenderId = 1, CreatedAt = DateTime.Now, IsRead = false },
+                new Notification { Id = 6, Message = "Vaša registracija za aktivnost 'Zimski kamp u Kozari' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-7), IsRead = true },
+                new Notification { Id = 7, Message = "Vaša registracija za aktivnost 'Radionica čvorova i konopca' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
+                new Notification { Id = 8, Message = "Marko Petrović je lajkao vaš post o kampu u Jahorini.", ReceiverId = 8, SenderId = 7, CreatedAt = DateTime.Now.AddDays(-1).AddHours(1), IsRead = true },
+                new Notification { Id = 9, Message = "Ana Marić je komentirala vaš post o zimskom kampu.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-2).AddHours(2), IsRead = true },
+                new Notification { Id = 10, Message = "Nova aktivnost 'Turnir u stolnom tenisu' je dostupna za registraciju.", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
             };
             modelBuilder.Entity<Notification>().HasData(moreNotifications);
 
@@ -1961,6 +1964,128 @@ namespace ScoutTrack.Services.Database
                 }
             };
             modelBuilder.Entity<Document>().HasData(documents);
+
+            var troop2MemberIds = new List<int> { 7, 17, 18, 19, 20, 21, 22, 23, 24 };
+            var extraNotifications = new List<Notification>
+            {
+                new Notification { Id = 21, Message = "Vaš član je postao vođa aktivnosti 'Izviđački izazov 1'.", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-4), IsRead = true },
+                new Notification { Id = 22, Message = "Troop 'Bregava' je dodan u novi kamp! Pripremite plan aktivnosti.", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-6), IsRead = true },
+                new Notification { Id = 23, Message = "Obavijest: Registracija tima za 'Turnir u košarci' je uspješna.", ReceiverId = 2, SenderId = 17, CreatedAt = DateTime.Now.AddDays(-2), IsRead = true },
+                new Notification { Id = 24, Message = "Novi član se pridružio odredu 'Bregava'.", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-8), IsRead = true },
+                new Notification { Id = 25, Message = "Vaša oprema je odobrena za korištenje na sljedećoj aktivnosti.", ReceiverId = 2, SenderId = 18, CreatedAt = DateTime.Now.AddDays(-3), IsRead = false },
+                new Notification { Id = 26, Message = "Čestitamo! Troop 'Bregava' je ostvario najviše bodova na radionici.", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-1), IsRead = false },
+                new Notification { Id = 27, Message = "Dodana nova nagrada za vaš odred - pogledajte detalje.", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-7), IsRead = false },
+                new Notification { Id = 28, Message = "Nova edukativna obuka dostupna za sve članove odreda.", ReceiverId = 2, SenderId = 19, CreatedAt = DateTime.Now.AddDays(-5), IsRead = false },
+                new Notification { Id = 29, Message = "Zabilježen zapažen doprinos na 'Čišćenje rijeke Bosne'. Hvala timu 'Bregava'!", ReceiverId = 2, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-9), IsRead = false },
+            };
+            modelBuilder.Entity<Notification>().HasData(extraNotifications);
+
+            var extraActivities = new List<Activity>
+            {
+                new Activity
+                {
+                    Id = 40,
+                    Title = "Izviđački izazov 1",
+                    Description = "Tim-building izazov na otvorenom za sve uzraste.",
+                    isPrivate = false,
+                    StartTime = DateTime.Now.AddDays(10),
+                    EndTime = DateTime.Now.AddDays(10).AddHours(5),
+                    Latitude = 43.0597,
+                    Longitude = 17.9444,
+                    LocationName = "Park Stolac",
+                    Fee = 0,
+                    CreatedAt = DateTime.Now,
+                    TroopId = 2,
+                    ActivityTypeId = 2,
+                    ActivityState = "RegistrationsOpenActivityState",
+                    ImagePath = "images/activities/izazov_1.jpg"
+                },
+                new Activity
+                {
+                    Id = 41,
+                    Title = "Izviđački izazov 2",
+                    Description = "Avanturistička igra orijentacije oko rijeke Bregave.",
+                    isPrivate = false,
+                    StartTime = DateTime.Now.AddDays(18),
+                    EndTime = DateTime.Now.AddDays(18).AddHours(6),
+                    Latitude = 43.0597,
+                    Longitude = 17.9444,
+                    LocationName = "Obala Bregave, Stolac",
+                    Fee = 5,
+                    CreatedAt = DateTime.Now,
+                    TroopId = 2,
+                    ActivityTypeId = 4,
+                    ActivityState = "RegistrationsOpenActivityState",
+                    ImagePath = "images/activities/izazov_2.jpg"
+                },
+                new Activity
+                {
+                    Id = 42,
+                    Title = "Izviđački izazov 3",
+                    Description = "Sportski izazovi i takmičarske igre.",
+                    isPrivate = false,
+                    StartTime = DateTime.Now.AddDays(22),
+                    EndTime = DateTime.Now.AddDays(22).AddHours(8),
+                    Latitude = 43.0597,
+                    Longitude = 17.9444,
+                    LocationName = "Sportski centar Stolac",
+                    Fee = 10,
+                    CreatedAt = DateTime.Now,
+                    TroopId = 2,
+                    ActivityTypeId = 3,
+                    ActivityState = "RegistrationsOpenActivityState",
+                    ImagePath = "images/activities/izazov_3.jpg"
+                },
+                new Activity
+                {
+                    Id = 43,
+                    Title = "Izviđački izazov 4",
+                    Description = "Izlet i edukativna radionica o zaštiti okoliša.",
+                    isPrivate = false,
+                    StartTime = DateTime.Now.AddDays(26),
+                    EndTime = DateTime.Now.AddDays(26).AddHours(4),
+                    Latitude = 43.0597,
+                    Longitude = 17.9444,
+                    LocationName = "Eko zona Stolac",
+                    Fee = 0,
+                    CreatedAt = DateTime.Now,
+                    TroopId = 2,
+                    ActivityTypeId = 6,
+                    ActivityState = "RegistrationsOpenActivityState",
+                    ImagePath = "images/activities/izazov_4.jpg"
+                },
+                new Activity
+                {
+                    Id = 44,
+                    Title = "Izviđački izazov 5",
+                    Description = "Kampovanje pod zvijezdama s noćnom igrom.",
+                    isPrivate = false,
+                    StartTime = DateTime.Now.AddDays(34),
+                    EndTime = DateTime.Now.AddDays(35),
+                    Latitude = 43.0597,
+                    Longitude = 17.9444,
+                    LocationName = "Kamp zona Stolac",
+                    Fee = 15,
+                    CreatedAt = DateTime.Now,
+                    TroopId = 2,
+                    ActivityTypeId = 1,
+                    ActivityState = "RegistrationsOpenActivityState",
+                    ImagePath = "images/activities/izazov_5.jpg"
+                }
+            };
+            modelBuilder.Entity<Activity>().HasData(extraActivities);
+
+            var additionalPostImages = new List<PostImage>
+            {
+                // For post 7
+                new PostImage { Id = 41, PostId = 7, ImageUrl = "/images/posts/izazov1.jpg", UploadedAt = DateTime.Now.AddDays(-1).AddHours(1), IsCoverPhoto = true },
+                new PostImage { Id = 42, PostId = 7, ImageUrl = "/images/posts/izazov1_extra.jpg", UploadedAt = DateTime.Now.AddDays(-1).AddHours(2), IsCoverPhoto = false },
+                // For post 8
+                new PostImage { Id = 43, PostId = 8, ImageUrl = "/images/posts/izazov2.jpg", UploadedAt = DateTime.Now.AddDays(-1).AddHours(2), IsCoverPhoto = true },
+                // For post 9
+                new PostImage { Id = 44, PostId = 9, ImageUrl = "/images/posts/izazov3.jpg", UploadedAt = DateTime.Now.AddDays(-1).AddHours(3), IsCoverPhoto = true }
+            };
+            modelBuilder.Entity<PostImage>().HasData(additionalPostImages);
         }
     }
 }

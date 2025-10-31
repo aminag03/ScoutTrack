@@ -434,11 +434,10 @@ namespace ScoutTrack.Services
         private async Task<List<FriendData>> GenerateTrainingDataAsync()
         {
             var interactingUsers = await _context.Database.SqlQueryRaw<int>(@"
-                SELECT DISTINCT m1.Id FROM Members m1
+                SELECT DISTINCT TOP (500) m1.Id FROM Members m1
                 WHERE EXISTS (SELECT 1 FROM Posts p WHERE p.CreatedById = m1.Id)
                    OR EXISTS (SELECT 1 FROM ActivityRegistrations ar WHERE ar.MemberId = m1.Id)
                    OR EXISTS (SELECT 1 FROM Likes l WHERE l.CreatedById = m1.Id)
-                LIMIT 500
             ").ToListAsync();
 
             var trainingData = new List<FriendData>();
@@ -446,16 +445,17 @@ namespace ScoutTrack.Services
             foreach (var user1 in interactingUsers)
             {
                 var potentialConnections = await _context.Database.SqlQueryRaw<int>(@"
-                    SELECT DISTINCT 
-                        CASE WHEN f.RequesterId = {0} THEN f.ResponderId ELSE f.RequesterId END as ConnectedUserId
-                    FROM Friendships f 
-                    WHERE (f.RequesterId = {0} OR f.ResponderId = {0}) AND f.Status = 1
-                    UNION
-                    SELECT DISTINCT ar2.MemberId 
-                    FROM ActivityRegistrations ar1 
-                    INNER JOIN ActivityRegistrations ar2 ON ar1.ActivityId = ar2.ActivityId 
-                    WHERE ar1.MemberId = {0} AND ar2.MemberId != {0}
-                    LIMIT 50
+                    SELECT TOP (50) ConnectedUserId FROM (
+                        SELECT DISTINCT 
+                            CASE WHEN f.RequesterId = {0} THEN f.ResponderId ELSE f.RequesterId END as ConnectedUserId
+                        FROM Friendships f 
+                        WHERE (f.RequesterId = {0} OR f.ResponderId = {0}) AND f.Status = 1
+                        UNION
+                        SELECT DISTINCT ar2.MemberId 
+                        FROM ActivityRegistrations ar1 
+                        INNER JOIN ActivityRegistrations ar2 ON ar1.ActivityId = ar2.ActivityId 
+                        WHERE ar1.MemberId = {0} AND ar2.MemberId != {0}
+                    ) AS Candidates
                 ", user1).ToListAsync();
                 
                 foreach (var user2 in potentialConnections.Take(20))

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../layouts/master_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/activity_registration_provider.dart';
+import '../providers/member_provider.dart';
 import '../models/activity.dart';
 import '../utils/url_utils.dart';
 import '../utils/snackbar_utils.dart';
@@ -23,6 +24,29 @@ class _ActivityRegistrationScreenState
   bool _isConfirmed = false;
   final TextEditingController _notesController = TextEditingController();
   bool _isLoading = false;
+  int? _currentUserTroopId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUserTroop();
+  }
+
+  Future<void> _loadCurrentUserTroop() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final memberProvider = MemberProvider(authProvider);
+      final userId = await authProvider.getUserIdFromToken();
+      if (userId != null) {
+        final member = await memberProvider.getById(userId);
+        if (mounted) {
+          setState(() {
+            _currentUserTroopId = member.troopId;
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -32,6 +56,7 @@ class _ActivityRegistrationScreenState
 
   Future<void> _submitRegistration() async {
     if (!_isConfirmed) return;
+    if (!_isRegistrationAllowed()) return;
 
     setState(() {
       _isLoading = true;
@@ -80,9 +105,7 @@ class _ActivityRegistrationScreenState
             children: [
               _buildActivityInfoCard(),
 
-              if (widget.activity.activityState != 'DraftActivityState' &&
-                  widget.activity.activityState !=
-                      'CancelledActivityState') ...[
+              if (_isRegistrationAllowed()) ...[
                 const SizedBox(height: 24),
                 _buildRegistrationFormCard(),
               ] else ...[
@@ -94,6 +117,19 @@ class _ActivityRegistrationScreenState
         ),
       ),
     );
+  }
+
+  bool _isRegistrationAllowed() {
+    if (widget.activity.isPrivate &&
+        _currentUserTroopId != null &&
+        widget.activity.troopId != _currentUserTroopId) {
+      return false;
+    }
+    if (widget.activity.activityState == 'DraftActivityState' ||
+        widget.activity.activityState == 'CancelledActivityState') {
+      return false;
+    }
+    return true;
   }
 
   Widget _buildActivityInfoCard() {

@@ -50,6 +50,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   bool _isLoading = true;
   String? _error;
   int? _currentUserId;
+  int? _currentUserTroopId;
   Map<int, ActivityRegistration> _userRegistrations = {};
   Map<int, ActivityRegistration> _memberRegistrations = {};
 
@@ -100,9 +101,17 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
       final activityTypeProvider = ActivityTypeProvider(authProvider);
       final troopProvider = TroopProvider(authProvider);
       final registrationProvider = ActivityRegistrationProvider(authProvider);
+      final memberProvider = MemberProvider(authProvider);
 
       _activityTypes = await activityTypeProvider.getAllActivityTypes();
       _currentUserId = await authProvider.getUserIdFromToken();
+
+      if (_currentUserId != null) {
+        try {
+          final currentMember = await memberProvider.getById(_currentUserId!);
+          _currentUserTroopId = currentMember.troopId;
+        } catch (_) {}
+      }
 
       if (widget.memberId != null ||
           widget.showMyRegistrations ||
@@ -272,6 +281,11 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         _applySorting();
       } else {
         _filteredActivities = _allActivities.where((activity) {
+          if (_currentUserTroopId != null) {
+            if (activity.isPrivate && activity.troopId != _currentUserTroopId) {
+              return false;
+            }
+          }
           if (activity.activityState == 'DraftActivityState' ||
               activity.activityState == 'CancelledActivityState') {
             return false;
