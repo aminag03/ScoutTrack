@@ -135,6 +135,8 @@ namespace ScoutTrack.Services
                 CreatedAt = DateTime.Now
             };
 
+            await BeforeInsert(document, request);
+
             base._context.Documents.Add(document);
             await base._context.SaveChangesAsync();
 
@@ -144,31 +146,31 @@ namespace ScoutTrack.Services
         protected override async Task BeforeInsert(Document entity, DocumentUpsertRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Title))
-                throw new UserException("Naslov dokumenta je obavezan.");
+                throw new UserException("Document title is required.");
                 
             if (request.Title.Length > 100)
-                throw new UserException("Naslov dokumenta ne smije imati više od 100 znakova.");
+                throw new UserException("Document title cannot exceed 100 characters.");
 
             if (await base._context.Documents.AnyAsync(d => d.Title == request.Title))
-                throw new UserException("Dokument s tim naslovom već postoji.");
+                throw new UserException("A document with this title already exists.");
 
             if (string.IsNullOrWhiteSpace(request.FilePath))
-                throw new UserException("Putanja datoteke je obavezna.");
+                throw new UserException("File path is required.");
         }
 
         protected override async Task BeforeUpdate(Document entity, DocumentUpsertRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Title))
-                throw new UserException("Naslov dokumenta je obavezan.");
+                throw new UserException("Document title is required.");
                 
             if (request.Title.Length > 100)
-                throw new UserException("Naslov dokumenta ne smije imati više od 100 znakova.");
+                throw new UserException("Document title cannot exceed 100 characters.");
 
             if (await base._context.Documents.AnyAsync(d => d.Title == request.Title && d.Id != entity.Id))
-                throw new UserException("Dokument s tim naslovom već postoji.");
+                throw new UserException("A document with this title already exists.");
 
             if (string.IsNullOrWhiteSpace(request.FilePath))
-                throw new UserException("Putanja datoteke je obavezna.");
+                throw new UserException("File path is required.");
         }
 
         private string NormalizeFilePath(string filePath)

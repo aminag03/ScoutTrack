@@ -251,6 +251,9 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
       if (errorMsg.contains('name') && errorMsg.contains('already exists')) {
         throw _HttpError('Naziv već postoji.', response);
       }
+      if (errorMsg.contains('title') && errorMsg.contains('already exists')) {
+        throw _HttpError('Naslov već postoji.', response);
+      }
       if (errorMsg.contains('description') &&
           errorMsg.contains('already exists')) {
         throw _HttpError('Opis već postoji.', response);

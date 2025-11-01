@@ -154,5 +154,25 @@ namespace ScoutTrack.Services
             if (await _context.BadgeRequirements.AnyAsync(br => br.BadgeId == request.BadgeId && br.Description == request.Description && br.Id != entity.Id))
                 throw new UserException("Requirement with this description already exists for this badge.");
         }
+
+        public override async Task<bool> DeleteAsync(int id)
+        {
+            var entity = await _context.BadgeRequirements.FindAsync(id);
+            if (entity == null)
+                return false;
+
+            var progressRecords = await _context.MemberBadgeProgresses
+                .Where(mbp => mbp.RequirementId == id)
+                .ToListAsync();
+
+            if (progressRecords.Any())
+            {
+                _context.MemberBadgeProgresses.RemoveRange(progressRecords);
+            }
+
+            _context.BadgeRequirements.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
