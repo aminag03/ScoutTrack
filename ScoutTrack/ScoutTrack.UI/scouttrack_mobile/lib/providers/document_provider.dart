@@ -19,7 +19,7 @@ class DocumentProvider extends BaseProvider<Document, dynamic> {
       final headers = await createHeaders();
       final response = await http.get(
         Uri.parse(
-          "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/download/$documentId",
+          "${BaseProvider.baseUrl}$endpoint/download/$documentId",
         ),
         headers: headers,
       );
@@ -56,7 +56,7 @@ class DocumentProvider extends BaseProvider<Document, dynamic> {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse(
-          "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/upload",
+          "${BaseProvider.baseUrl}$endpoint/upload",
         ),
       );
 
@@ -93,7 +93,7 @@ class DocumentProvider extends BaseProvider<Document, dynamic> {
       final headers = await createHeaders();
       final response = await http.get(
         Uri.parse(
-          "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$documentId/file-exists",
+          "${BaseProvider.baseUrl}$endpoint/$documentId/file-exists",
         ),
         headers: headers,
       );

@@ -404,7 +404,7 @@ class _FriendshipScreenState extends State<FriendshipScreen>
       key: _scaffoldMessengerKey,
       child: MasterScreen(
         headerTitle: 'Prijatelji',
-        showBackButton: true,
+        alwaysShowMenu: true,
         body: Container(
           color: const Color(0xFFF5F5DC),
           child: Column(

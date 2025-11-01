@@ -20,7 +20,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/my-friends",
+        "${BaseProvider.baseUrl}$endpoint/my-friends",
       );
 
       if (filter != null) {
@@ -38,7 +38,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/pending-requests",
+        "${BaseProvider.baseUrl}$endpoint/pending-requests",
       );
 
       if (filter != null) {
@@ -56,7 +56,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/sent-requests",
+        "${BaseProvider.baseUrl}$endpoint/sent-requests",
       );
 
       if (filter != null) {
@@ -72,7 +72,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   Future<Friendship> sendFriendRequest(int responderId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/send-request",
+        "${BaseProvider.baseUrl}$endpoint/send-request",
       );
       final headers = await createHeaders();
       final requestBody = {'responderId': responderId};
@@ -96,7 +96,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   Future<bool> acceptFriendRequest(int friendshipId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$friendshipId/accept",
+        "${BaseProvider.baseUrl}$endpoint/$friendshipId/accept",
       );
       final headers = await createHeaders();
 
@@ -114,7 +114,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   Future<bool> rejectFriendRequest(int friendshipId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$friendshipId/reject",
+        "${BaseProvider.baseUrl}$endpoint/$friendshipId/reject",
       );
       final headers = await createHeaders();
 
@@ -132,7 +132,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   Future<bool> unfriend(int friendshipId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$friendshipId/unfriend",
+        "${BaseProvider.baseUrl}$endpoint/$friendshipId/unfriend",
       );
       final headers = await createHeaders();
 
@@ -150,7 +150,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   Future<bool> cancelFriendRequest(int friendshipId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$friendshipId/cancel-request",
+        "${BaseProvider.baseUrl}$endpoint/$friendshipId/cancel-request",
       );
       final headers = await createHeaders();
 
@@ -171,7 +171,7 @@ class FriendshipProvider extends BaseProvider<Friendship, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/recommendations?topN=$topN",
+        "${BaseProvider.baseUrl}$endpoint/recommendations?topN=$topN",
       );
 
       final headers = await createHeaders();

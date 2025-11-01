@@ -19,7 +19,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/activity/$activityId",
+        "${BaseProvider.baseUrl}$endpoint/activity/$activityId",
       ).replace(queryParameters: filter);
 
       final response = await http.get(uri, headers: await createHeaders());
@@ -53,7 +53,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   ) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
+        "${BaseProvider.baseUrl}$endpoint",
       );
 
       final response = await http.post(
@@ -90,7 +90,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   ) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
+        "${BaseProvider.baseUrl}$endpoint/$postId",
       );
 
       final response = await http.put(
@@ -119,7 +119,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   Future<void> deletePost(int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$postId",
+        "${BaseProvider.baseUrl}$endpoint/$postId",
       );
 
       final response = await http.delete(uri, headers: await createHeaders());
@@ -137,7 +137,7 @@ class PostProvider extends BaseProvider<Post, dynamic> {
   Future<String> uploadImage(File imageFile) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/upload-image",
+        "${BaseProvider.baseUrl}$endpoint/upload-image",
       );
 
       var request = http.MultipartRequest('POST', uri);

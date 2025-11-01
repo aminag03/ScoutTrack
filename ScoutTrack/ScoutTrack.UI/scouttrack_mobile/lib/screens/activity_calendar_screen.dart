@@ -161,7 +161,7 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
     return MasterScreen(
       headerTitle: 'Kalendar aktivnosti',
       selectedIndex: 0,
-      showBackButton: true,
+      alwaysShowMenu: true,
       body: Focus(
         onFocusChange: (hasFocus) {
           if (hasFocus) {

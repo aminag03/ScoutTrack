@@ -16,7 +16,7 @@ class BadgeProvider extends BaseProvider<ScoutBadge, dynamic> {
   Future<List<BadgeRequirement>> getBadgeRequirements(int badgeId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}BadgeRequirement?BadgeId=$badgeId&RetrieveAll=true",
+        "${BaseProvider.baseUrl}BadgeRequirement?BadgeId=$badgeId&RetrieveAll=true",
       );
       final headers = await createHeaders();
       final response = await http.get(uri, headers: headers);

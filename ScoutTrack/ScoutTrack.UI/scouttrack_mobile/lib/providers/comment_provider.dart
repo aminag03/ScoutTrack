@@ -15,7 +15,7 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
   Future<List<Comment>> getByPost(int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+        "${BaseProvider.baseUrl}$endpoint/post/$postId",
       );
 
       final response = await http.get(uri, headers: await createHeaders());
@@ -47,7 +47,7 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
   Future<Comment> createComment(String content, int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint",
+        "${BaseProvider.baseUrl}$endpoint",
       );
 
       final response = await http.post(
@@ -85,7 +85,7 @@ class CommentProvider extends BaseProvider<Comment, dynamic> {
   Future<Comment> updateComment(int commentId, String content) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$commentId",
+        "${BaseProvider.baseUrl}$endpoint/$commentId",
       );
 
       final response = await http.put(

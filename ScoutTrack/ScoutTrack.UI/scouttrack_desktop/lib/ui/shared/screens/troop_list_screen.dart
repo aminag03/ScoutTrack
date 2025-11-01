@@ -416,7 +416,7 @@ class _TroopListScreenState extends State<TroopListScreen> {
                   onPressed: _onSendNotification,
                   icon: const Icon(Icons.notifications),
                   label: const Text(
-                    'Pošalji obavještenje prikazanim odredima',
+                    'Pošalji obavještenje odabranim odredima',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -1412,22 +1412,38 @@ class _TroopListScreenState extends State<TroopListScreen> {
     }
   }
 
-  void _onSendNotification() {
-    if (_troops?.items == null || _troops!.items!.isEmpty) {
-      showCustomSnackbar(
-        context,
-        message: 'Nema odreda za slanje obavještenja.',
-        backgroundColor: Colors.orange,
-        icon: Icons.warning,
-      );
-      return;
-    }
+  Future<void> _onSendNotification() async {
+    try {
+      // Fetch all troops matching current filters
+      var filter = {
+        if (searchController.text.isNotEmpty) "Name": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
 
-    final TextEditingController messageController = TextEditingController();
-    final _formKey = GlobalKey<FormState>();
-    int troopCount = _troops!.items!.length;
+      var allTroopsResult = await _troopProvider.get(filter: filter);
+      
+      if (allTroopsResult.items == null || allTroopsResult.items!.isEmpty) {
+        if (mounted) {
+          showCustomSnackbar(
+            context,
+            message: 'Nema odreda za slanje obavještenja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
+          );
+        }
+        return;
+      }
 
-    showDialog(
+      final TextEditingController messageController = TextEditingController();
+      final _formKey = GlobalKey<FormState>();
+      int troopCount = allTroopsResult.totalCount ?? allTroopsResult.items!.length;
+
+      if (!mounted) return;
+
+      showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
@@ -1503,7 +1519,6 @@ class _TroopListScreenState extends State<TroopListScreen> {
               if (_formKey.currentState?.validate() ?? false) {
                 Navigator.of(context).pop();
                 await _sendNotificationToTroops(
-                  troopCount,
                   messageController.text.trim(),
                 );
               }
@@ -1519,15 +1534,39 @@ class _TroopListScreenState extends State<TroopListScreen> {
         ],
       ),
     );
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
-  Future<void> _sendNotificationToTroops(int troopCount, String message) async {
+  Future<void> _sendNotificationToTroops(String message) async {
     try {
-      if (_troops?.items == null || _troops!.items!.isEmpty) {
+      var filter = {
+        if (searchController.text.isNotEmpty) "Name": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+      };
+
+      var allTroopsResult = await _troopProvider.get(filter: filter);
+
+      if (allTroopsResult.items == null || allTroopsResult.items!.isEmpty) {
+        if (mounted) {
+          showCustomSnackbar(
+            context,
+            message: 'Nema odreda za slanje obavještenja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
+          );
+        }
         return;
       }
 
-      final troopIds = _troops!.items!.map((troop) => troop.id).toList();
+      final troopIds = allTroopsResult.items!.map((troop) => troop.id).toList();
+      final troopCount = allTroopsResult.totalCount ?? troopIds.length;
 
       await _notificationProvider.sendNotificationsToUsers(
         message: message,

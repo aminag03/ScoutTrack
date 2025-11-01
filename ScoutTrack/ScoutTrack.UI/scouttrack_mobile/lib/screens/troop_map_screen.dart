@@ -486,7 +486,7 @@ class _TroopMapScreenState extends State<TroopMapScreen> {
     return MasterScreen(
       headerTitle: 'Mapa odreda',
       selectedIndex: -1,
-      showBackButton: true,
+      alwaysShowMenu: true,
       body: Container(
         color: const Color(0xFFF5F5DC),
         child: Column(

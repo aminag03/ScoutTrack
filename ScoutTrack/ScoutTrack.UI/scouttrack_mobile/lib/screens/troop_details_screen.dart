@@ -11,8 +11,13 @@ import 'member_list_screen.dart';
 
 class TroopDetailsScreen extends StatefulWidget {
   final Troop troop;
+  final bool alwaysShowMenu;
 
-  const TroopDetailsScreen({super.key, required this.troop});
+  const TroopDetailsScreen({
+    super.key,
+    required this.troop,
+    this.alwaysShowMenu = false,
+  });
 
   @override
   State<TroopDetailsScreen> createState() => _TroopDetailsScreenState();
@@ -70,6 +75,7 @@ class _TroopDetailsScreenState extends State<TroopDetailsScreen> {
     return MasterScreen(
       headerTitle: 'Odred izviđača "${_troop.name}"',
       selectedIndex: -1,
+      alwaysShowMenu: widget.alwaysShowMenu,
       body: Container(
         color: const Color(0xFFF5F5DC),
         child: SingleChildScrollView(

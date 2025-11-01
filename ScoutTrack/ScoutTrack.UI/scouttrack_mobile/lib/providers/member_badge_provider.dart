@@ -19,7 +19,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
   Future<List<MemberBadge>> getMemberBadges(int memberId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint?MemberId=$memberId&RetrieveAll=true",
+        "${BaseProvider.baseUrl}$endpoint?MemberId=$memberId&RetrieveAll=true",
       );
       final headers = await createHeaders();
       final response = await http.get(uri, headers: headers);
@@ -44,7 +44,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
   ) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}MemberBadgeProgress/memberBadge/$memberBadgeId",
+        "${BaseProvider.baseUrl}MemberBadgeProgress/memberBadge/$memberBadgeId",
       );
       final headers = await createHeaders();
       final response = await http.get(uri, headers: headers);
@@ -78,7 +78,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
       };
 
       final memberBadgeUri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}MemberBadge",
+        "${BaseProvider.baseUrl}MemberBadge",
       );
       final headers = await createHeaders();
       final memberBadgeResponse = await http.post(
@@ -114,7 +114,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
       );
 
       final notificationUri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}Notification/send-to-users",
+        "${BaseProvider.baseUrl}Notification/send-to-users",
       );
       final headers = await createHeaders();
 
@@ -134,7 +134,7 @@ class MemberBadgeProvider extends BaseProvider<MemberBadge, dynamic> {
   Future<void> deleteMemberBadge(int memberBadgeId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}MemberBadge/$memberBadgeId",
+        "${BaseProvider.baseUrl}MemberBadge/$memberBadgeId",
       );
       final headers = await createHeaders();
 

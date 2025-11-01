@@ -35,7 +35,7 @@ namespace ScoutTrack.Services.Database
                 new City { Id = 17, Name = "Travnik", Latitude = 44.2294, Longitude = 17.6603 },
                 new City { Id = 18, Name = "Sanski Most", Latitude = 44.7672, Longitude = 16.6867 },
                 new City { Id = 19, Name = "Bugojno", Latitude = 44.0325, Longitude = 17.4556 },
-                new City { Id = 20, Name = "Visoko", Latitude = 43.9839, Longitude = 18.1853 }
+                new City { Id = 20, Name = "Čapljina", Latitude = 43.1193, Longitude = 17.7033 }
             };
             modelBuilder.Entity<City>().HasData(cities);
 
@@ -1891,14 +1891,14 @@ namespace ScoutTrack.Services.Database
             var moreNotifications = new List<Notification>
             {
                 new Notification { Id = 1, Message = "Vaša registracija za aktivnost 'Jesenji kamp u Jahorini' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true },
-                new Notification { Id = 2, Message = "Nova aktivnost 'Šetnja kroz Sutjesku' je dostupna za registraciju.", ReceiverId = 8, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-2), IsRead = true },
+                new Notification { Id = 2, Message = "Nova aktivnost 'Šetnja kroz Sutjesku' je dostupna za registraciju.", ReceiverId = 8, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-2), IsRead = false },
                 new Notification { Id = 3, Message = "Ana Marić je poslala zahtjev za prijateljstvo.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-30), IsRead = true },
                 new Notification { Id = 4, Message = "Vaša registracija za aktivnost 'Fudbalski turnir' je odobrena!", ReceiverId = 11, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
                 new Notification { Id = 5, Message = "Nova aktivnost 'Čišćenje rijeke Bosne' je dostupna za registraciju.", ReceiverId = 16, SenderId = 1, CreatedAt = DateTime.Now, IsRead = false },
                 new Notification { Id = 6, Message = "Vaša registracija za aktivnost 'Zimski kamp u Kozari' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-7), IsRead = true },
                 new Notification { Id = 7, Message = "Vaša registracija za aktivnost 'Radionica čvorova i konopca' je odobrena!", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-5), IsRead = true },
-                new Notification { Id = 8, Message = "Marko Petrović je lajkao vaš post o kampu u Jahorini.", ReceiverId = 8, SenderId = 7, CreatedAt = DateTime.Now.AddDays(-1).AddHours(1), IsRead = true },
-                new Notification { Id = 9, Message = "Ana Marić je komentirala vaš post o zimskom kampu.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-2).AddHours(2), IsRead = true },
+                new Notification { Id = 8, Message = "Marko Petrović je lajkao vaš post o kampu u Jahorini.", ReceiverId = 8, SenderId = 7, CreatedAt = DateTime.Now.AddDays(-1).AddHours(1), IsRead = false },
+                new Notification { Id = 9, Message = "Ana Marić je komentirala vaš post o zimskom kampu.", ReceiverId = 7, SenderId = 8, CreatedAt = DateTime.Now.AddDays(-2).AddHours(2), IsRead = false },
                 new Notification { Id = 10, Message = "Nova aktivnost 'Turnir u stolnom tenisu' je dostupna za registraciju.", ReceiverId = 7, SenderId = 1, CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
             };
             modelBuilder.Entity<Notification>().HasData(moreNotifications);

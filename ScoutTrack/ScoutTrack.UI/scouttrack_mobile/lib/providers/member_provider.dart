@@ -17,7 +17,7 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
   Future<void> changePassword(int id, Map<String, String> request) async {
     await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/change-password",
+        "${BaseProvider.baseUrl}$endpoint/$id/change-password",
       );
       final headers = await createHeaders();
 
@@ -69,7 +69,7 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
   Future<Member> updateProfilePicture(int id, File? imageFile) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id/update-profile-picture",
+        "${BaseProvider.baseUrl}$endpoint/$id/update-profile-picture",
       );
 
       if (imageFile == null) {
@@ -118,7 +118,7 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
   Future<void> delete(int id) async {
     await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/$id",
+        "${BaseProvider.baseUrl}$endpoint/$id",
       );
       final response = await http.delete(uri, headers: await createHeaders());
 
@@ -142,7 +142,7 @@ class MemberProvider extends BaseProvider<Member, dynamic> {
   }) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/available-members",
+        "${BaseProvider.baseUrl}$endpoint/available-members",
       );
 
       if (filter != null) {

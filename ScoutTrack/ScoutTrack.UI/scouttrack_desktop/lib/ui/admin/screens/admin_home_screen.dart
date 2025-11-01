@@ -103,30 +103,16 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 
   Color _getGreenShadeByIndex(int index) {
-    final greenShades = <Color>[
-      const Color(0xFF2E7D32),
-      const Color(0xFF388E3C),
-      const Color(0xFF4CAF50),
-      const Color(0xFF66BB6A),
-      const Color(0xFF81C784),
-      const Color(0xFFA5D6A7),
-      const Color(0xFF1B5E20),
-      const Color(0xFF43A047),
-      const Color(0xFF7CB342),
-      const Color(0xFF9CCC65),
-      const Color(0xFF689F38),
-      const Color(0xFF8BC34A),
-      const Color(0xFF33691E),
-      const Color(0xFF558B2F),
-      const Color(0xFF6ABF47),
-      const Color(0xFF8DCA3A),
-      const Color(0xFF1B4332),
-      const Color(0xFF2D5016),
-      const Color(0xFF4A6741),
-      const Color(0xFF6B8E23),
-    ];
-
-    return greenShades[index % greenShades.length];
+    
+    final goldenAngle = 137.508;
+    final hue = (120.0 + (index * goldenAngle)) % 360;
+    
+    final saturation = 0.42 + (index % 3) * 0.04;
+    
+    final lightness = 0.38 + (index % 5) * 0.025;
+    
+    final hslColor = HSLColor.fromAHSL(1.0, hue, saturation, lightness);
+    return hslColor.toColor();
   }
 
   String _getMonthAbbreviation(String monthName) {
@@ -621,8 +607,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            SizedBox(height: 280, child: _buildCategoriesPieChart()),
-            const SizedBox(height: 16),
+            SizedBox(height: 320, child: _buildCategoriesPieChart()),
+            const SizedBox(height: 20),
             _buildCategoriesLegend(),
           ],
         ),

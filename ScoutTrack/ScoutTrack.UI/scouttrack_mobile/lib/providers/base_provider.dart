@@ -26,7 +26,7 @@ abstract class BaseProvider<T, TInsertUpdate> with ChangeNotifier {
   BaseProvider(this.authProvider, this.endpoint) {
     baseUrl ??= const String.fromEnvironment(
       "BASE_URL",
-      defaultValue: "http://localhost:5164/",
+      defaultValue: "http://10.0.2.2:5164/",
     );
   }
 

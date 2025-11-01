@@ -20,7 +20,7 @@ class AuthProvider with ChangeNotifier {
 
     final baseUrl = const String.fromEnvironment(
       "BASE_URL",
-      defaultValue: "http://localhost:5164/",
+      defaultValue: "http://10.0.2.2:5164/",
     );
     final response = await http.get(
       Uri.parse('${baseUrl}Auth/me'),
@@ -156,7 +156,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> login(String usernameOrEmail, String password) async {
     final baseUrl = const String.fromEnvironment(
       "BASE_URL",
-      defaultValue: "http://localhost:5164/",
+      defaultValue: "http://10.0.2.2:5164/",
     );
     final url = Uri.parse('${baseUrl}Auth/login');
 
@@ -239,7 +239,7 @@ class AuthProvider with ChangeNotifier {
     try {
       final baseUrl = const String.fromEnvironment(
         "BASE_URL",
-        defaultValue: "http://localhost:5164/",
+        defaultValue: "http://10.0.2.2:5164/",
       );
       final response = await http.post(
         Uri.parse('${baseUrl}Auth/refresh'),
@@ -352,7 +352,7 @@ class AuthProvider with ChangeNotifier {
 
       final baseUrl = const String.fromEnvironment(
         "BASE_URL",
-        defaultValue: "http://localhost:5164/",
+        defaultValue: "http://10.0.2.2:5164/",
       );
       print('🔧 Base URL: $baseUrl');
 

@@ -1,6 +1,4 @@
 class UrlUtils {
-  static const String defaultBaseUrl = "http://localhost:5164/";
-
   static String buildImageUrl(String? relativePath) {
     if (relativePath == null || relativePath.isEmpty) {
       return '';
@@ -12,7 +10,7 @@ class UrlUtils {
 
     final baseUrl = const String.fromEnvironment(
       "BASE_URL",
-      defaultValue: defaultBaseUrl,
+      defaultValue: "http://10.0.2.2:5164/",
     );
 
     final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';

@@ -693,7 +693,7 @@ class _MemberListScreenState extends State<MemberListScreen>
                             onPressed: _onSendNotification,
                             icon: const Icon(Icons.notifications),
                             label: const Text(
-                              'Pošalji obavještenje prikazanim članovima',
+                              'Pošalji obavještenje odabranim članovima',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1428,29 +1428,54 @@ class _MemberListScreenState extends State<MemberListScreen>
         _role == 'Admin';
   }
 
-  void _onSendNotification() {
-    int? troopIdForNotification = _selectedTroopId;
-    if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
-      troopIdForNotification = _loggedInUserId;
-    }
+  Future<void> _onSendNotification() async {
+    try {
+      int? troopIdForNotification = _selectedTroopId;
+      if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
+        troopIdForNotification = _loggedInUserId;
+      }
 
-    String troopName = _getTroopName(troopIdForNotification);
-    int memberCount = _members?.items?.length ?? 0;
+      String troopName = _getTroopName(troopIdForNotification);
 
-    if (memberCount == 0) {
-      showCustomSnackbar(
-        context,
-        message: 'Nema članova za slanje obavještenja.',
-        backgroundColor: Colors.orange,
-        icon: Icons.warning,
-      );
-      return;
-    }
+      int? troopIdForFilter = _selectedTroopId;
+      if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
+        troopIdForFilter = _loggedInUserId;
+      }
 
-    final TextEditingController messageController = TextEditingController();
-    final _formKey = GlobalKey<FormState>();
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+        "_t": DateTime.now().millisecondsSinceEpoch.toString(),
+      };
 
-    showDialog(
+      var allMembersResult = await _memberProvider.get(filter: filter);
+      
+      if (allMembersResult.items == null || allMembersResult.items!.isEmpty) {
+        if (mounted) {
+          showCustomSnackbar(
+            context,
+            message: 'Nema članova za slanje obavještenja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
+          );
+        }
+        return;
+      }
+
+      int memberCount = allMembersResult.totalCount ?? allMembersResult.items!.length;
+
+      final TextEditingController messageController = TextEditingController();
+      final _formKey = GlobalKey<FormState>();
+
+      if (!mounted) return;
+
+      showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Slanje obavještenja'),
@@ -1522,7 +1547,6 @@ class _MemberListScreenState extends State<MemberListScreen>
                 Navigator.of(context).pop();
                 await _sendNotificationToMembers(
                   troopName,
-                  memberCount,
                   messageController.text.trim(),
                 );
               }
@@ -1538,19 +1562,52 @@ class _MemberListScreenState extends State<MemberListScreen>
         ],
       ),
     );
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, e);
+      }
+    }
   }
 
   Future<void> _sendNotificationToMembers(
     String troopName,
-    int memberCount,
     String message,
   ) async {
     try {
-      if (_members?.items == null || _members!.items!.isEmpty) {
+      // Fetch all members matching current filters
+      int? troopIdForFilter = _selectedTroopId;
+      if (_showOnlyMyMembers && _role == 'Troop' && _loggedInUserId != null) {
+        troopIdForFilter = _loggedInUserId;
+      }
+
+      var filter = {
+        if (searchController.text.isNotEmpty) "FTS": searchController.text,
+        if (_selectedCityId != null) "CityId": _selectedCityId,
+        if (troopIdForFilter != null) "TroopId": troopIdForFilter,
+        if (_selectedGender != null) "Gender": _selectedGender,
+        if (_selectedCategoryId != null) "CategoryId": _selectedCategoryId,
+        if (_selectedSort != null) "OrderBy": _selectedSort,
+        "RetrieveAll": true,
+        "IncludeTotalCount": true,
+        "_t": DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
+      var allMembersResult = await _memberProvider.get(filter: filter);
+
+      if (allMembersResult.items == null || allMembersResult.items!.isEmpty) {
+        if (mounted) {
+          showCustomSnackbar(
+            context,
+            message: 'Nema članova za slanje obavještenja.',
+            backgroundColor: Colors.orange,
+            icon: Icons.warning,
+          );
+        }
         return;
       }
 
-      final memberIds = _members!.items!.map((member) => member.id).toList();
+      final memberIds = allMembersResult.items!.map((member) => member.id).toList();
+      final memberCount = allMembersResult.totalCount ?? memberIds.length;
 
       await _notificationProvider.sendNotificationsToUsers(
         message: message,

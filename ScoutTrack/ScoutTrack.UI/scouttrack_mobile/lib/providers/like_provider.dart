@@ -17,7 +17,7 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
   Future<List<Like>> getByPost(int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+        "${BaseProvider.baseUrl}$endpoint/post/$postId",
       );
 
       final response = await http.get(uri, headers: await createHeaders());
@@ -105,7 +105,7 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
   Future<Like> likePost(int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+        "${BaseProvider.baseUrl}$endpoint/post/$postId",
       );
 
       final response = await http.post(uri, headers: await createHeaders());
@@ -135,7 +135,7 @@ class LikeProvider extends BaseProvider<Like, dynamic> {
   Future<bool> unlikePost(int postId) async {
     return await handleWithRefresh(() async {
       final uri = Uri.parse(
-        "${BaseProvider.baseUrl ?? "http://localhost:5164/"}$endpoint/post/$postId",
+        "${BaseProvider.baseUrl}$endpoint/post/$postId",
       );
 
       final response = await http.delete(uri, headers: await createHeaders());

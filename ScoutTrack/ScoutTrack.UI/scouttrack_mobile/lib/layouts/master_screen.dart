@@ -22,6 +22,7 @@ class MasterScreen extends StatefulWidget {
   final Function(int)? onNavigationTap;
   final List<Widget>? actions;
   final bool showBackButton;
+  final bool alwaysShowMenu;
 
   const MasterScreen({
     super.key,
@@ -31,6 +32,7 @@ class MasterScreen extends StatefulWidget {
     this.onNavigationTap,
     this.actions,
     this.showBackButton = false,
+    this.alwaysShowMenu = false,
   });
 
   @override
@@ -70,6 +72,9 @@ class _MasterScreenState extends State<MasterScreen> {
   }
 
   bool _shouldShowBackButton() {
+    if (widget.alwaysShowMenu) {
+      return false;
+    }
     return widget.showBackButton || !_isMainNavigationScreen();
   }
 
@@ -108,7 +113,10 @@ class _MasterScreenState extends State<MasterScreen> {
           if (context.mounted) {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => TroopDetailsScreen(troop: troop),
+                builder: (context) => TroopDetailsScreen(
+                  troop: troop,
+                  alwaysShowMenu: true,
+                ),
               ),
             );
           }
@@ -406,6 +414,7 @@ class MasterScreenBuilder {
     int selectedIndex = 0,
     Function(int)? onNavigationTap,
     bool showBackButton = false,
+    bool alwaysShowMenu = false,
   }) {
     return MasterScreen(
       headerTitle: headerTitle,
@@ -413,6 +422,7 @@ class MasterScreenBuilder {
       selectedIndex: selectedIndex,
       onNavigationTap: onNavigationTap,
       showBackButton: showBackButton,
+      alwaysShowMenu: alwaysShowMenu,
     );
   }
 }

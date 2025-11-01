@@ -117,7 +117,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   Widget build(BuildContext context) {
     return MasterScreen(
       headerTitle: 'Izviđački dokumenti',
-      showBackButton: true,
+      alwaysShowMenu: true,
       body: Column(
         children: [
           Container(
