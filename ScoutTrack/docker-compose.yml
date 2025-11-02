@@ -7,6 +7,7 @@ services:
       SA_PASSWORD: "MyStrong!Passw0rd"
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
+      TZ: "Europe/Sarajevo"
     ports:
       - "1401:1433"
     expose:
@@ -41,6 +42,7 @@ services:
       - "5164:5164"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - TZ=Europe/Sarajevo
       - ConnectionStrings__DefaultConnection=Server=scouttrack-sql,1433;Database=220188;User Id=sa;Password=MyStrong!Passw0rd;TrustServerCertificate=True
       - RabbitMQ__ConnectionString=host=${RABBIT_MQ_HOST};username=${RABBIT_MQ_USER};password=${RABBIT_MQ_PASS}
       - JWT__KEY=${JWT__KEY}
@@ -64,6 +66,7 @@ services:
       dockerfile: ScoutTrack.Subscriber/Dockerfile
     environment:
       - RABBITMQ_CONNECTIONSTRING=host=${RABBIT_MQ_HOST};username=${RABBIT_MQ_USER};password=${RABBIT_MQ_PASS}
+      - TZ=Europe/Sarajevo
       - ConnectionStrings__DefaultConnection=Server=scouttrack-sql,1433;Database=220188;User Id=sa;Password=MyStrong!Passw0rd;TrustServerCertificate=True
     networks:
       - scouttrack-2025
