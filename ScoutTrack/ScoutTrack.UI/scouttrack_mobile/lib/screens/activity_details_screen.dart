@@ -1072,9 +1072,19 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        'Ostavi komentar...',
-                        style: TextStyle(color: Colors.grey[600]),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add_comment_outlined,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Ostavi komentar...',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -2695,30 +2705,6 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                         },
                       ),
               ),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showCommentInput(currentPost, setModalState);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[600],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(Icons.add_comment),
-                    label: const Text('Dodaj komentar'),
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -3271,6 +3257,11 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
         setModalState(() {
           // Force rebuild to get fresh data from _posts list
         });
+        
+        SnackBarUtils.showSuccessSnackBar(
+          'Komentar je uspješno dodan',
+          context: context,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -3282,6 +3273,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
 
   void _showCommentInput(Post post, StateSetter setModalState) {
     final controller = TextEditingController();
+    bool isDisposed = false;
 
     showModalBottomSheet(
       context: context,
@@ -3289,9 +3281,13 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          controller.addListener(() {
-            setState(() {});
-          });
+          if (!isDisposed) {
+            controller.addListener(() {
+              if (!isDisposed && context.mounted) {
+                setState(() {});
+              }
+            });
+          }
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.6,
@@ -3324,7 +3320,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                       ),
                       const Spacer(),
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          isDisposed = true;
+                          Navigator.pop(context);
+                        },
                         icon: const Icon(Icons.close),
                       ),
                     ],
@@ -3377,7 +3376,10 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            isDisposed = true;
+                            Navigator.pop(context);
+                          },
                           child: const Text('Otkaži'),
                         ),
                       ),
@@ -3389,12 +3391,16 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen>
                                   controller.text.length > 500
                               ? null
                               : () async {
+                                  final commentText = controller.text;
+                                  isDisposed = true;
                                   Navigator.pop(context);
-                                  await _submitComment(
-                                    post,
-                                    controller.text,
-                                    setModalState,
-                                  );
+                                  if (context.mounted) {
+                                    await _submitComment(
+                                      post,
+                                      commentText,
+                                      setModalState,
+                                    );
+                                  }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[600],

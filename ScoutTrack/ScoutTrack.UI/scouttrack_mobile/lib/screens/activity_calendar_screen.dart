@@ -63,14 +63,13 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final activityProvider = ActivityProvider(authProvider);
 
-      final startOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
-      final endOfMonth = DateTime(
-        _currentMonth.year,
-        _currentMonth.month + 1,
-        0,
-      );
-
-      final filter = <String, dynamic>{};
+      final filter = <String, dynamic>{
+        'IncludeFinished': true,
+        'PageNumber': 1,
+        'PageSize': 1000,
+        'OrderBy': 'StartTime',
+        'OrderByDirection': 'DESC'
+      };
 
       final result = await activityProvider.get(filter: filter);
       final allActivities = result.items ?? [];
@@ -85,19 +84,11 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
           return false;
         }
 
-        final startDate = activity.startTime!;
-        final endDate = activity.endTime ?? startDate;
-
-        final isInCurrentMonth =
-            (startDate.isBefore(endOfMonth.add(const Duration(days: 1))) &&
-            endDate.isAfter(startOfMonth.subtract(const Duration(days: 1))));
-
         if (_selectedTroopId != null) {
-          final matchesTroop = activity.troopId == _selectedTroopId;
-          return isInCurrentMonth && matchesTroop;
+          return activity.troopId == _selectedTroopId;
         }
 
-        return isInCurrentMonth;
+        return true;
       }).toList();
 
       if (_currentUserId != null && _activities.isNotEmpty) {
@@ -120,7 +111,7 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
       final userRegistrationsResult = await registrationProvider
           .getMemberRegistrations(
             memberId: _currentUserId!,
-            statuses: [0, 1], // Pending and Approved
+            statuses: [0, 1, 2, 3],
             pageSize: 1000,
           );
 
@@ -683,8 +674,7 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
   }
 
   bool _canUserRegister(Activity activity) {
-    return activity.activityState == 'RegistrationsOpenActivityState' &&
-        !_isUserRegistered(activity);
+    return activity.activityState == 'RegistrationsOpenActivityState';
   }
 
   bool _canUserCancelRegistration(Activity activity) {
@@ -693,48 +683,84 @@ class _ActivityCalendarScreenState extends State<ActivityCalendarScreen> {
   }
 
   Widget _buildRegistrationButton(Activity activity) {
-    final canRegister = _canUserRegister(activity);
-    final canCancel = _canUserCancelRegistration(activity);
     final userRegistration = _getUserRegistration(activity);
+    final canRegister = _canUserRegister(activity);
+    final isFinished = activity.activityState == 'FinishedActivityState';
 
-    if (canRegister) {
-      return GestureDetector(
-        onTap: () => _createRegistration(activity),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
-            'Prijavi se',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+    Widget buildStatusContainer(String text, Color backgroundColor, Color textColor) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: textColor,
+            fontWeight: FontWeight.w600,
           ),
         ),
       );
-    } else if (canCancel && userRegistration != null) {
-      return GestureDetector(
-        onTap: () => _cancelRegistration(userRegistration),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.red[600],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
+    }
+
+    if (userRegistration != null) {
+      if (userRegistration.status == 2) {
+        return buildStatusContainer(
+          'Prijava odbijena',
+          Colors.red.shade100,
+          Colors.red.shade900,
+        );
+      }
+      
+      if (isFinished && userRegistration.status == 3) {
+        return Column(
+          children: [
+            buildStatusContainer(
+              'Završena aktivnost',
+              Colors.grey.shade200,
+              Colors.grey.shade800,
+            ),
+            const SizedBox(height: 4),
+            buildStatusContainer(
+              'Prisustvovao/la si',
+              Colors.green.shade100,
+              Colors.green.shade900,
+            ),
+          ],
+        );
+      }
+      
+      if (userRegistration.canCancel) {
+        return GestureDetector(
+          onTap: () => _cancelRegistration(userRegistration),
+          child: buildStatusContainer(
             'Otkaži prijavu',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            Colors.red.shade600,
+            Colors.white,
           ),
-        ),
-      );
+        );
+      }
+    } else {
+      if (isFinished) {
+        return buildStatusContainer(
+          'Završena aktivnost',
+          Colors.grey.shade200,
+          Colors.grey.shade800,
+        );
+      }
+      
+      if (canRegister) {
+        return GestureDetector(
+          onTap: () => _createRegistration(activity),
+          child: buildStatusContainer(
+            'Prijavi se',
+            Theme.of(context).colorScheme.primary,
+            Colors.white,
+          ),
+        );
+      }
     }
 
     return const SizedBox.shrink();

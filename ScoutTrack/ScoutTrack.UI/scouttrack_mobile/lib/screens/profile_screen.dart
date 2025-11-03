@@ -1408,6 +1408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     "Gender": selectedGender,
                                     "CityId": selectedCityId,
                                     "TroopId": _currentMember!.troopId,
+                                    "ProfilePictureUrl": _currentMember!.profilePictureUrl,
                                   };
 
                                   final memberProvider =
