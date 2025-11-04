@@ -146,13 +146,13 @@ A hybrid recommendation engine is built to enhance engagement:
 
 ### 2. Mobile App
 - Unpack `fit-build-2025-11-01.zip`
-- Find the APK: `fit-build-2025-11-01/flutter-apk/app-release.apk`
+- Find the APK: `fit-build-2025-11-03/flutter-apk/app-release.apk`
 - Drag & drop APK into Android Emulator (AVD)
 - Launch the app in emulator
 - **API Base URL:** `http://10.0.2.2:5164/`
 
 ### 3. Desktop App
-- In the same extracted zip, go to: `fit-build-2025-11-01/Release/`
+- In the same extracted zip, go to: `fit-build-2025-11-03/Release/`
 - Run the `.exe` file
 - **API Base URL:** `http://localhost:5164/`
 
