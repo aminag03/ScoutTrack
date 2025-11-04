@@ -145,7 +145,7 @@ A hybrid recommendation engine is built to enhance engagement:
    ```
 
 ### 2. Mobile App
-- Unpack `fit-build-2025-11-01.zip`
+- Unpack `fit-build-2025-11-03.zip`
 - Find the APK: `fit-build-2025-11-03/flutter-apk/app-release.apk`
 - Drag & drop APK into Android Emulator (AVD)
 - Launch the app in emulator
